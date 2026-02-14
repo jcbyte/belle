@@ -4,3 +4,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+pubgrub = "0.3.0"
+rustc-hash = "2.1.1"
