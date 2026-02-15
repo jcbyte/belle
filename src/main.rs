@@ -8,7 +8,7 @@ mod registry;
 async fn main() -> anyhow::Result<()> {
     BelleConfig::init()?;
 
-    fetch::update().await?;
+    fetch::update_meta().await?;
 
     return Ok(());
 }
