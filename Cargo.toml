@@ -12,3 +12,4 @@ regex = "1.10"
 anyhow = "1.0"
 # ? what features do i actually need from tokio?
 tokio = { version = "1", features = ["full"] }
+toml = "0.9.8"
