@@ -82,13 +82,23 @@ struct AuthorMeta {
 }
 
 #[derive(Debug)]
+pub struct RelatedMeta {
+    pub dois: Vec<String>,
+    pub pubs: Vec<String>,
+}
+
+#[derive(Debug)]
 struct EntryMeta {
     title: String,
     date: String,
-    topics: Vec<String>,
     r#abstract: String,
+    license: String,
+    topics: Vec<String>,
+    note: Option<String>,
     authors: Vec<String>,
     contributors: Vec<String>,
+    related: RelatedMeta,
+    extra: HashMap<String, String>,
 }
 
 #[derive(Debug)]
@@ -125,7 +135,7 @@ async fn get_repo_meta(repo: &AFPRepo) -> anyhow::Result<RepoMeta> {
 
     let mut authors: HashMap<String, AuthorMeta> = HashMap::default();
     let mut licences: HashMap<String, String> = HashMap::default();
-    let mut entries: HashMap<String, EntryMeta> = HashMap::default();
+    let mut entries: HashMap<String, EntryMeta> = HashMap::new();
 
     for i in 0..archive.len() {
         let mut file = archive.by_index(i)?;
@@ -190,8 +200,60 @@ async fn get_repo_meta(repo: &AFPRepo) -> anyhow::Result<RepoMeta> {
                 .map(|(licence_id, licence)| (licence_id, licence.name))
                 .collect();
         } else if name.parent().map_or(false, |p| p.ends_with("entries")) {
-            println!("{:#?}", name);
-            // todo ...
+            #[derive(Debug, Deserialize, Default)]
+            pub struct Related {
+                #[serde(default)]
+                pub dois: Vec<String>,
+                #[serde(default)]
+                pub pubs: Vec<String>,
+            }
+            #[derive(Debug, Deserialize)]
+            pub struct Entry {
+                pub title: String,
+                pub date: toml::value::Datetime,
+                pub topics: Vec<String>,
+                pub r#abstract: String,
+                pub license: String,
+                pub note: Option<String>,
+
+                // Tables with dynamic keys
+                #[serde(default)]
+                pub authors: HashMap<String, toml::Value>,
+                #[serde(default)]
+                pub contributors: HashMap<String, toml::Value>,
+                #[serde(default)]
+                pub extra: HashMap<String, String>,
+                #[serde(default)]
+                pub related: Related,
+            }
+
+            let Some(thy_name) = name.file_stem().map(|tn| tn.to_string_lossy().to_string()) else {
+                continue;
+            };
+
+            let mut content = String::new();
+            file.read_to_string(&mut content)?;
+            let entry_toml: Entry = toml::from_str(&content)
+                .with_context(|| format!("Failed to parse TOML for entry '{}' in {} repo", thy_name, repo.name))?;
+
+            entries.insert(
+                thy_name,
+                EntryMeta {
+                    title: entry_toml.title,
+                    date: entry_toml.date.to_string(),
+                    r#abstract: entry_toml.r#abstract,
+                    license: entry_toml.license,
+                    topics: entry_toml.topics,
+                    note: entry_toml.note,
+                    authors: entry_toml.authors.into_keys().collect(),
+                    contributors: entry_toml.contributors.into_keys().collect(),
+                    extra: entry_toml.extra,
+                    related: RelatedMeta {
+                        dois: entry_toml.related.dois,
+                        pubs: entry_toml.related.pubs,
+                    },
+                },
+            );
         }
     }
 
