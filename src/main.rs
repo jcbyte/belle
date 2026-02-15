@@ -1,7 +1,13 @@
-use std::{collections::HashMap, fmt::format, io::Cursor, path::Path};
+use std::{
+    collections::HashMap,
+    fmt::format,
+    io::{Cursor, Read},
+    path::Path,
+};
 
 use anyhow::Context;
 use regex::Regex;
+use reqwest::header::Entry;
 use serde::Deserialize;
 use zip::ZipArchive;
 
@@ -67,7 +73,34 @@ async fn get_thys(repo: &AFPRepo) -> anyhow::Result<Vec<String>> {
     Ok(thys)
 }
 
-async fn get_repo_meta(repo: &AFPRepo) -> anyhow::Result<()> {
+#[derive(Debug)]
+struct AuthorMeta {
+    name: String,
+    orcid: Option<String>,
+    emails: Vec<String>,
+    homepage: Option<String>,
+}
+
+#[derive(Debug)]
+struct EntryMeta {
+    title: String,
+    date: String,
+    topics: Vec<String>,
+    r#abstract: String,
+    authors: Vec<String>,
+    contributors: Vec<String>,
+}
+
+#[derive(Debug)]
+struct RepoMeta {
+    authors: HashMap<String, AuthorMeta>,
+    licences: HashMap<String, String>,
+    // releases: HashMap<String, Vec<(String, String)>>, // ? This is not used/needed
+    // topics:, // ? This is not used/needed
+    entries: HashMap<String, EntryMeta>,
+}
+
+async fn get_repo_meta(repo: &AFPRepo) -> anyhow::Result<RepoMeta> {
     let meta_archive_url = format!(
         "https://foss.heptapod.net/api/v4/projects/{}/repository/archive.zip?path=metadata",
         repo.id
@@ -87,14 +120,46 @@ async fn get_repo_meta(repo: &AFPRepo) -> anyhow::Result<()> {
         .await
         .with_context(|| format!("Failed to read metadata archive bytes for '{}' repo", repo.name))?;
 
-    let tmp = tempfile::tempdir().context("Failed to create temporary directory")?;
     let reader = Cursor::new(response_bytes);
     let mut archive = ZipArchive::new(reader).context("Failed to read zip archive")?;
-    archive.extract(tmp).context("Failed to extract zip archive")?;
 
-    // todo continue
+    let mut authors: HashMap<String, AuthorMeta> = HashMap::default();
+    let mut licences: HashMap<String, String> = HashMap::default();
+    let mut entries: HashMap<String, EntryMeta> = HashMap::default();
 
-    return Ok(());
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i)?;
+        let Some(name) = file.enclosed_name() else { continue };
+
+        if name.ends_with("authors.toml") {
+            // todo read the toml
+        } else if name.ends_with("licenses.toml") {
+            #[derive(serde::Deserialize)]
+            struct Licence {
+                name: String,
+            }
+
+            let mut content = String::new();
+            file.read_to_string(&mut content)?;
+            let authors_toml: HashMap<String, Licence> = toml::from_str(&content)
+                .with_context(|| format!("Failed to parse TOML for 'licenses.toml' in {} repo", repo.name))?;
+
+            licences = authors_toml
+                .into_iter()
+                .map(|(licence_id, licence)| (licence_id, licence.name))
+                .collect();
+        } else if name.starts_with("/entries/") {
+            // todo ...
+        }
+    }
+
+    let meta = RepoMeta {
+        authors,
+        licences,
+        entries,
+    };
+
+    return Ok(meta);
     // https://foss.heptapod.net/api/v4/projects/{}/repository/archive.zip?path=metadata/entries
 }
 
@@ -110,9 +175,9 @@ async fn main() -> anyhow::Result<()> {
     };
     println!("name: {} {}", latest_repo.name, latest_repo.id);
 
-    // get_repo_meta(latest_repo).await?;
-    let thys = get_thys(latest_repo).await?;
-    println!("{:#?}", thys);
+    let a = get_repo_meta(latest_repo).await?;
+    // let a = get_thys(latest_repo).await?;
+    println!("{:#?}", a);
 
     return Ok(());
 }
