@@ -1,8 +1,9 @@
-use std::{collections::HashMap, fmt::format};
+use std::{collections::HashMap, fmt::format, io::Cursor, path::Path};
 
 use anyhow::Context;
 use regex::Regex;
 use serde::Deserialize;
+use zip::ZipArchive;
 
 #[derive(Deserialize)]
 struct AFPRepo {
@@ -66,23 +67,52 @@ async fn get_thys(repo: &AFPRepo) -> anyhow::Result<Vec<String>> {
     Ok(thys)
 }
 
+async fn get_repo_meta(repo: &AFPRepo) -> anyhow::Result<()> {
+    let meta_archive_url = format!(
+        "https://foss.heptapod.net/api/v4/projects/{}/repository/archive.zip?path=metadata",
+        repo.id
+    );
 
-    Ok(releases)
+    let client = reqwest::Client::builder()
+        .user_agent("belle-client")
+        .build()
+        .context("Failed to create reqwest Client")?;
+
+    let response_bytes = client
+        .get(meta_archive_url)
+        .send()
+        .await
+        .with_context(|| format!("Failed to fetch metadata for '{}' repo", repo.name))?
+        .bytes()
+        .await
+        .with_context(|| format!("Failed to read metadata archive bytes for '{}' repo", repo.name))?;
+
+    let tmp = tempfile::tempdir().context("Failed to create temporary directory")?;
+    let reader = Cursor::new(response_bytes);
+    let mut archive = ZipArchive::new(reader).context("Failed to read zip archive")?;
+    archive.extract(tmp).context("Failed to extract zip archive")?;
+
+    // todo continue
+
+    return Ok(());
+    // https://foss.heptapod.net/api/v4/projects/{}/repository/archive.zip?path=metadata/entries
 }
-
-async fn get_packages_meta(releases: ReleaseMap) {}
-// https://foss.heptapod.net/api/v4/projects/{}/repository/archive.zip?path=metadata/entries
 
 // todo get dependencies through ROOT files (this will be more difficult)
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let afp_repos = get_afp_repos().await?;
-    let latest_repo = afp_repos.first().context("No latest AFP repository could be found")?;
+    // let afp_repos = get_afp_repos().await?;
+    // let latest_repo = afp_repos.first().context("No latest AFP repository could be found")?;
+    let latest_repo = &AFPRepo {
+        id: 2228,
+        name: String::from("afp-2025-2"),
+    };
     println!("name: {} {}", latest_repo.name, latest_repo.id);
 
-    let releases = get_releases(latest_repo).await?;
-    println!("{:#?}", releases);
+    // get_repo_meta(latest_repo).await?;
+    let thys = get_thys(latest_repo).await?;
+    println!("{:#?}", thys);
 
     return Ok(());
 }
