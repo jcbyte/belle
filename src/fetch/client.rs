@@ -4,7 +4,9 @@ use anyhow::Context;
 use regex::Regex;
 use serde::Deserialize;
 
-#[derive(Deserialize)]
+use crate::fetch::metadata::RepoMetadata;
+
+#[derive(Deserialize, Debug)]
 pub struct AFPRepo {
     id: i32,
     name: String,
@@ -99,5 +101,26 @@ impl BelleClient {
             .with_context(|| format!("Failed to read metadata archive bytes for '{}' repo", repo.name))?;
 
         return Ok(bytes);
+    }
+
+    pub async fn get_thy_root(&self, repo: &AFPRepo, thy: &String) -> anyhow::Result<String> {
+        let root_file_url = format!(
+            "https://foss.heptapod.net/api/v4/projects/{}/repository/files/{}/raw",
+            repo.id,
+            format!("thys%2F{}%2FROOT", thy)
+        );
+
+        // Retrieve the raw string of the ROOT file for the given theory and repo
+        let file_content = self
+            .client
+            .get(root_file_url)
+            .send()
+            .await
+            .with_context(|| format!("Failed to fetch ROOT file for '{}' in '{}' repo", thy, repo.name))?
+            .text()
+            .await
+            .with_context(|| format!("Failed to read ROOT file from '{}' in '{}' repo", thy, repo.name))?;
+
+        return Ok(file_content);
     }
 }
