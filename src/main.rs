@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     fmt::format,
     io::{Cursor, Read},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 use anyhow::Context;
@@ -78,7 +78,7 @@ struct AuthorMeta {
     name: String,
     orcid: Option<String>,
     emails: Vec<String>,
-    homepage: Option<String>,
+    homepages: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -132,7 +132,48 @@ async fn get_repo_meta(repo: &AFPRepo) -> anyhow::Result<RepoMeta> {
         let Some(name) = file.enclosed_name() else { continue };
 
         if name.ends_with("authors.toml") {
-            // todo read the toml
+            #[derive(serde::Deserialize, Debug)]
+            pub struct Email {
+                user: Vec<String>,
+                host: Vec<String>,
+            }
+            impl Email {
+                pub fn to_string(&self) -> String {
+                    format!("{}@{}", self.user.join("."), self.host.join("."))
+                }
+            }
+            #[derive(serde::Deserialize, Debug)]
+            pub struct Author {
+                name: String,
+                orcid: Option<String>,
+
+                // Default to empty map if the section is missing in TOML
+                #[serde(default)]
+                emails: HashMap<String, Email>,
+
+                #[serde(default)]
+                homepages: HashMap<String, String>,
+            }
+
+            let mut content = String::new();
+            file.read_to_string(&mut content)?;
+            let authors_toml: HashMap<String, Author> = toml::from_str(&content)
+                .with_context(|| format!("Failed to parse TOML for 'authors.toml' in {} repo", repo.name))?;
+
+            authors = authors_toml
+                .into_iter()
+                .map(|(author_id, author)| {
+                    (
+                        author_id,
+                        AuthorMeta {
+                            name: author.name,
+                            orcid: author.orcid,
+                            emails: author.emails.values().map(|email| email.to_string()).collect(),
+                            homepages: author.homepages.into_values().collect(),
+                        },
+                    )
+                })
+                .collect();
         } else if name.ends_with("licenses.toml") {
             #[derive(serde::Deserialize)]
             struct Licence {
@@ -141,14 +182,15 @@ async fn get_repo_meta(repo: &AFPRepo) -> anyhow::Result<RepoMeta> {
 
             let mut content = String::new();
             file.read_to_string(&mut content)?;
-            let authors_toml: HashMap<String, Licence> = toml::from_str(&content)
+            let licence_toml: HashMap<String, Licence> = toml::from_str(&content)
                 .with_context(|| format!("Failed to parse TOML for 'licenses.toml' in {} repo", repo.name))?;
 
-            licences = authors_toml
+            licences = licence_toml
                 .into_iter()
                 .map(|(licence_id, licence)| (licence_id, licence.name))
                 .collect();
-        } else if name.starts_with("/entries/") {
+        } else if name.parent().map_or(false, |p| p.ends_with("entries")) {
+            println!("{:#?}", name);
             // todo ...
         }
     }
