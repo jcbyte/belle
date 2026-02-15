@@ -10,6 +10,7 @@ pub struct PackageAuthor {
     name: String,
     email: Option<String>,
     homepages: Option<Vec<String>>,
+    orcid: Option<String>,
 }
 
 #[derive(Serialize)]

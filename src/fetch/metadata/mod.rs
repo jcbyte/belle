@@ -4,9 +4,10 @@ use std::io::Read;
 use std::{collections::HashMap, io::Cursor};
 use zip::ZipArchive;
 
+pub mod dependency;
 mod schema;
-// use crate::fetch::metadata::schema;
 
+#[derive(Debug)]
 struct AuthorMetadata {
     name: String,
     orcid: Option<String>,
@@ -14,6 +15,7 @@ struct AuthorMetadata {
     homepages: Vec<String>,
 }
 
+#[derive(Debug)]
 struct TheoryMetadata {
     title: String,
     date: toml::value::Date,
@@ -26,6 +28,7 @@ struct TheoryMetadata {
     extra: toml::Table,
 }
 
+#[derive(Debug)]
 pub struct RepoMetadata {
     authors: HashMap<String, AuthorMetadata>,
     licences: HashMap<String, String>,
@@ -47,22 +50,24 @@ impl TryFrom<bytes::Bytes> for RepoMetadata {
             let mut file = archive.by_index(i)?;
             let Some(name) = file.enclosed_name() else { continue };
 
-            if name.ends_with("authors.toml") {
-                let mut content = String::new();
+            let mut read_content = || -> anyhow::Result<String> {
+                let mut content = String::with_capacity(file.size() as usize);
                 file.read_to_string(&mut content)?;
+                Ok(content)
+            };
+
+            if name.ends_with("authors.toml") {
+                let content = read_content()?;
                 authors = RepoMetadata::parse_authors(&content)?;
             } else if name.ends_with("licenses.toml") {
-                let mut content = String::new();
-                file.read_to_string(&mut content)?;
+                let content = read_content()?;
                 licences = RepoMetadata::parse_licences(&content)?;
             } else if name.parent().map_or(false, |p| p.ends_with("entries")) {
-                let mut content = String::new();
-                file.read_to_string(&mut content)?;
-
                 let Some(thy_name) = name.file_stem().map(|tn| tn.to_string_lossy().to_string()) else {
                     continue;
                 };
 
+                let content = read_content()?;
                 let theory_metadata = RepoMetadata::parse_theory(&content)?;
                 theories.insert(thy_name, theory_metadata);
             }

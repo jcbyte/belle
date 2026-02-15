@@ -11,7 +11,7 @@ pub static CONFIG: OnceLock<BelleConfig> = OnceLock::new();
 
 #[derive(Deserialize)]
 pub struct BelleConfig {
-    root_dir: PathBuf,
+    pub root_dir: PathBuf,
 }
 
 impl BelleConfig {
