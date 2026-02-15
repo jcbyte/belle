@@ -31,27 +31,41 @@ async fn get_afp_repos() -> anyhow::Result<Vec<AFPRepo>> {
     return Ok(afp_repos);
 }
 
-type ReleaseMap = HashMap<String, HashMap<String, String>>;
+#[derive(Deserialize)]
+struct TreeItem {
+    name: String,
+    path: String,
+}
+// let releases_file_url = format!(
+//     "https://foss.heptapod.net/api/v4/projects/{}/repository/files/metadata%2Freleases.toml/raw",
+//     repo.id
+// );
 
-async fn get_releases(repo: &AFPRepo) -> anyhow::Result<ReleaseMap> {
-    let releases_file_url = format!(
-        "https://foss.heptapod.net/api/v4/projects/{}/repository/files/metadata%2Freleases.toml/raw",
+async fn get_thys(repo: &AFPRepo) -> anyhow::Result<Vec<String>> {
+    let repo_entries_tree_url = format!(
+        // ! Note this hard coded `2000` per page
+        "https://foss.heptapod.net/api/v4/projects/{}/repository/tree?path=metadata%2Fentries&per_page=2000",
         repo.id
     );
 
     let client = reqwest::Client::new();
-    let releases_content = client
-        .get(releases_file_url)
+    let entries_tree: Vec<TreeItem> = client
+        .get(repo_entries_tree_url)
         .header("User-Agent", "belle-client")
         .send()
         .await
-        .with_context(|| format!("Failed to fetch releases file for '{}' repo", repo.name))?
-        .text()
+        .with_context(|| format!("Failed to fetch entires list for '{}' repo", repo.name))?
+        .json()
         .await
-        .with_context(|| format!("Failed to read releases file for '{}' repo", repo.name))?;
+        .with_context(|| format!("Failed to parse JSON response of entires list for '{}' repo", repo.name))?;
 
-    let releases = toml::from_str(&releases_content)
-        .with_context(|| format!("Failed to parse TOML from releases file for '{}' repo", repo.name))?;
+    let thys: Vec<String> = entries_tree
+        .iter()
+        .filter_map(|e| Path::new(&e.name).file_stem().map(|f| f.to_string_lossy().to_string()))
+        .collect();
+    Ok(thys)
+}
+
 
     Ok(releases)
 }
