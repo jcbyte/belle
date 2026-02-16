@@ -1,15 +1,28 @@
 use std::path::Path;
 
 use anyhow::Context;
+use pubgrub::SemanticVersion;
 use regex::Regex;
 use serde::Deserialize;
 
 use crate::fetch::metadata::RepoMetadata;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct AFPRepo {
     id: i32,
     name: String,
+}
+
+impl AFPRepo {
+    pub fn get_version(&self) -> SemanticVersion {
+        let name_parts: Vec<u32> = self.name.split('-').filter_map(|s| s.parse::<u32>().ok()).collect();
+
+        let major = name_parts.get(0).unwrap_or(&0);
+        let minor = name_parts.get(1).unwrap_or(&0);
+        let patch = name_parts.get(2).unwrap_or(&0);
+
+        return SemanticVersion::new(*major, *minor, *patch);
+    }
 }
 
 pub struct BelleClient {
