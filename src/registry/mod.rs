@@ -1,38 +1,38 @@
 use std::collections::HashMap;
 
 use pubgrub::SemanticVersion;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 pub mod package;
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct PackageAuthor {
-    name: String,
-    email: Option<String>,
-    homepages: Option<Vec<String>>,
-    orcid: Option<String>,
+    pub name: String,
+    pub email: Option<String>,
+    pub homepages: Option<Vec<String>>,
+    pub orcid: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Package {
-    name: String,
-    version: SemanticVersion,
-    title: String,
-    date: toml::value::Datetime,
-    r#abstract: String,
-    licence: String,
-    topics: Vec<String>,
-    note: Option<String>,
+    pub name: String,
+    pub version: SemanticVersion,
+    pub title: String,
+    pub date: toml::value::Date,
+    pub r#abstract: String,
+    pub licence: String,
+    pub topics: Vec<String>,
+    pub note: Option<String>,
 
-    authors: Vec<PackageAuthor>,
-    contributors: Vec<PackageAuthor>,
+    pub authors: Vec<PackageAuthor>,
+    pub contributors: Vec<PackageAuthor>,
 
-    dependencies: HashMap<String, SemanticVersion>,
+    pub dependencies: HashMap<String, SemanticVersion>,
 
-    extra: toml::Table,
+    pub extra: toml::Table,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Manifest {
     name: String,
     version: SemanticVersion,
