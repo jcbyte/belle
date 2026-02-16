@@ -40,24 +40,46 @@ impl BelleClient {
         return Ok(Self { client });
     }
 
-    pub async fn get_afp_repos(&self) -> anyhow::Result<Vec<AFPRepo>> {
-        let afp_repo_list_url =
-            "https://foss.heptapod.net/api/v4/groups/isa-afp/projects?order_by=last_activity_at&sort=desc";
+    pub async fn get_afp_repos(&self, limit: usize) -> anyhow::Result<Vec<AFPRepo>> {
+        let re = Regex::new(r"^afp-[\d-]+$").context("Failed to create regex pattern for AFP repository name")?;
 
-        // Retrieve all repos/projects within the `isa-afp` group
-        let repos: Vec<AFPRepo> = self
-            .client
-            .get(afp_repo_list_url)
-            .send()
-            .await
-            .context("Failed to send request to Hetapod")?
-            .json()
-            .await
-            .context("Failed to parse JSON response from Hetapod")?;
+        let mut afp_repos: Vec<AFPRepo> = Vec::new();
+        let mut page = 0;
 
-        // Only keep repos which match the name of the AFP
-        let re = Regex::new(r"^afp-[\d-]+$").context("Invalid regex pattern for AFP repository name")?;
-        let afp_repos: Vec<AFPRepo> = repos.into_iter().filter(|p| re.is_match(&p.name)).collect();
+        loop {
+            let afp_repo_list_url = format!(
+                "https://foss.heptapod.net/api/v4/groups/isa-afp/projects?order_by=last_activity_at&sort=desc&per_page=25&page={}",
+                page
+            );
+
+            println!("page {}", page);
+
+            // Retrieve all repos/projects within the `isa-afp` group
+            let repos: Vec<AFPRepo> = self
+                .client
+                .get(afp_repo_list_url)
+                .send()
+                .await
+                .context("Failed to send request to Hetapod")?
+                .json()
+                .await
+                .context("Failed to parse JSON response from Hetapod")?;
+
+            if repos.is_empty() {
+                break;
+            }
+
+            // Only keep repos which match the name of the AFP
+            let retrieved_repos: Vec<AFPRepo> = repos.into_iter().filter(|p| re.is_match(&p.name)).collect();
+
+            afp_repos.extend(retrieved_repos);
+
+            if afp_repos.len() >= limit {
+                afp_repos.truncate(limit);
+                break;
+            }
+            page += 1;
+        }
 
         return Ok(afp_repos);
     }
