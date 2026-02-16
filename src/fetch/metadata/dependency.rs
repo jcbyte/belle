@@ -7,6 +7,12 @@ pub struct RootFileDependencies {
     pub sessions: Vec<String>,
 }
 
+impl RootFileDependencies {
+    pub fn iter_all(&self) -> impl Iterator<Item = &String> {
+        return std::iter::once(&self.parent).chain(&self.sessions);
+    }
+}
+
 pub fn extract_root_deps(content: &str) -> anyhow::Result<RootFileDependencies> {
     // Match and capture the parents (after '=')
     let parent_re = Regex::new(
