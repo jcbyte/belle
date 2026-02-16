@@ -9,7 +9,7 @@ use serde::Deserialize;
 
 pub static CONFIG: OnceLock<BelleConfig> = OnceLock::new();
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct BelleConfig {
     pub root_dir: PathBuf,
 }

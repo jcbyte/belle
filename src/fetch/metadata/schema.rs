@@ -34,9 +34,9 @@ pub struct MetaLicence {
 #[derive(Debug, Deserialize, Default)]
 pub struct MetaTheoryRelated {
     #[serde(default)]
-    pub dois: toml::value::Array,
+    pub dois: Vec<String>,
     #[serde(default)]
-    pub pubs: toml::value::Array,
+    pub pubs: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]

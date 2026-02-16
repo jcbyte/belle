@@ -129,8 +129,12 @@ impl RepoMetadata {
             toml::from_str(&toml_content).context("Failed to parse TOML for theory metadata")?;
 
         let mut extra_table = theory_raw.extra;
-        extra_table.insert(String::from("dois"), toml::Value::Array(theory_raw.related.dois));
-        extra_table.insert(String::from("pubs"), toml::Value::Array(theory_raw.related.pubs));
+        if !theory_raw.related.dois.is_empty() {
+            extra_table.insert(String::from("dois"), theory_raw.related.dois.into());
+        }
+        if !theory_raw.related.pubs.is_empty() {
+            extra_table.insert(String::from("pubs"), theory_raw.related.pubs.into());
+        }
 
         let theory = TheoryMetadata {
             title: theory_raw.title,
@@ -138,7 +142,7 @@ impl RepoMetadata {
             r#abstract: theory_raw.r#abstract,
             licence_key: theory_raw.license,
             topics: theory_raw.topics,
-            note: theory_raw.note,
+            note: theory_raw.note.filter(|n| !n.is_empty()),
             author_keys: theory_raw.authors.into_keys().collect(),
             contributor_keys: theory_raw.contributors.into_keys().collect(),
             extra: extra_table,
@@ -171,9 +175,7 @@ impl RepoMetadata {
         let thy_root = client.get_thy_root(&self.repo, thy_name).await?;
         let deps = dependency::extract_root_deps(&thy_root)?;
 
-        let dependencies: HashMap<String, SemanticVersion> = std::iter::once((deps.parent, version.clone()))
-            .chain(deps.sessions.into_iter().map(|s| (s, version.clone())))
-            .collect();
+        let dependencies: HashMap<String, SemanticVersion> = deps.iter_all().cloned().map(|s| (s, version)).collect();
 
         let licence = self.licences.get(&meta.licence_key).ok_or_else(|| {
             anyhow!(
