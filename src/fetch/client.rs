@@ -6,11 +6,18 @@ use regex::Regex;
 use serde::Deserialize;
 
 use crate::fetch::metadata::RepoMetadata;
+use tabled::Tabled;
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, Tabled)]
 pub struct AFPRepo {
-    id: i32,
-    name: String,
+    #[tabled(skip)]
+    pub id: i32,
+    #[tabled(rename = "Repo Name")]
+    pub name: String,
+
+    #[serde(skip)]
+    #[tabled(display("display_version_private", self))]
+    pub version: (), // Use () as a placeholder
 }
 
 impl AFPRepo {
@@ -23,6 +30,10 @@ impl AFPRepo {
 
         return SemanticVersion::new(*major, *minor, *patch);
     }
+}
+
+fn display_version_private(_: &(), repo: &AFPRepo) -> String {
+    repo.get_version().to_string()
 }
 
 pub struct BelleClient {

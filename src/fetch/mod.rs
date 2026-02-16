@@ -1,4 +1,6 @@
+use nom::combinator::Opt;
 use pubgrub::SemanticVersion;
+use tabled::{Table, settings::Style};
 
 use crate::{
     config,
@@ -12,9 +14,16 @@ use crate::{
 pub(in crate::fetch) mod client;
 pub(in crate::fetch) mod metadata;
 
-pub async fn list_meta() -> anyhow::Result<()> {
+pub async fn list_repositories(limit: usize) -> anyhow::Result<()> {
     let client = BelleClient::new()?;
-    let afp_repos = client.get_afp_repos().await?;
+    let mut afp_repos = client.get_afp_repos(limit).await?;
+    afp_repos.reverse();
+
+    let mut table = Table::new(&afp_repos);
+    table.with(Style::rounded());
+
+    println!("{}", table);
+    println!("Found {} repositories.", afp_repos.len());
 
     return Ok(());
 }
@@ -22,27 +31,30 @@ pub async fn list_meta() -> anyhow::Result<()> {
 pub async fn update_meta() -> anyhow::Result<()> {
     let client = BelleClient::new()?;
 
-    let afp_repos = client.get_afp_repos().await?;
-    let latest_repo = afp_repos.first().unwrap();
-    // todo we need to check this repo is a new toml one
+    // let afp_repos = client.get_afp_repos().await?;
+    // let latest_repo = afp_repos.first().unwrap();
+    // // todo we need to check this repo is a new toml one
 
-    // let thys = client.get_thys(latest_repo).await?;
-    // todo check this against local copy, if this is invalid we need to refetch the repo
+    // // let thys = client.get_thys(latest_repo).await?;
+    // // todo check this against local copy, if this is invalid we need to refetch the repo
 
-    let meta_bytes = client.get_metadata_archive(latest_repo).await?;
-    let repo_metadata = RepoMetadata::new(latest_repo.clone(), meta_bytes)?;
+    // let meta_bytes = client.get_metadata_archive(latest_repo).await?;
+    // let repo_metadata = RepoMetadata::new(latest_repo.clone(), meta_bytes)?;
 
-    for theory in repo_metadata.all_theories() {
-        if theory.package_exists() {
-            continue;
-        }
+    // for theory in repo_metadata.all_theories() {
+    //     if theory.package_exists() {
+    //         continue;
+    //     }
 
-        println!("Retrieving package {}", theory);
-        let package = repo_metadata.create_package_meta(&theory.name, &client).await?;
-        package.register()?;
-    }
+    //     println!("Retrieving package {}", theory);
+    //     let package = repo_metadata.create_package_meta(&theory.name, &client).await?;
+    //     package.register()?;
+    // }
 
     return Ok(());
 }
 
 pub async fn get_package() {}
+
+// belle meta list
+// belle meta fetch <name> [--force]?
