@@ -6,7 +6,7 @@ use std::{collections::HashMap, io::Cursor};
 use zip::ZipArchive;
 
 use crate::fetch::client::{AFPRepo, BelleClient};
-use crate::registry::{Package, PackageAuthor};
+use crate::registry::{Package, PackageAuthor, PackageIdentifier};
 
 pub mod dependency;
 mod schema;
@@ -34,7 +34,7 @@ struct TheoryMetadata {
 
 #[derive(Debug)]
 pub struct RepoMetadata {
-    pub repo: AFPRepo,
+    repo: AFPRepo,
     authors: HashMap<String, AuthorMetadata>,
     licences: HashMap<String, String>,
     theories: HashMap<String, TheoryMetadata>,
@@ -84,8 +84,11 @@ impl RepoMetadata {
         });
     }
 
-    pub fn all_theories(&self) -> impl Iterator<Item = &String> {
-        return self.theories.keys();
+    pub fn all_theories(&self) -> impl Iterator<Item = PackageIdentifier> {
+        return self.theories.keys().map(|theory| PackageIdentifier {
+            name: theory.clone(),
+            version: self.repo.get_version(),
+        });
     }
 }
 

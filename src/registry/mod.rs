@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt};
 
 use pubgrub::SemanticVersion;
 use serde::{Deserialize, Serialize};
@@ -37,4 +37,43 @@ pub struct Manifest {
     name: String,
     version: SemanticVersion,
     dependencies: HashMap<String, SemanticVersion>,
+}
+
+pub struct PackageIdentifier {
+    pub name: String,
+    pub version: SemanticVersion,
+}
+
+impl From<&Package> for Manifest {
+    fn from(package: &Package) -> Self {
+        return Self {
+            name: package.name.clone(),
+            version: package.version.clone(),
+            dependencies: package.dependencies.clone(),
+        };
+    }
+}
+
+impl From<&Package> for PackageIdentifier {
+    fn from(package: &Package) -> Self {
+        return Self {
+            name: package.name.clone(),
+            version: package.version.clone(),
+        };
+    }
+}
+
+impl From<&Manifest> for PackageIdentifier {
+    fn from(manifest: &Manifest) -> Self {
+        return Self {
+            name: manifest.name.clone(),
+            version: manifest.version.clone(),
+        };
+    }
+}
+
+impl fmt::Display for PackageIdentifier {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}@{}", self.name, self.version)
+    }
 }

@@ -12,6 +12,13 @@ use crate::{
 pub(in crate::fetch) mod client;
 pub(in crate::fetch) mod metadata;
 
+pub async fn list_meta() -> anyhow::Result<()> {
+    let client = BelleClient::new()?;
+    let afp_repos = client.get_afp_repos().await?;
+
+    return Ok(());
+}
+
 pub async fn update_meta() -> anyhow::Result<()> {
     let client = BelleClient::new()?;
 
@@ -26,12 +33,12 @@ pub async fn update_meta() -> anyhow::Result<()> {
     let repo_metadata = RepoMetadata::new(latest_repo.clone(), meta_bytes)?;
 
     for theory in repo_metadata.all_theories() {
-        if Package::package_exists(theory, &repo_metadata.repo.get_version()) {
+        if theory.package_exists() {
             continue;
         }
 
         println!("Retrieving package {}", theory);
-        let package = repo_metadata.create_package_meta(theory, &client).await?;
+        let package = repo_metadata.create_package_meta(&theory.name, &client).await?;
         package.register()?;
     }
 
