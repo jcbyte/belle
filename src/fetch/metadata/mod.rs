@@ -34,7 +34,7 @@ struct TheoryMetadata {
 
 #[derive(Debug)]
 pub struct RepoMetadata {
-    repo: AFPRepo,
+    pub repo: AFPRepo,
     authors: HashMap<String, AuthorMetadata>,
     licences: HashMap<String, String>,
     theories: HashMap<String, TheoryMetadata>,
@@ -82,6 +82,10 @@ impl RepoMetadata {
             licences,
             theories,
         });
+    }
+
+    pub fn all_theories(&self) -> impl Iterator<Item = &String> {
+        return self.theories.keys();
     }
 }
 
