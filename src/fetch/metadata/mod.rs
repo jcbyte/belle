@@ -1,25 +1,29 @@
-use anyhow::Context;
+use anyhow::{Context, anyhow};
+use pubgrub::SemanticVersion;
 use std::convert::TryFrom;
 use std::io::Read;
 use std::{collections::HashMap, io::Cursor};
 use zip::ZipArchive;
 
+use crate::fetch::client::{AFPRepo, BelleClient};
+use crate::registry::{Package, PackageAuthor};
+
 pub mod dependency;
 mod schema;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct AuthorMetadata {
     name: String,
+    email: Option<String>,
+    homepages: Option<Vec<String>>,
     orcid: Option<String>,
-    emails: Vec<String>,
-    homepages: Vec<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct TheoryMetadata {
     title: String,
     date: toml::value::Date,
-    thy_abstract: String,
+    r#abstract: String,
     licence_key: String,
     topics: Vec<String>,
     note: Option<String>,
@@ -30,15 +34,14 @@ struct TheoryMetadata {
 
 #[derive(Debug)]
 pub struct RepoMetadata {
+    repo: AFPRepo,
     authors: HashMap<String, AuthorMetadata>,
     licences: HashMap<String, String>,
     theories: HashMap<String, TheoryMetadata>,
 }
 
-impl TryFrom<bytes::Bytes> for RepoMetadata {
-    type Error = anyhow::Error;
-
-    fn try_from(bytes: bytes::Bytes) -> anyhow::Result<Self> {
+impl RepoMetadata {
+    pub fn new(repo: AFPRepo, bytes: bytes::Bytes) -> anyhow::Result<Self> {
         let reader = Cursor::new(bytes);
         let mut archive = ZipArchive::new(reader).context("Failed to read zip archive")?;
 
@@ -74,6 +77,7 @@ impl TryFrom<bytes::Bytes> for RepoMetadata {
         }
 
         return Ok(RepoMetadata {
+            repo,
             authors,
             licences,
             theories,
@@ -94,8 +98,12 @@ impl RepoMetadata {
                     AuthorMetadata {
                         name: author.name,
                         orcid: author.orcid,
-                        emails: author.emails.values().map(|email| email.to_string()).collect(),
-                        homepages: author.homepages.into_values().collect(),
+                        email: author.emails.values().next().map(|email| email.to_string()),
+                        homepages: if author.homepages.is_empty() {
+                            None
+                        } else {
+                            Some(author.homepages.into_values().collect())
+                        },
                     },
                 )
             })
@@ -127,7 +135,7 @@ impl RepoMetadata {
         let theory = TheoryMetadata {
             title: theory_raw.title,
             date: theory_raw.date,
-            thy_abstract: theory_raw.r#abstract,
+            r#abstract: theory_raw.r#abstract,
             licence_key: theory_raw.license,
             topics: theory_raw.topics,
             note: theory_raw.note,
@@ -137,5 +145,94 @@ impl RepoMetadata {
         };
 
         return Ok(theory);
+    }
+}
+
+impl From<AuthorMetadata> for PackageAuthor {
+    fn from(meta: AuthorMetadata) -> Self {
+        Self {
+            name: meta.name,
+            email: meta.email,
+            homepages: meta.homepages,
+            orcid: meta.orcid,
+        }
+    }
+}
+
+impl RepoMetadata {
+    pub async fn create_package_meta(&self, thy_name: &String, client: &BelleClient) -> anyhow::Result<Package> {
+        let meta = self
+            .theories
+            .get(thy_name)
+            .ok_or_else(|| anyhow!("Theory '{}' does not exist in the repo metadata", thy_name))?;
+
+        let version = self.repo.get_version();
+
+        let thy_root = client.get_thy_root(&self.repo, thy_name).await?;
+        let deps = dependency::extract_root_deps(&thy_root)?;
+
+        let dependencies: HashMap<String, SemanticVersion> = std::iter::once((deps.parent, version.clone()))
+            .chain(deps.sessions.into_iter().map(|s| (s, version.clone())))
+            .collect();
+
+        let licence = self.licences.get(&meta.licence_key).ok_or_else(|| {
+            anyhow!(
+                "Licence '{}' for theory '{}' does not exist in the repo metadata",
+                meta.licence_key,
+                thy_name
+            )
+        })?;
+
+        let authors = meta
+            .author_keys
+            .iter()
+            .map(|ak| {
+                self.authors
+                    .get(ak)
+                    .cloned()
+                    .ok_or_else(|| {
+                        anyhow!(
+                            "Author '{}' for theory '{}' does not exist in the repo metadata",
+                            ak,
+                            thy_name
+                        )
+                    })
+                    .map(PackageAuthor::from)
+            })
+            .collect::<anyhow::Result<Vec<_>>>()?;
+        let contributors = meta
+            .contributor_keys
+            .iter()
+            .map(|ck| {
+                self.authors
+                    .get(ck)
+                    .cloned()
+                    .ok_or_else(|| {
+                        anyhow!(
+                            "Author '{}' for theory '{}' does not exist in the repo metadata",
+                            ck,
+                            thy_name
+                        )
+                    })
+                    .map(PackageAuthor::from)
+            })
+            .collect::<anyhow::Result<Vec<_>>>()?;
+
+        let package = Package {
+            name: thy_name.clone(),
+            version,
+            title: meta.title.clone(),
+            date: meta.date,
+            r#abstract: meta.r#abstract.clone(),
+            licence: licence.clone(),
+            topics: meta.topics.clone(),
+            note: meta.note.clone(),
+            authors: authors,
+            contributors: contributors,
+            dependencies,
+            extra: meta.extra.clone(),
+        };
+
+        return Ok(package);
     }
 }
