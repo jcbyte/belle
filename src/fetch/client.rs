@@ -63,8 +63,6 @@ impl BelleClient {
                 page
             );
 
-            println!("page {}", page);
-
             // Retrieve all repos/projects within the `isa-afp` group
             let repos: Vec<AFPRepo> = self
                 .client
@@ -95,39 +93,58 @@ impl BelleClient {
         return Ok(afp_repos);
     }
 
-    pub async fn get_thys(&self, repo: &AFPRepo) -> anyhow::Result<Vec<String>> {
-        let repo_entries_tree_url = format!(
-            // ! Note this hard coded `2000` per page
-            "https://foss.heptapod.net/api/v4/projects/{}/repository/tree?path=metadata%2Fentries&per_page=2000",
-            repo.id
+    pub async fn get_repo(&self, name: &String) -> anyhow::Result<Option<AFPRepo>> {
+        let afp_repo_details_url = format!(
+            "https://foss.heptapod.net/api/v4/groups/isa-afp/projects?search={}&per_page=1",
+            name
         );
 
-        #[derive(Deserialize)]
-        struct TreeItem {
-            name: String,
-            path: String,
-        }
-
-        // Retrieve tree listing of all files within the `/entries` (listing all all theories)
-        let entries_tree: Vec<TreeItem> = self
+        let repo: Vec<AFPRepo> = self
             .client
-            .get(repo_entries_tree_url)
-            .header("User-Agent", "belle-client")
+            .get(afp_repo_details_url)
             .send()
             .await
-            .with_context(|| format!("Failed to fetch entires list for '{}' repo", repo.name))?
+            .context("Failed to send request to Hetapod")?
             .json()
             .await
-            .with_context(|| format!("Failed to parse JSON response of entires list for '{}' repo", repo.name))?;
+            .context("Failed to parse JSON response from Hetapod")?;
 
-        // Remove the `.toml` extension from each theories metadata file
-        let thys: Vec<String> = entries_tree
-            .iter()
-            .filter_map(|e| Path::new(&e.name).file_stem().map(|f| f.to_string_lossy().to_string()))
-            .collect();
-
-        Ok(thys)
+        return Ok(repo.first().map(|repo| repo.clone()));
     }
+
+    // pub async fn get_thys(&self, repo: &AFPRepo) -> anyhow::Result<Vec<String>> {
+    //     let repo_entries_tree_url = format!(
+    //         // ! Note this hard coded `2000` per page
+    //         "https://foss.heptapod.net/api/v4/projects/{}/repository/tree?path=metadata%2Fentries&per_page=2000",
+    //         repo.id
+    //     );
+
+    //     #[derive(Deserialize)]
+    //     struct TreeItem {
+    //         name: String,
+    //         path: String,
+    //     }
+
+    //     // Retrieve tree listing of all files within the `/entries` (listing all all theories)
+    //     let entries_tree: Vec<TreeItem> = self
+    //         .client
+    //         .get(repo_entries_tree_url)
+    //         .header("User-Agent", "belle-client")
+    //         .send()
+    //         .await
+    //         .with_context(|| format!("Failed to fetch entires list for '{}' repo", repo.name))?
+    //         .json()
+    //         .await
+    //         .with_context(|| format!("Failed to parse JSON response of entires list for '{}' repo", repo.name))?;
+
+    //     // Remove the `.toml` extension from each theories metadata file
+    //     let thys: Vec<String> = entries_tree
+    //         .iter()
+    //         .filter_map(|e| Path::new(&e.name).file_stem().map(|f| f.to_string_lossy().to_string()))
+    //         .collect();
+
+    //     Ok(thys)
+    // }
 
     pub async fn get_metadata_archive(&self, repo: &AFPRepo) -> anyhow::Result<bytes::Bytes> {
         let meta_archive_url = format!(

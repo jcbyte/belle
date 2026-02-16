@@ -1,3 +1,4 @@
+use anyhow::Context;
 use nom::combinator::Opt;
 use pubgrub::SemanticVersion;
 use tabled::{Table, settings::Style};
@@ -16,6 +17,7 @@ pub(in crate::fetch) mod metadata;
 
 pub async fn list_repositories(limit: usize) -> anyhow::Result<()> {
     let client = BelleClient::new()?;
+
     let mut afp_repos = client.get_afp_repos(limit).await?;
     afp_repos.reverse();
 
@@ -28,33 +30,35 @@ pub async fn list_repositories(limit: usize) -> anyhow::Result<()> {
     return Ok(());
 }
 
-pub async fn update_meta() -> anyhow::Result<()> {
+pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
     let client = BelleClient::new()?;
 
-    // let afp_repos = client.get_afp_repos().await?;
-    // let latest_repo = afp_repos.first().unwrap();
-    // // todo we need to check this repo is a new toml one
+    let repo = match repo_name {
+        Some(name) => {
+            let repo = client.get_repo(&name).await?;
+            repo.with_context(|| format!("Could not find repo with name '{}'", name))?
+        }
+        None => {
+            let latest_repo = client.get_afp_repos(1).await?;
+            let a = latest_repo.first().map(|repo| repo.clone());
+            a.context("Failed to fetch latest repo name")?
+        }
+    };
 
-    // // let thys = client.get_thys(latest_repo).await?;
-    // // todo check this against local copy, if this is invalid we need to refetch the repo
+    let meta_bytes = client.get_metadata_archive(&repo).await?;
+    let repo_metadata = RepoMetadata::new(repo, meta_bytes)?;
 
-    // let meta_bytes = client.get_metadata_archive(latest_repo).await?;
-    // let repo_metadata = RepoMetadata::new(latest_repo.clone(), meta_bytes)?;
+    for theory in repo_metadata.all_theories() {
+        if theory.package_exists() {
+            continue;
+        }
 
-    // for theory in repo_metadata.all_theories() {
-    //     if theory.package_exists() {
-    //         continue;
-    //     }
-
-    //     println!("Retrieving package {}", theory);
-    //     let package = repo_metadata.create_package_meta(&theory.name, &client).await?;
-    //     package.register()?;
-    // }
+        println!("Retrieving package {}", theory);
+        let package = repo_metadata.create_package_meta(&theory.name, &client).await?;
+        package.register()?;
+    }
 
     return Ok(());
 }
 
 pub async fn get_package() {}
-
-// belle meta list
-// belle meta fetch <name> [--force]?

@@ -1,4 +1,7 @@
-use crate::{cli::MetaListArgs, config::BelleConfig};
+use crate::{
+    cli::{MetaFetchArgs, MetaListArgs},
+    config::BelleConfig,
+};
 
 mod config;
 mod fetch;
@@ -21,8 +24,8 @@ async fn main() -> Result<()> {
             MetaAction::List(MetaListArgs { limit }) => {
                 fetch::list_repositories(limit).await?;
             }
-            MetaAction::Fetch(fetch_args) => {
-                // todo fetch
+            MetaAction::Fetch(MetaFetchArgs { name }) => {
+                fetch::fetch_meta(name).await?;
             }
         },
     }
