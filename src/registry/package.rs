@@ -1,6 +1,7 @@
 use std::fs;
 
-use anyhow::Context;
+use anyhow::{Context, anyhow};
+use pubgrub::SemanticVersion;
 
 use super::Package;
 use crate::{config, registry::Manifest};
@@ -36,14 +37,37 @@ impl Package {
 
         return Ok(());
     }
-}
 
-// ? these should be static in the package
-pub fn get_package_meta() {
-    // called from our dep reslsover
-}
+    pub fn get_package_meta(name: &String, version: &SemanticVersion) -> anyhow::Result<Option<Manifest>> {
+        let config = config::BelleConfig::global();
 
-pub fn get_package() {
-    // should check locally, if not we need to download
-    // what does this return where is it called form?
+        let meta_dir = config.root_dir.join("meta");
+        let meta_file = meta_dir.join(name).join(version.to_string());
+
+        if !meta_file.is_file() {
+            return Ok(None);
+        }
+        let manifest_toml_string = fs::read_to_string(meta_file).with_context(|| {
+            format!(
+                "Failed to read metadata file for {}@{} package",
+                name,
+                version.to_string()
+            )
+        })?;
+
+        let manifest: Manifest = toml::from_str(&manifest_toml_string).with_context(|| {
+            format!(
+                "Failed to parse TOML for {}@{} metadata file",
+                name,
+                version.to_string()
+            )
+        })?;
+
+        return Ok(Some(manifest));
+    }
+
+    pub fn get_package() {
+        // should check locally, if not we need to download
+        // what does this return where is it called form?
+    }
 }
