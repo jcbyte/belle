@@ -18,16 +18,22 @@ pub mod metadata;
 pub async fn list_repositories(limit: usize) -> anyhow::Result<()> {
     let client = BelleClient::new()?;
 
+    let pb = ProgressBar::new_spinner();
+    pb.enable_steady_tick(Duration::from_millis(100));
+    pb.set_message(format!("Fetching repository list"));
+
     // Get repositories
     let mut afp_repos = client.get_afp_repos(limit).await?;
     afp_repos.reverse();
+
+    pb.finish_and_clear();
 
     // Print in a pretty table
     let mut table = Table::new(&afp_repos);
     table.with(Style::rounded());
 
     println!("{}", table);
-    println!("Found {} repositories.", afp_repos.len());
+    println!("Found {} AFP repositories.", style(afp_repos.len()).bold());
 
     return Ok(());
 }
