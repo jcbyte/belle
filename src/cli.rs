@@ -10,17 +10,17 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Metadata operations
+    /// AFP repository operations
     #[command(subcommand)]
-    Meta(MetaAction),
+    Repo(RepoAction),
 }
 
 #[derive(Subcommand)]
-pub enum MetaAction {
+pub enum RepoAction {
     /// List all available AFP repositories
     List(MetaListArgs),
-    /// Fetch metadata from a repository
-    Fetch(MetaFetchArgs),
+    /// Fetch and update metadata from an AFP repository
+    Update(RepoUpdateArgs),
 }
 
 #[derive(Args)]
@@ -31,11 +31,15 @@ pub struct MetaListArgs {
 }
 
 #[derive(Args)]
-pub struct MetaFetchArgs {
+pub struct RepoUpdateArgs {
     /// Optional name of AFP repo (defaults to latest)
     #[arg(value_name = "REPO")]
     pub name: Option<String>,
+    /// Ignore cache and refetch all theories
+    #[arg(long)]
+    pub no_cache: bool,
 }
 
-// todo belle meta clean [version]
-// todo belle meta clean --all
+// todo belle cache clean [version]
+// todo belle cache clean --all
+// todo belle show [name] <version>

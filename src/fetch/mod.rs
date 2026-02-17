@@ -40,7 +40,7 @@ pub async fn list_repositories(limit: usize) -> anyhow::Result<()> {
 
 /// Fetch metadata for a specific repository (or the latest if not specified)
 /// Register packages which do not yet exist locally
-pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
+pub async fn fetch_meta(repo_name: Option<String>, use_cache: bool) -> anyhow::Result<()> {
     let client = BelleClient::new()?;
 
     // Get the repo structure
@@ -69,10 +69,7 @@ pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
 
     // Get the metadata from the repo, and then create our metadata struct from this
     let repo_metadata = RepoMetadata::new(&repo, &client).await?;
-
     let repo_theories = repo_metadata.all_theories();
-    // If this theory is already saved locally don't bother registering again
-    let to_fetch: Vec<&PackageIdentifier> = repo_theories.iter().filter(|t| !t.package_exists()).collect();
 
     pb.finish_with_message(format!(
         "Found {} theories from {} ({}).",
@@ -80,6 +77,14 @@ pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
         style(&repo.name).cyan().bold(),
         style(repo.get_version()).yellow()
     ));
+
+    // No need to register packages that already exist
+    let to_fetch: Vec<&PackageIdentifier> = if use_cache {
+        repo_theories.iter().filter(|t| !t.package_exists()).collect()
+    } else {
+        // If no cache is set then we must collect all of them
+        repo_theories.iter().collect()
+    };
 
     if to_fetch.is_empty() {
         println!("No new theories, local registry is already up to date!");

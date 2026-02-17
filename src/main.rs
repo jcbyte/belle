@@ -1,5 +1,5 @@
 use crate::{
-    cli::{MetaFetchArgs, MetaListArgs},
+    cli::{MetaListArgs, RepoUpdateArgs},
     config::BelleConfig,
 };
 
@@ -11,7 +11,7 @@ mod resolver;
 
 use anyhow::Result;
 use clap::Parser;
-use cli::{Cli, Commands, MetaAction};
+use cli::{Cli, Commands, RepoAction};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -22,14 +22,14 @@ async fn main() -> Result<()> {
     let args = Cli::parse();
 
     match args.command {
-        Commands::Meta(action) => match action {
+        Commands::Repo(action) => match action {
             // List AFP repositories
-            MetaAction::List(MetaListArgs { limit }) => {
+            RepoAction::List(MetaListArgs { limit }) => {
                 fetch::list_repositories(limit).await?;
             }
             // Fetch metadata for a given repository
-            MetaAction::Fetch(MetaFetchArgs { name }) => {
-                fetch::fetch_meta(name).await?;
+            RepoAction::Update(RepoUpdateArgs { name, no_cache }) => {
+                fetch::fetch_meta(name, !no_cache).await?;
             }
         },
     }
