@@ -13,6 +13,7 @@ pub struct PackageAuthor {
     pub orcid: Option<String>,
 }
 
+/// All package metadata stored on disk
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Package {
     pub name: String,
@@ -32,6 +33,7 @@ pub struct Package {
     pub extra: toml::Table,
 }
 
+/// Subset of `Package` stored in disk for quick dependency resolution
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Manifest {
     name: String,
@@ -39,6 +41,7 @@ pub struct Manifest {
     dependencies: HashMap<String, SemanticVersion>,
 }
 
+/// Key for packages
 pub struct PackageIdentifier {
     pub name: String,
     pub version: SemanticVersion,
