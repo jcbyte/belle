@@ -41,6 +41,14 @@ impl AFPRepo {
             SemanticVersion::new(*major, *minor, *patch)
         })
     }
+
+    pub fn get_repo_name(version: &SemanticVersion) -> String {
+        let ver_string = version.to_string();
+        let ver_parts: Vec<&str> = ver_string.split('.').collect();
+
+        let name_parts: Vec<&str> = ver_parts.into_iter().filter(|vp| !vp.eq(&"0")).collect();
+        return name_parts.join("-");
+    }
 }
 
 fn display_version_private(_: &(), repo: &AFPRepo) -> String {

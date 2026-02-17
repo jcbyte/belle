@@ -4,6 +4,7 @@ use pubgrub::SemanticVersion;
 use serde::{Deserialize, Serialize};
 
 pub mod package;
+pub mod registry;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PackageAuthor {

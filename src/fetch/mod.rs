@@ -1,7 +1,10 @@
 use anyhow::Context;
 use tabled::{Table, settings::Style};
 
-use crate::fetch::{client::BelleClient, metadata::RepoMetadata};
+use crate::{
+    fetch::{client::BelleClient, metadata::RepoMetadata},
+    registry,
+};
 
 mod afp_repo;
 pub mod client;
@@ -46,12 +49,19 @@ pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
         }
     };
 
-    print!("Fetching metadata for {} ({}).", repo.name, repo.get_version());
+    println!("Fetching metadata for {} ({}).", repo.name, repo.get_version());
 
     // Get the metadata from the repo, and then create our metadata struct from this
     let repo_metadata = RepoMetadata::new(&repo, &client).await?;
 
-    // todo can i list how many we currently have how many in repo
+    let repo_theories = repo_metadata.all_theories();
+    let local_theories = registry::registry::list_packages(repo.get_version());
+    println!(
+        "Repo has {} theories; local metadata contains {} theories",
+        repo_theories.len(),
+        local_theories.len()
+    );
+
     // todo progress bar
 
     // Iterate though all theories in the repository metadata

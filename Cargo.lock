@@ -135,6 +135,7 @@ dependencies = [
  "tempfile",
  "tokio",
  "toml",
+ "walkdir",
  "zip",
 ]
 

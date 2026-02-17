@@ -104,12 +104,16 @@ impl RepoMetadata {
         });
     }
 
-    /// Iterate though all theories within the repo metadata
-    pub fn all_theories(&self) -> impl Iterator<Item = PackageIdentifier> {
-        return self.theories.keys().map(|theory| PackageIdentifier {
-            name: theory.clone(),
-            version: self.repo.get_version().clone(),
-        });
+    /// Get all theories within the repo metadata
+    pub fn all_theories(&self) -> Vec<PackageIdentifier> {
+        return self
+            .theories
+            .keys()
+            .map(|theory| PackageIdentifier {
+                name: theory.clone(),
+                version: self.repo.get_version().clone(),
+            })
+            .collect();
     }
 
     /// Create package metadata by collecting keys and fetching theory ROOT file for dependencies

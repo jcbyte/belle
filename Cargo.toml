@@ -21,3 +21,4 @@ zip = "8.1.0"
 nom = "8.0.0"
 clap = { version = "4.5.59", features = ["derive"] }
 tabled = "0.20.0"
+walkdir = "2.5.0"
