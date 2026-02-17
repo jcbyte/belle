@@ -25,7 +25,7 @@ impl BelleClient {
         let re = Regex::new(r"^afp-[\d-]+$").context("Failed to create regex pattern for AFP repository name")?;
 
         let mut afp_repos: Vec<AFPRepo> = Vec::new();
-        let mut page = 0;
+        let mut page = 1;
 
         let per_page: usize = 25;
 
@@ -77,24 +77,40 @@ impl BelleClient {
 
     /// Get a singular repo (id) from its name, or `None` is it does not exist
     pub async fn get_repo(&self, name: &String) -> anyhow::Result<Option<AFPRepo>> {
-        // Query AFP group for repo with exact name
-        let afp_repo_details_url = format!(
-            "https://foss.heptapod.net/api/v4/groups/isa-afp/projects?search={}&per_page=1",
-            name
-        );
+        let mut page = 1;
 
-        let repo: Vec<AFPRepo> = self
-            .client
-            .get(afp_repo_details_url)
-            .send()
-            .await
-            .context("Failed to send request to Hetapod")?
-            .json()
-            .await
-            .context("Failed to parse JSON response from Hetapod")?;
+        loop {
+            // Query AFP group for repo searching for name (this is a fuzzy search)
+            let afp_repo_details_url = format!(
+                "https://foss.heptapod.net/api/v4/groups/isa-afp/projects?search={}&per_page=1&page={}",
+                name, page
+            );
 
-        // Return the first entry (if it exists) as this will be the requested repo
-        return Ok(repo.first().map(|repo| repo.clone()));
+            let repo_collection: Vec<AFPRepo> = self
+                .client
+                .get(afp_repo_details_url)
+                .send()
+                .await
+                .context("Failed to send request to Hetapod")?
+                .json()
+                .await
+                .context("Failed to parse JSON response from Hetapod")?;
+
+            let possible_repo = repo_collection.first();
+
+            match possible_repo {
+                // If the results are empty, the repo name doesn't exist in the project
+                None => return Ok(None),
+
+                // If we have a repo check the name is exact, as Hetapod uses a fuzzy search
+                Some(repo) if &repo.name == name => return Ok(Some(repo.clone())),
+
+                // If we have a repo but it is not an exact match, check the next page
+                _ => {}
+            }
+
+            page += 1;
+        }
     }
 
     /// Retrieve the metadata archive for a given repo
