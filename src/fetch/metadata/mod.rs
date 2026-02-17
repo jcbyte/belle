@@ -58,6 +58,11 @@ impl RepoMetadata {
         let reader = Cursor::new(bytes);
         let mut archive = ZipArchive::new(reader).context("Failed to read zip archive")?;
 
+        let legacy = archive.file_names().any(|name| name.ends_with("metadata"));
+        if archive.is_empty() || legacy {
+            anyhow::bail!("Legacy AFP repo, the metadata cannot be fetched");
+        }
+
         for i in 0..archive.len() {
             let mut file = archive.by_index(i)?;
             let Some(name) = file.enclosed_name() else { continue };

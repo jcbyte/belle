@@ -51,7 +51,6 @@ pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
     // Get the metadata from the repo, and then create our metadata struct from this
     let repo_metadata = RepoMetadata::new(&repo, &client).await?;
 
-    // todo if this repo is old and has a different format we cannot get its meta
     // todo can i list how many we currently have how many in repo
     // todo progress bar
 
