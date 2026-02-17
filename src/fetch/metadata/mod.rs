@@ -1,16 +1,18 @@
 use anyhow::{Context, anyhow};
 use pubgrub::SemanticVersion;
-use std::convert::TryFrom;
 use std::io::Read;
 use std::{collections::HashMap, io::Cursor};
 use zip::ZipArchive;
 
-use crate::fetch::client::{AFPRepo, BelleClient};
+use crate::fetch::afp_repo::AFPRepo;
+use crate::fetch::client::BelleClient;
 use crate::registry::{Package, PackageAuthor, PackageIdentifier};
 
 pub mod dependency;
+mod parser;
 mod schema;
 
+/// Interpretation of AFP Author metadata
 #[derive(Debug, Clone)]
 struct AuthorMetadata {
     name: String,
@@ -19,6 +21,7 @@ struct AuthorMetadata {
     orcid: Option<String>,
 }
 
+/// Interpretation of AFP Theory metadata
 #[derive(Debug, Clone)]
 struct TheoryMetadata {
     title: String,
@@ -32,6 +35,7 @@ struct TheoryMetadata {
     extra: toml::Table,
 }
 
+/// Interpretation of AFP repo metadata
 #[derive(Debug)]
 pub struct RepoMetadata {
     repo: AFPRepo,
@@ -41,35 +45,46 @@ pub struct RepoMetadata {
 }
 
 impl RepoMetadata {
-    pub fn new(repo: AFPRepo, bytes: bytes::Bytes) -> anyhow::Result<Self> {
-        let reader = Cursor::new(bytes);
-        let mut archive = ZipArchive::new(reader).context("Failed to read zip archive")?;
+    /// Fetch metadata from repo and parse it into interpreted repo metadata
+    pub async fn new(repo: &AFPRepo, client: &BelleClient) -> anyhow::Result<Self> {
+        // Download full metadata archive bytes from repo
+        let bytes = client.get_metadata_archive(repo).await?;
 
         let mut authors: HashMap<String, AuthorMetadata> = HashMap::default();
         let mut licences: HashMap<String, String> = HashMap::default();
         let mut theories: HashMap<String, TheoryMetadata> = HashMap::new();
 
+        // Walk through the archive
+        let reader = Cursor::new(bytes);
+        let mut archive = ZipArchive::new(reader).context("Failed to read zip archive")?;
+
         for i in 0..archive.len() {
             let mut file = archive.by_index(i)?;
             let Some(name) = file.enclosed_name() else { continue };
 
+            // Handler to read file content if required
             let mut read_content = || -> anyhow::Result<String> {
                 let mut content = String::with_capacity(file.size() as usize);
                 file.read_to_string(&mut content)?;
                 Ok(content)
             };
 
+            // Match file name to check if we should handle it
             if name.ends_with("authors.toml") {
+                // Create authors from "authors.toml"
                 let content = read_content()?;
                 authors = RepoMetadata::parse_authors(&content)?;
             } else if name.ends_with("licenses.toml") {
+                // Create licences from "licenses.toml"
                 let content = read_content()?;
                 licences = RepoMetadata::parse_licences(&content)?;
             } else if name.parent().map_or(false, |p| p.ends_with("entries")) {
+                // Each TOML file in the `entries/` subfolder represents a theory
                 let Some(thy_name) = name.file_stem().map(|tn| tn.to_string_lossy().to_string()) else {
                     continue;
                 };
 
+                // Insert these separately into the hashable
                 let content = read_content()?;
                 let theory_metadata = RepoMetadata::parse_theory(&content)?;
                 theories.insert(thy_name, theory_metadata);
@@ -77,113 +92,37 @@ impl RepoMetadata {
         }
 
         return Ok(RepoMetadata {
-            repo,
+            repo: repo.clone(),
             authors,
             licences,
             theories,
         });
     }
 
+    /// Iterate though all theories within the repo metadata
     pub fn all_theories(&self) -> impl Iterator<Item = PackageIdentifier> {
         return self.theories.keys().map(|theory| PackageIdentifier {
             name: theory.clone(),
-            version: self.repo.get_version(),
+            version: self.repo.get_version().clone(),
         });
     }
-}
 
-impl RepoMetadata {
-    fn parse_authors(toml_content: &String) -> anyhow::Result<HashMap<String, AuthorMetadata>> {
-        let authors_raw: HashMap<String, schema::MetaAuthor> =
-            toml::from_str(toml_content).context("Failed to parse TOML for authors metadata")?;
-
-        let authors = authors_raw
-            .into_iter()
-            .map(|(author_id, author)| {
-                (
-                    author_id,
-                    AuthorMetadata {
-                        name: author.name,
-                        orcid: author.orcid,
-                        email: author.emails.values().next().map(|email| email.to_string()),
-                        homepages: if author.homepages.is_empty() {
-                            None
-                        } else {
-                            Some(author.homepages.into_values().collect())
-                        },
-                    },
-                )
-            })
-            .collect();
-
-        return Ok(authors);
-    }
-
-    fn parse_licences(toml_content: &String) -> anyhow::Result<HashMap<String, String>> {
-        let licences_raw: HashMap<String, schema::MetaLicence> =
-            toml::from_str(toml_content).context("Failed to parse TOML for licences metadata")?;
-
-        let licences = licences_raw
-            .into_iter()
-            .map(|(licence_id, licence)| (licence_id, licence.name))
-            .collect();
-
-        return Ok(licences);
-    }
-
-    fn parse_theory(toml_content: &String) -> anyhow::Result<TheoryMetadata> {
-        let theory_raw: schema::MetaTheory =
-            toml::from_str(&toml_content).context("Failed to parse TOML for theory metadata")?;
-
-        let mut extra_table = theory_raw.extra;
-        if !theory_raw.related.dois.is_empty() {
-            extra_table.insert(String::from("dois"), theory_raw.related.dois.into());
-        }
-        if !theory_raw.related.pubs.is_empty() {
-            extra_table.insert(String::from("pubs"), theory_raw.related.pubs.into());
-        }
-
-        let theory = TheoryMetadata {
-            title: theory_raw.title,
-            date: theory_raw.date,
-            r#abstract: theory_raw.r#abstract,
-            licence_key: theory_raw.license,
-            topics: theory_raw.topics,
-            note: theory_raw.note.filter(|n| !n.is_empty()),
-            author_keys: theory_raw.authors.into_keys().collect(),
-            contributor_keys: theory_raw.contributors.into_keys().collect(),
-            extra: extra_table,
-        };
-
-        return Ok(theory);
-    }
-}
-
-impl From<AuthorMetadata> for PackageAuthor {
-    fn from(meta: AuthorMetadata) -> Self {
-        Self {
-            name: meta.name,
-            email: meta.email,
-            homepages: meta.homepages,
-            orcid: meta.orcid,
-        }
-    }
-}
-
-impl RepoMetadata {
+    /// Create package metadata by collecting keys and fetching theory ROOT file for dependencies
     pub async fn create_package_meta(&self, thy_name: &String, client: &BelleClient) -> anyhow::Result<Package> {
         let meta = self
             .theories
             .get(thy_name)
             .ok_or_else(|| anyhow!("Theory '{}' does not exist in the repo metadata", thy_name))?;
 
-        let version = self.repo.get_version();
-
+        // Fetch theories ROOT file from the repo
         let thy_root = client.get_thy_root(&self.repo, thy_name).await?;
+        // Extract the dependency list
         let deps = dependency::extract_root_deps(&thy_root)?;
+        // All dependencies will require the same version that this theory file is part of
+        let dependencies: HashMap<String, SemanticVersion> =
+            deps.iter_all().cloned().map(|s| (s, self.repo.get_version().clone())).collect();
 
-        let dependencies: HashMap<String, SemanticVersion> = deps.iter_all().cloned().map(|s| (s, version)).collect();
-
+        // Get licence from matching its key
         let licence = self.licences.get(&meta.licence_key).ok_or_else(|| {
             anyhow!(
                 "Licence '{}' for theory '{}' does not exist in the repo metadata",
@@ -192,6 +131,7 @@ impl RepoMetadata {
             )
         })?;
 
+        // Get authors and contributors by matching there keys
         let authors = meta
             .author_keys
             .iter()
@@ -206,7 +146,7 @@ impl RepoMetadata {
                             thy_name
                         )
                     })
-                    .map(PackageAuthor::from)
+                    .map(PackageAuthor::from) // Convert to the correct format
             })
             .collect::<anyhow::Result<Vec<_>>>()?;
         let contributors = meta
@@ -223,13 +163,14 @@ impl RepoMetadata {
                             thy_name
                         )
                     })
-                    .map(PackageAuthor::from)
+                    .map(PackageAuthor::from) // Convert to the correct format
             })
             .collect::<anyhow::Result<Vec<_>>>()?;
 
+        // Return created package will all metadata
         let package = Package {
             name: thy_name.clone(),
-            version,
+            version: self.repo.get_version().clone(),
             title: meta.title.clone(),
             date: meta.date,
             r#abstract: meta.r#abstract.clone(),
@@ -243,5 +184,16 @@ impl RepoMetadata {
         };
 
         return Ok(package);
+    }
+}
+
+impl From<AuthorMetadata> for PackageAuthor {
+    fn from(meta: AuthorMetadata) -> Self {
+        Self {
+            name: meta.name,
+            email: meta.email,
+            homepages: meta.homepages,
+            orcid: meta.orcid,
+        }
     }
 }

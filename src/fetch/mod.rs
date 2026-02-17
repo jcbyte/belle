@@ -49,8 +49,7 @@ pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
     print!("Fetching metadata for {} ({}).", repo.name, repo.get_version());
 
     // Get the metadata from the repo, and then create our metadata struct from this
-    let meta_bytes = client.get_metadata_archive(&repo).await?;
-    let repo_metadata = RepoMetadata::new(repo, meta_bytes)?;
+    let repo_metadata = RepoMetadata::new(&repo, &client).await?;
 
     // todo if this repo is old and has a different format we cannot get its meta
     // todo can i list how many we currently have how many in repo

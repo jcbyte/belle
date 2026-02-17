@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use serde::Deserialize;
 
+// Schema types to mirror the TOML structure used in AFP metadata
+
 #[derive(Deserialize, Debug)]
 pub struct MetaAuthorEmail {
     pub user: Vec<String>,
