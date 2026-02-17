@@ -27,13 +27,14 @@ impl BelleClient {
         let mut afp_repos: Vec<AFPRepo> = Vec::new();
         let mut page = 0;
 
+        let per_page: usize = 25;
+
         // Continue iterating over pages of results until there is no more results or we reach our limit
-        // todo test this properly, it seemed to give double output last time?
         loop {
             // Retrieve repos/projects within the `isa-afp` group
             let afp_repo_list_url = format!(
-                "https://foss.heptapod.net/api/v4/groups/isa-afp/projects?order_by=last_activity_at&sort=desc&per_page=25&page={}",
-                page
+                "https://foss.heptapod.net/api/v4/groups/isa-afp/projects?order_by=last_activity_at&sort=desc&per_page={}&page={}",
+                per_page, page
             );
 
             let repos: Vec<AFPRepo> = self
@@ -46,6 +47,8 @@ impl BelleClient {
                 .await
                 .context("Failed to parse JSON response from Hetapod")?;
 
+            let received_count = repos.len();
+
             // If repos is empty then there are no more results
             if repos.is_empty() {
                 break;
@@ -57,8 +60,9 @@ impl BelleClient {
             // Add the found repos into our collecting list
             afp_repos.extend(retrieved_repos);
 
-            // If we have enough repos then return
-            if afp_repos.len() >= limit {
+            // If the received amount was less than the requested per page there is no more pages
+            // Or if we have enough repos then return
+            if received_count < per_page || afp_repos.len() >= limit {
                 // Truncate to ensure we have exactly the number requested (in case we went over)
                 afp_repos.truncate(limit);
                 break;
