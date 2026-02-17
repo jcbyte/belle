@@ -36,3 +36,6 @@ pub struct MetaFetchArgs {
     #[arg(value_name = "REPO")]
     pub name: Option<String>,
 }
+
+// todo belle meta clean [version]
+// todo belle meta clean --all
