@@ -1,6 +1,6 @@
 use pubgrub::{
-    Dependencies, DependencyConstraints, DependencyProvider, PackageResolutionStatistics, Ranges,
-    SemanticVersion, resolve,
+    Dependencies, DependencyConstraints, DependencyProvider, PackageResolutionStatistics, Ranges, SemanticVersion,
+    resolve,
 };
 use rustc_hash::FxHashMap;
 use std::collections::HashMap;
@@ -20,19 +20,13 @@ impl IsabelleDependencyProvider {
             // Initially test with random data
             package_versions: HashMap::from([
                 (String::from("myapp"), vec![SemV::new(1, 0, 0)]),
-                (
-                    String::from("serde"),
-                    vec![SemV::new(1, 0, 0), SemV::new(1, 1, 0)],
-                ),
+                (String::from("serde"), vec![SemV::new(1, 0, 0), SemV::new(1, 1, 0)]),
                 (String::from("tokio"), vec![SemV::new(1, 0, 0)]),
             ]),
             package_dependencies: HashMap::from([
                 (
                     (String::from("myapp"), SemV::new(1, 0, 0)),
-                    HashMap::from([(
-                        String::from("serde"),
-                        SemVS::higher_than(SemV::new(1, 0, 0)),
-                    )]),
+                    HashMap::from([(String::from("serde"), SemVS::higher_than(SemV::new(1, 0, 0)))]),
                 ),
                 ((String::from("serde"), SemV::new(1, 1, 0)), HashMap::new()),
                 ((String::from("serde"), SemV::new(1, 0, 0)), HashMap::new()),
@@ -86,10 +80,7 @@ impl DependencyProvider for IsabelleDependencyProvider {
 
         // todo check this later after working out package structure/retrieval
         let owned_map: HashMap<String, Ranges<SemanticVersion>, rustc_hash::FxBuildHasher> =
-            dependencies
-                .iter()
-                .map(|(k, v)| (k.clone(), v.clone()))
-                .collect();
+            dependencies.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
 
         let e = Dependencies::Available(owned_map);
 
@@ -109,11 +100,7 @@ fn main() {
     let provider = IsabelleDependencyProvider::new();
 
     // Resolve dependencies
-    match resolve(
-        &provider,
-        String::from("myapp"),
-        SemanticVersion::new(1, 0, 0),
-    ) {
+    match resolve(&provider, String::from("myapp"), SemanticVersion::new(1, 0, 0)) {
         Ok(solution) => {
             println!("Resolution successful!");
             for (package, version) in solution.iter() {
