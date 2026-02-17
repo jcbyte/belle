@@ -1,9 +1,13 @@
+use std::{fmt::format, time::Duration};
+
 use anyhow::Context;
+use console::style;
+use indicatif::{ProgressBar, ProgressStyle};
 use tabled::{Table, settings::Style};
 
 use crate::{
     fetch::{client::BelleClient, metadata::RepoMetadata},
-    registry,
+    registry::{self, PackageIdentifier},
 };
 
 mod afp_repo;
@@ -49,33 +53,58 @@ pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
         }
     };
 
-    println!("Fetching metadata for {} ({}).", repo.name, repo.get_version());
+    let pb = ProgressBar::new_spinner();
+    pb.enable_steady_tick(Duration::from_millis(100));
+    pb.set_message(format!(
+        "Fetching theories list from {} ({})",
+        style(&repo.name).cyan().bold(),
+        style(repo.get_version()).yellow()
+    ));
 
     // Get the metadata from the repo, and then create our metadata struct from this
     let repo_metadata = RepoMetadata::new(&repo, &client).await?;
 
     let repo_theories = repo_metadata.all_theories();
-    let local_theories = registry::registry::list_packages(repo.get_version());
-    println!(
-        "Repo has {} theories; local metadata contains {} theories",
-        repo_theories.len(),
-        local_theories.len()
-    );
+    // If this theory is already saved locally don't bother registering again
+    let to_fetch: Vec<&PackageIdentifier> = repo_theories.iter().filter(|t| !t.package_exists()).collect();
 
-    // todo progress bar
+    pb.finish_with_message(format!(
+        "Found {} theories from {} ({}).",
+        style(repo_theories.len()).bold(),
+        style(&repo.name).cyan().bold(),
+        style(repo.get_version()).yellow()
+    ));
 
-    // Iterate though all theories in the repository metadata
-    for theory in repo_metadata.all_theories() {
-        // If this theory is already saved locally don't bother registering again
-        if theory.package_exists() {
-            continue;
+    if to_fetch.is_empty() {
+        println!("No new theories, local registry is already up to date!");
+    } else {
+        println!("Found {} new theories to sync.", style(to_fetch.len()).bold());
+
+        let pb = ProgressBar::new(to_fetch.len() as u64);
+        pb.set_style(
+            ProgressStyle::default_bar()
+                .template("{spinner:.green} [{bar:40.cyan/blue}] {pos}/{len} {msg}")?
+                .progress_chars("#>-"),
+        );
+
+        // Iterate though all theories in the repository metadata
+        for theory in to_fetch.iter() {
+            // Create the package metadata and register it
+            // Creating metadata will require network, so this could take some time
+            pb.set_message(format!("Syncing {}", style(theory).cyan()));
+            let package = repo_metadata.create_package_meta(&theory.name, &client).await?;
+            package.register()?;
+
+            pb.inc(1);
         }
 
-        // Create the package metadata and register it
-        // Creating metadata will require network, so this could take some time
-        println!("Generating (fetching) metadata for {}", theory);
-        let package = repo_metadata.create_package_meta(&theory.name, &client).await?;
-        package.register()?;
+        pb.finish_and_clear();
+        println!(
+            "Synced {} packages from {} ({}).",
+            style(to_fetch.len()).bold(),
+            style(&repo.name).cyan().bold(),
+            style(repo.get_version()).yellow()
+        );
     }
 
     return Ok(());
