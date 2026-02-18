@@ -1,10 +1,9 @@
 use std::{collections::HashMap, fmt, fs};
 
 use anyhow::Context;
-use console::{StyledObject, style};
+use console::style;
 use pubgrub::SemanticVersion;
 use serde::{Deserialize, Serialize};
-use tabled::{Table, Tabled, settings::Style};
 
 use crate::{config::BelleConfig, registry::registry::get_package_versions};
 
@@ -180,43 +179,13 @@ pub fn list_versions(name: String) -> anyhow::Result<()> {
     if versions.is_empty() {
         println!("No versions of package {} installed", name)
     } else {
-        #[derive(Tabled)]
-        struct PackageInfo {
-            #[tabled(rename = "Version")]
-            version: String,
-
-            #[tabled(rename = "Date")]
-            date: toml::value::Date,
-
-            #[tabled(rename = "Installed")]
-            #[tabled(display = "display_status")]
-            installed: bool,
-        }
-
-        fn display_status(installed: &bool) -> String {
-            if *installed {
-                return String::from("✔");
-            } else {
-                return String::from("✘");
+        for version in &versions {
+            print!("• {}", version.version.to_string());
+            if version.exists_locally() {
+                print!("{}", style("[installed]").dim());
             }
+            println!();
         }
-
-        let package_table: anyhow::Result<Vec<PackageInfo>> = versions
-            .iter()
-            .map(|package| {
-                let package_meta = package.get_package_meta()?.expect("Found version, now does not have metadata");
-
-                Ok(PackageInfo {
-                    version: package.version.to_string(),
-                    date: package_meta.date,
-                    installed: package.exists_locally(),
-                })
-            })
-            .collect();
-
-        let mut table = Table::new(package_table?);
-        table.with(Style::rounded());
-        println!("{}", table);
         println!(
             "Found {} versions for {}.",
             style(versions.len()).bold(),

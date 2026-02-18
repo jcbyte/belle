@@ -3,25 +3,14 @@ use std::sync::OnceLock;
 use pubgrub::SemanticVersion;
 use serde::Deserialize;
 
-use tabled::Tabled;
-
 /// Container holding a repositories name and heptapod id
-/// It is deserializable and able to be pretty printed as a table
-#[derive(Deserialize, Debug, Clone, Tabled)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct AFPRepo {
-    #[tabled(skip)]
     pub id: i32,
-    #[tabled(rename = "Repo Name")]
     pub name: String,
-
-    // Display version on the table, but do not serialise
-    #[serde(skip)]
-    #[tabled(display("display_version_private", self))]
-    pub version: (), // Use () as a placeholder
 
     // Keep a cache of version number as it may be created multiple times
     #[serde(skip)]
-    #[tabled(skip)]
     pub version_cache: OnceLock<SemanticVersion>,
 }
 
@@ -49,8 +38,4 @@ impl AFPRepo {
         let name_parts: Vec<&str> = ver_parts.into_iter().filter(|vp| !vp.eq(&"0")).collect();
         return name_parts.join("-");
     }
-}
-
-fn display_version_private(_: &(), repo: &AFPRepo) -> String {
-    repo.get_version().to_string()
 }

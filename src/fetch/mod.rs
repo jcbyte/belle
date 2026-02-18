@@ -3,7 +3,6 @@ use std::time::Duration;
 use anyhow::Context;
 use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
-use tabled::{Table, settings::Style};
 
 use crate::{
     fetch::{client::BelleClient, metadata::RepoMetadata},
@@ -28,11 +27,17 @@ pub async fn list_repositories(limit: usize) -> anyhow::Result<()> {
 
     pb.finish_and_clear();
 
-    // Print in a pretty table
-    let mut table = Table::new(&afp_repos);
-    table.with(Style::rounded());
-
-    println!("{}", table);
+    // Print list of AFPs
+    println!("{}", style("AFP Repositories Listing:"));
+    for afp_repo in &afp_repos {
+        println!(
+            " {:<11} {}{}{}",
+            style(&afp_repo.name).bold(),
+            style("[").dim(),
+            style(afp_repo.get_version().to_string()).green(),
+            style("]").dim(),
+        )
+    }
     println!("Found {} AFP repositories.", style(afp_repos.len()).bold());
 
     return Ok(());
@@ -62,9 +67,11 @@ pub async fn fetch_meta(repo_name: Option<String>, use_cache: bool) -> anyhow::R
     let pb = ProgressBar::new_spinner();
     pb.enable_steady_tick(Duration::from_millis(100));
     pb.set_message(format!(
-        "Fetching theories list from {} ({})",
+        "Fetching theories list from {} {}{}{}",
         style(&repo.name).cyan().bold(),
-        style(repo.get_version()).yellow()
+        style("[").dim(),
+        style(repo.get_version()).green(),
+        style("]").dim()
     ));
 
     // Get the metadata from the repo, and then create our metadata struct from this
@@ -72,10 +79,12 @@ pub async fn fetch_meta(repo_name: Option<String>, use_cache: bool) -> anyhow::R
     let repo_theories = repo_metadata.all_theories();
 
     pb.finish_with_message(format!(
-        "Found {} theories from {} ({}).",
+        "Found {} theories from {} {}{}{}.",
         style(repo_theories.len()).bold(),
         style(&repo.name).cyan().bold(),
-        style(repo.get_version()).yellow()
+        style("[").dim(),
+        style(repo.get_version()).green(),
+        style("]").dim(),
     ));
 
     // No need to register packages that already exist
@@ -94,7 +103,7 @@ pub async fn fetch_meta(repo_name: Option<String>, use_cache: bool) -> anyhow::R
         let pb = ProgressBar::new(to_fetch.len() as u64);
         pb.set_style(
             ProgressStyle::default_bar()
-                .template("{spinner:.green} [{bar:40.cyan/blue}] {pos}/{len} {msg}")?
+                .template("{spinner} [{bar:40.cyan/blue}] {pos}/{len} {msg}")?
                 .progress_chars("#>-"),
         );
 
@@ -111,17 +120,14 @@ pub async fn fetch_meta(repo_name: Option<String>, use_cache: bool) -> anyhow::R
 
         pb.finish_and_clear();
         println!(
-            "Synced {} packages from {} ({}).",
+            "Synced {} packages from {} {}{}{}.",
             style(to_fetch.len()).bold(),
             style(&repo.name).cyan().bold(),
-            style(repo.get_version()).yellow()
+            style("[").dim(),
+            style(repo.get_version()).yellow(),
+            style("]").dim(),
         );
     }
 
     return Ok(());
-}
-
-/// todo
-pub async fn get_package() {
-    todo!()
 }
