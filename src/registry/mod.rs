@@ -215,3 +215,69 @@ pub fn print_meta(name: String, version: Option<SemanticVersion>) -> anyhow::Res
         }
     };
 
+    let package_meta = package.get_package_meta()?;
+    match package_meta {
+        Some(meta) => {
+            print_package_meta(&meta);
+        }
+        None => anyhow::bail!("Package '{}' does not exist", package),
+    };
+
+    return Ok(());
+}
+
+fn print_package_meta(meta: &Package) {
+    println!();
+
+    let header = format!(
+        "{} {} {}{}{}",
+        style(&meta.name).cyan().bold(),
+        style(&meta.title).bold(),
+        style("[").dim(),
+        style(meta.version).green(),
+        style("]").dim()
+    );
+    println!("{}", header);
+    println!("{}", style("─".repeat(console::measure_text_width(&header))).dim());
+
+    println!("{}", style(&meta.r#abstract).italic());
+
+    if let Some(note) = &meta.note {
+        println!("{} {}", style("Note:").yellow().bold(), note);
+    }
+
+    println!();
+
+    println!("{:<10} {}", style("Date:").dim(), meta.date);
+    if !meta.topics.is_empty() {
+        println!("{:<10} {}", style("Topics:").dim(), meta.topics.join(", "));
+    }
+    println!("{:<10} {}", style("License:").dim(), meta.licence);
+
+    println!();
+
+    if !meta.authors.is_empty() {
+        println!("{}", style("Authors:").bold());
+        for author in &meta.authors {
+            print!(" - {}", author.name);
+            if let Some(email) = &author.email {
+                print!(" {}", style(format!("<{}>", email)).dim());
+            }
+            if let Some(orcid) = &author.orcid {
+                print!(" {}", style(format!("(ORCID:{})", orcid)).dim());
+            }
+            println!()
+        }
+    }
+
+    println!();
+
+    if !meta.dependencies.is_empty() {
+        println!("{}", style("Dependencies:").bold());
+        for (name, ver) in &meta.dependencies {
+            println!(" - {} {}", style(&name).magenta(), style(format!("[{}]", ver)).dim());
+        }
+    }
+
+    println!();
+}
