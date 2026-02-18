@@ -2,10 +2,9 @@ use std::{fs, path::PathBuf};
 
 use anyhow::Context;
 
-use super::Package;
 use crate::{
     config,
-    registry::{Manifest, PackageIdentifier},
+    registry::{Manifest, Package, PackageIdentifier},
 };
 
 impl PackageIdentifier {
@@ -35,6 +34,17 @@ impl PackageIdentifier {
             .with_added_extension("toml");
 
         return manifest_file;
+    }
+
+    /// Get theory location
+    fn get_theory_location(&self) -> PathBuf {
+        let config = config::BelleConfig::global();
+
+        // Manifest file is located within `$theory_dir/{name}/{version}.toml`
+        let theories_dir = config.get_theory_dir();
+        let theory_dir = theories_dir.join(self.name.clone()).join(self.version.to_string());
+
+        return theory_dir;
     }
 }
 
@@ -95,6 +105,30 @@ impl PackageIdentifier {
             .with_context(|| format!("Failed to parse TOML for {} manifest file", self))?;
 
         return Ok(Some(manifest));
+    }
+
+    /// Retrieve a packages metadata
+    /// Will be `None` if the package does not exist in our metadata store
+    pub fn get_package_meta(&self) -> anyhow::Result<Option<Package>> {
+        let metadata_file = self.get_meta_path();
+
+        // If the manifest file does not exist then it is not in our store
+        if !metadata_file.is_file() {
+            return Ok(None);
+        }
+
+        let meta_toml_string = fs::read_to_string(metadata_file)
+            .with_context(|| format!("Failed to read metadata file for {} package", self))?;
+        let meta: Package = toml::from_str(&meta_toml_string)
+            .with_context(|| format!("Failed to parse TOML for {} metadata file", self))?;
+
+        return Ok(Some(meta));
+    }
+
+    /// Get if this package has been downloaded already
+    pub fn exists_locally(&self) -> bool {
+        let theory_dir = self.get_theory_location();
+        return theory_dir.is_dir();
     }
 
     /// todo
