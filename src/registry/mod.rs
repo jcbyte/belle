@@ -47,6 +47,7 @@ pub struct Manifest {
 }
 
 /// Key for packages
+#[derive(Clone)]
 pub struct PackageIdentifier {
     pub name: String,
     pub version: SemanticVersion,
@@ -200,3 +201,17 @@ pub fn list_versions(name: String) -> anyhow::Result<()> {
 
     return Ok(());
 }
+
+pub fn print_meta(name: String, version: Option<SemanticVersion>) -> anyhow::Result<()> {
+    let package = match version {
+        Some(v) => PackageIdentifier { name, version: v },
+        None => {
+            let versions = get_package_versions(&name)?;
+            versions
+                .iter()
+                .max_by_key(|pi| pi.version)
+                .cloned()
+                .ok_or_else(|| anyhow::anyhow!("No versions of '{}' can be found", name))?
+        }
+    };
+
