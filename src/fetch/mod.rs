@@ -28,7 +28,7 @@ pub async fn list_repositories(limit: usize) -> anyhow::Result<()> {
     pb.finish_and_clear();
 
     // Print list of AFPs
-    println!("{}", style("AFP Repositories Listing:"));
+    println!("AFP Repositories Listing:");
     for afp_repo in &afp_repos {
         println!(
             " {:<11} {}{}{}",

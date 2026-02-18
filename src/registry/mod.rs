@@ -179,17 +179,22 @@ pub fn list_versions(name: String) -> anyhow::Result<()> {
     if versions.is_empty() {
         println!("No versions of package {} installed", name)
     } else {
+        let mut installed_count = 0;
+
+        println!("Version listing for {}:", style(&name).cyan());
         for version in &versions {
-            print!("• {}", version.version.to_string());
+            print!(" - {:<9}", style(version.version.to_string()).green(),);
             if version.exists_locally() {
-                print!("{}", style("[installed]").dim());
+                installed_count += 1;
+                print!("{}", style(" [installed]").dim());
             }
             println!();
         }
         println!(
-            "Found {} versions for {}.",
+            "Found {} versions for {} {}.",
             style(versions.len()).bold(),
-            style(name).cyan()
+            style(&name).cyan(),
+            style(format!("({} installed)", installed_count)).dim(),
         );
     }
 
