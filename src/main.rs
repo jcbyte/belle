@@ -42,6 +42,14 @@ async fn main() -> Result<()> {
                 }
             }
         },
+        Commands::Show(args) => {
+            if args.versions {
+                todo!("List versions for {}", args.name);
+            } else {
+                // todo get latest version if not supplied
+                todo!("List meta for {}@{}", args.name, args.version.expect("msg").to_string());
+            }
+        }
     }
 
     Ok(())

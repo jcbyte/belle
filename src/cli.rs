@@ -18,6 +18,9 @@ pub enum Commands {
     /// Internal cache operations
     #[command(subcommand)]
     Cache(CacheAction),
+
+    /// Show package/theory information
+    Show(ShowArgs),
 }
 
 #[derive(Subcommand)]
@@ -66,4 +69,15 @@ pub struct CacheCleanArgs {
     pub meta: bool,
 }
 
-// todo belle show [name] <version>
+#[derive(Args)]
+pub struct ShowArgs {
+    /// Name of package/theory to view
+    pub name: String,
+
+    /// Version of package/theory to view (defaults to latest)
+    #[arg(conflicts_with = "versions")]
+    pub version: Option<SemanticVersion>,
+
+    #[arg(short, long)]
+    pub versions: bool,
+}

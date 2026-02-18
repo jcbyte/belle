@@ -1,4 +1,4 @@
-use std::{fmt::format, time::Duration};
+use std::time::Duration;
 
 use anyhow::Context;
 use console::style;
@@ -7,7 +7,7 @@ use tabled::{Table, settings::Style};
 
 use crate::{
     fetch::{client::BelleClient, metadata::RepoMetadata},
-    registry::{self, PackageIdentifier},
+    registry::PackageIdentifier,
 };
 
 mod afp_repo;
