@@ -1,32 +1,25 @@
-use std::ffi::OsStr;
+use std::path::PathBuf;
 
 use pubgrub::SemanticVersion;
 use walkdir::WalkDir;
 
-use crate::{config::BelleConfig, registry::PackageIdentifier};
+use crate::config::BelleConfig;
 
-pub fn list_packages(version: &SemanticVersion) -> Vec<PackageIdentifier> {
-    let target_file = format!("{}.toml", version.to_string());
-    let target_os_file = OsStr::new(&target_file);
+/// Scan for `$root/{name}/{version}` toml files or folders
+pub fn scour_package_files(root_path: &PathBuf, version: &SemanticVersion) -> impl Iterator<Item = PathBuf> {
+    let file_target = format!("{}.toml", version.to_string());
+    let dir_target = version.to_string();
 
-    let config = BelleConfig::global();
-    let meta_root = config.root_dir.join("meta");
-
-    return WalkDir::new(meta_root)
+    return WalkDir::new(root_path)
         .min_depth(2)
         .max_depth(2)
         .into_iter()
-        .filter_map(|file| file.ok())
-        .filter(|file| file.file_name().eq(target_os_file))
-        .filter_map(|file| {
-            file.path()
-                .parent()
-                .and_then(|parent_path| parent_path.file_name())
-                .map(|parent_name| parent_name.to_string_lossy().to_string())
+        .filter_map(|entry| entry.ok())
+        .filter(move |entry| {
+            let name = entry.file_name().to_string_lossy().to_string();
+
+            (entry.file_type().is_file() && name.eq(&file_target)) || //,
+            (entry.file_type().is_dir() && name.eq(&dir_target))
         })
-        .map(|package_name| PackageIdentifier {
-            name: package_name,
-            version: version.clone(),
-        })
-        .collect();
+        .map(|file| file.path().to_path_buf());
 }
