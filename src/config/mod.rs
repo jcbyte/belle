@@ -51,6 +51,21 @@ impl BelleConfig {
             root_dir: base_path.join("belle"),
         };
     }
+
+    /// Get folder for metadata
+    pub fn get_meta_dir(&self) -> PathBuf {
+        return self.root_dir.join("meta");
+    }
+
+    /// Get folder for manifest
+    pub fn get_manifest_dir(&self) -> PathBuf {
+        return self.root_dir.join("manifest");
+    }
+
+    /// Get folder for theories
+    pub fn get_theory_dir(&self) -> PathBuf {
+        return self.root_dir.join("theory");
+    }
 }
 
 // todo writing to config

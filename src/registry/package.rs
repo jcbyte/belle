@@ -13,8 +13,8 @@ impl PackageIdentifier {
     fn get_meta_path(&self) -> PathBuf {
         let config = config::BelleConfig::global();
 
-        // Meta file is located within `$belle_dir/meta/{name}/{version}.toml`
-        let meta_dir = config.root_dir.join("meta");
+        // Meta file is located within `$meta_dir/{name}/{version}.toml`
+        let meta_dir = config.get_meta_dir();
         let meta_file = meta_dir
             .join(self.name.clone())
             .join(self.version.to_string())
@@ -27,8 +27,8 @@ impl PackageIdentifier {
     fn get_manifest_path(&self) -> PathBuf {
         let config = config::BelleConfig::global();
 
-        // Manifest file is located within `$belle_dir/manifest/{name}/{version}.toml`
-        let manifest_dir = config.root_dir.join("manifest");
+        // Manifest file is located within `$manifest_dir/{name}/{version}.toml`
+        let manifest_dir = config.get_manifest_dir();
         let manifest_file = manifest_dir
             .join(self.name.clone())
             .join(self.version.to_string())
