@@ -1,11 +1,12 @@
 use std::{collections::HashMap, fmt, fs};
 
 use anyhow::Context;
-use console::style;
+use console::{StyledObject, style};
 use pubgrub::SemanticVersion;
 use serde::{Deserialize, Serialize};
+use tabled::{Table, Tabled, settings::Style};
 
-use crate::config::BelleConfig;
+use crate::{config::BelleConfig, registry::registry::get_package_versions};
 
 pub mod package;
 pub mod registry;
@@ -100,7 +101,7 @@ pub fn clean_theories(version: Option<SemanticVersion>) -> anyhow::Result<()> {
             let mut count = 0;
 
             // Find all theory folders for the requested version and remove them
-            for theory in registry::scour_package_files(&thy_dir, &version) {
+            for theory in registry::iter_package_files(&thy_dir, &version) {
                 fs::remove_dir_all(&theory).with_context(|| {
                     let name = theory
                         .parent()
@@ -138,7 +139,7 @@ pub fn clean_metadata(version: Option<SemanticVersion>) -> anyhow::Result<()> {
             let mut count = 0;
 
             // Find all metadata files for the requested version and remove them
-            for meta_file in registry::scour_package_files(&meta_dir, &version) {
+            for meta_file in registry::iter_package_files(&meta_dir, &version) {
                 fs::remove_file(&meta_file).with_context(|| {
                     let name = meta_file
                         .parent()
@@ -154,7 +155,7 @@ pub fn clean_metadata(version: Option<SemanticVersion>) -> anyhow::Result<()> {
 
             // Find all manifest files for the requested version and remove them
             // The count should be equal for manifests
-            for manifest_file in registry::scour_package_files(&manifest_dir, &version) {
+            for manifest_file in registry::iter_package_files(&manifest_dir, &version) {
                 fs::remove_file(&manifest_file).with_context(|| {
                     let name = manifest_file
                         .parent()
@@ -169,6 +170,59 @@ pub fn clean_metadata(version: Option<SemanticVersion>) -> anyhow::Result<()> {
             println!("Cleaned metadata for {} theories.", style(count).bold());
         }
     };
+
+    return Ok(());
+}
+
+pub fn list_versions(name: String) -> anyhow::Result<()> {
+    let versions = get_package_versions(&name)?;
+
+    if versions.is_empty() {
+        println!("No versions of package {} installed", name)
+    } else {
+        #[derive(Tabled)]
+        struct PackageInfo {
+            #[tabled(rename = "Version")]
+            version: String,
+
+            #[tabled(rename = "Date")]
+            date: toml::value::Date,
+
+            #[tabled(rename = "Installed")]
+            #[tabled(display = "display_status")]
+            installed: bool,
+        }
+
+        fn display_status(installed: &bool) -> String {
+            if *installed {
+                return String::from("✔");
+            } else {
+                return String::from("✘");
+            }
+        }
+
+        let package_table: anyhow::Result<Vec<PackageInfo>> = versions
+            .iter()
+            .map(|package| {
+                let package_meta = package.get_package_meta()?.expect("Found version, now does not have metadata");
+
+                Ok(PackageInfo {
+                    version: package.version.to_string(),
+                    date: package_meta.date,
+                    installed: package.exists_locally(),
+                })
+            })
+            .collect();
+
+        let mut table = Table::new(package_table?);
+        table.with(Style::rounded());
+        println!("{}", table);
+        println!(
+            "Found {} versions for {}.",
+            style(versions.len()).bold(),
+            style(name).cyan()
+        );
+    }
 
     return Ok(());
 }

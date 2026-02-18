@@ -1,6 +1,6 @@
 use crate::{
     config::BelleConfig,
-    registry::{clean_metadata, clean_theories},
+    registry::{clean_metadata, clean_theories, list_versions},
 };
 
 mod cli;
@@ -44,7 +44,7 @@ async fn main() -> Result<()> {
         },
         Commands::Show(args) => {
             if args.versions {
-                todo!("List versions for {}", args.name);
+                list_versions(args.name)?;
             } else {
                 // todo get latest version if not supplied
                 todo!("List meta for {}@{}", args.name, args.version.expect("msg").to_string());
