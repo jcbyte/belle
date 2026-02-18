@@ -3,8 +3,6 @@ use std::path::PathBuf;
 use pubgrub::SemanticVersion;
 use walkdir::WalkDir;
 
-use crate::config::BelleConfig;
-
 /// Scan for `$root/{name}/{version}` toml files or folders
 pub fn scour_package_files(root_path: &PathBuf, version: &SemanticVersion) -> impl Iterator<Item = PathBuf> {
     let file_target = format!("{}.toml", version.to_string());
