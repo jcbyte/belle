@@ -6,7 +6,7 @@ use zip::ZipArchive;
 
 use crate::fetch::afp_repo::AFPRepo;
 use crate::fetch::client::BelleClient;
-use crate::registry::{Package, PackageAuthor, PackageIdentifier};
+use crate::registry::{Package, PackageAuthor, PackageIdentifier, PackageSource};
 
 pub mod dependency;
 mod parser;
@@ -189,6 +189,7 @@ impl RepoMetadata {
             authors: authors,
             contributors: contributors,
             dependencies,
+            source: PackageSource { repo: self.repo.id },
             extra: meta.extra.clone(),
         };
 

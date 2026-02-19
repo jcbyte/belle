@@ -28,6 +28,7 @@ pub enum RepoAction {
     /// List all available AFP repositories
     List(MetaListArgs),
     /// Fetch and update metadata from an AFP repository
+    #[command(alias = "fetch")]
     Update(RepoUpdateArgs),
 }
 

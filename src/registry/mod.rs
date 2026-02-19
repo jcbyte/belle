@@ -18,6 +18,11 @@ pub struct PackageAuthor {
     pub orcid: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PackageSource {
+    pub repo: u32,
+}
+
 /// All package metadata stored on disk
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Package {
@@ -34,6 +39,8 @@ pub struct Package {
     pub contributors: Vec<PackageAuthor>,
 
     pub dependencies: HashMap<String, SemanticVersion>,
+
+    pub source: PackageSource,
 
     pub extra: toml::Table,
 }

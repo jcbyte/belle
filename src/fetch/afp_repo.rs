@@ -6,7 +6,7 @@ use serde::Deserialize;
 /// Container holding a repositories name and heptapod id
 #[derive(Deserialize, Debug, Clone)]
 pub struct AFPRepo {
-    pub id: i32,
+    pub id: u32,
     pub name: String,
 
     // Keep a cache of version number as it may be created multiple times
