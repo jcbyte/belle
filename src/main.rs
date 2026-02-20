@@ -1,4 +1,7 @@
-use crate::registry::{clean_metadata, clean_theories, list_versions, print_meta};
+use crate::{
+    cli::ConfigAction,
+    registry::{clean_metadata, clean_theories, list_versions, print_meta},
+};
 
 mod cli;
 mod config;
@@ -43,9 +46,22 @@ async fn main() -> Result<()> {
             if args.versions {
                 list_versions(args.name)?;
             } else {
-                print_meta(args.name, args.version);
+                print_meta(args.name, args.version)?;
             }
         }
+        Commands::Config(action) => match action {
+            ConfigAction::List => {
+                todo!("List all")
+            }
+            ConfigAction::Home { new_home } => match new_home {
+                None => {
+                    todo!("Show current value")
+                }
+                Some(new_home) => {
+                    todo!("Update home value")
+                }
+            },
+        },
     }
 
     Ok(())

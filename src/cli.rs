@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::{ArgGroup, Args, Parser, Subcommand};
 use pubgrub::SemanticVersion;
 
@@ -21,6 +23,10 @@ pub enum Commands {
 
     /// Show package/theory information
     Show(ShowArgs),
+
+    /// View/Modify config variables
+    #[command(subcommand)]
+    Config(ConfigAction),
 }
 
 #[derive(Subcommand)]
@@ -81,4 +87,13 @@ pub struct ShowArgs {
 
     #[arg(short, long)]
     pub versions: bool,
+}
+
+#[derive(Subcommand)]
+pub enum ConfigAction {
+    /// List all config variables and their values
+    List,
+
+    /// Update config home value
+    Home { new_home: Option<PathBuf> },
 }
