@@ -1,7 +1,4 @@
-use crate::{
-    config::BelleConfig,
-    registry::{clean_metadata, clean_theories, list_versions, print_meta},
-};
+use crate::registry::{clean_metadata, clean_theories, list_versions, print_meta};
 
 mod cli;
 mod config;
@@ -16,7 +13,7 @@ use cli::{CacheAction, Cli, Commands, RepoAction};
 #[tokio::main]
 async fn main() -> Result<()> {
     // Ensure configuration/state is initialised
-    BelleConfig::init()?;
+    config::init_config()?;
 
     // Parse command-line arguments and dispatch to the appropriate action
     let args = Cli::parse();

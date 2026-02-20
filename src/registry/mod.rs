@@ -95,8 +95,9 @@ impl fmt::Display for PackageIdentifier {
 }
 
 pub fn clean_theories(version: Option<SemanticVersion>) -> anyhow::Result<()> {
-    let config = BelleConfig::global();
-    let thy_dir = config.get_theory_dir();
+    // todo if folder doesn't exist it will fail
+
+    let thy_dir = BelleConfig::get_theory_dir();
 
     match version {
         // If no version is given, this means all
@@ -130,9 +131,8 @@ pub fn clean_theories(version: Option<SemanticVersion>) -> anyhow::Result<()> {
 }
 
 pub fn clean_metadata(version: Option<SemanticVersion>) -> anyhow::Result<()> {
-    let config = BelleConfig::global();
-    let meta_dir = config.get_manifest_dir();
-    let manifest_dir = config.get_manifest_dir();
+    let meta_dir = BelleConfig::get_manifest_dir();
+    let manifest_dir = BelleConfig::get_manifest_dir();
 
     match version {
         // If no version is given, this means all

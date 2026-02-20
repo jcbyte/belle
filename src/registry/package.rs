@@ -3,17 +3,15 @@ use std::{fs, path::PathBuf};
 use anyhow::Context;
 
 use crate::{
-    config,
+    config::BelleConfig,
     registry::{Manifest, Package, PackageIdentifier},
 };
 
 impl PackageIdentifier {
     /// Get metadata path for the given package
     fn get_meta_path(&self) -> PathBuf {
-        let config = config::BelleConfig::global();
-
         // Meta file is located within `$meta_dir/{name}/{version}.toml`
-        let meta_dir = config.get_meta_dir();
+        let meta_dir = BelleConfig::get_meta_dir();
         let meta_file = meta_dir
             .join(self.name.clone())
             .join(self.version.to_string())
@@ -24,10 +22,8 @@ impl PackageIdentifier {
 
     /// Get manifest path for the given package
     fn get_manifest_path(&self) -> PathBuf {
-        let config = config::BelleConfig::global();
-
         // Manifest file is located within `$manifest_dir/{name}/{version}.toml`
-        let manifest_dir = config.get_manifest_dir();
+        let manifest_dir = BelleConfig::get_manifest_dir();
         let manifest_file = manifest_dir
             .join(self.name.clone())
             .join(self.version.to_string())
@@ -38,10 +34,8 @@ impl PackageIdentifier {
 
     /// Get theory location
     fn get_theory_location(&self) -> PathBuf {
-        let config = config::BelleConfig::global();
-
         // Manifest file is located within `$theory_dir/{name}/{version}.toml`
-        let theories_dir = config.get_theory_dir();
+        let theories_dir = BelleConfig::get_theory_dir();
         let theory_dir = theories_dir.join(self.name.clone()).join(self.version.to_string());
 
         return theory_dir;
