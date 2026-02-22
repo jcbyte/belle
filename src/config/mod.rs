@@ -8,7 +8,7 @@ use std::{
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConfigData {
-    home: PathBuf,
+    pub home: PathBuf,
 }
 
 impl Default for ConfigData {
@@ -90,6 +90,28 @@ impl BelleConfig {
         // Auto-save on write
         let _ = lock.save();
         return res;
+    }
+}
+
+impl ConfigData {
+    pub fn get<T>(&self, key: &str) -> anyhow::Result<T>
+    where
+        T: From<PathBuf>,
+    {
+        match key {
+            "home" => Ok(self.home.clone().into()),
+            _ => Err(anyhow::anyhow!("Unknown config setting '{}'", key)),
+        }
+    }
+
+    pub fn set(&mut self, key: &str, value: &String) -> anyhow::Result<()> {
+        match key {
+            "home" => {
+                self.home = PathBuf::from(value);
+                Ok(())
+            }
+            _ => Err(anyhow::anyhow!("Unknown config setting '{}'", key)),
+        }
     }
 }
 

@@ -56,10 +56,11 @@ async fn main() -> Result<()> {
             }
             ConfigAction::Home { new_home } => match new_home {
                 None => {
-                    todo!("Show current value")
+                    let home = BelleConfig::read_config(|c| c.home.to_path_buf());
+                    print!("Home is {}", home.to_string_lossy().to_string())
                 }
                 Some(new_home) => {
-                    todo!("Update home value")
+                    BelleConfig::write_config(|c| c.home = new_home);
                 }
             },
         },
