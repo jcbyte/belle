@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use clap::{ArgGroup, Args, Parser, Subcommand};
 use pubgrub::SemanticVersion;
 
@@ -13,34 +11,35 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// AFP repository operations
+    /// Manage and explore AFP repositories
     #[command(subcommand)]
     Repo(RepoAction),
 
-    /// Internal cache operations
+    /// Manage locally cached theories and metadata
     #[command(subcommand)]
     Cache(CacheAction),
 
-    /// Show package/theory information
-    Show(ShowArgs),
+    /// Display detailed information for a specific package/theory
+    Inspect(InspectArgs),
 
-    /// View/Modify config variables
+    /// View or modify application configuration
     #[command(subcommand)]
     Config(ConfigAction),
 }
 
 #[derive(Subcommand)]
 pub enum RepoAction {
-    /// List all available AFP repositories
+    /// List known AFP repositories
     List(MetaListArgs),
-    /// Fetch and update metadata from an AFP repository
+
+    /// Synchronize metadata from a repository to the local system
     #[command(alias = "fetch")]
     Update(RepoUpdateArgs),
 }
 
 #[derive(Args)]
 pub struct MetaListArgs {
-    /// Optional maximum number of AFP repos to fetch
+    /// Optional maximum number of AFP repos to show
     #[arg(short, long, value_name = "LIMIT", default_value_t = 20)]
     pub limit: usize,
 }
@@ -50,6 +49,7 @@ pub struct RepoUpdateArgs {
     /// Optional name of AFP repo (defaults to latest)
     #[arg(value_name = "REPO")]
     pub name: Option<String>,
+
     /// Ignore cache and re-fetch all theories
     #[arg(long)]
     pub no_cache: bool,
@@ -57,61 +57,62 @@ pub struct RepoUpdateArgs {
 
 #[derive(Subcommand)]
 pub enum CacheAction {
-    /// Clean internal cache
+    /// Remove downloaded files to free up disk space
     Clean(CacheCleanArgs),
 }
 
 #[derive(Args)]
 #[command(group(ArgGroup::new("selection").required(true).args(["version", "all"])))]
 pub struct CacheCleanArgs {
-    /// Clear cached files for a specific version
+    /// The specific version to remove from cache
     pub version: Option<SemanticVersion>,
 
-    /// Clear cached files for all versions
+    /// Remove all cached versions
     #[arg(long)]
     pub all: bool,
 
-    /// Force removal of internal metadata (not done by default; requires re-fetch)
+    /// Also remove package/theory metadata (requires a 'repo update' to restore)
     #[arg(short, long)]
     pub meta: bool,
 }
 
 #[derive(Args)]
-pub struct ShowArgs {
-    /// Name of package/theory to view
+pub struct InspectArgs {
+    /// The name of the package/theory to inspect
     pub name: String,
 
-    /// Version of package/theory to view (defaults to latest)
+    /// Inspect a specific version (defaults to latest)
     #[arg(conflicts_with = "versions")]
     pub version: Option<SemanticVersion>,
 
+    /// List all available versions for this package instead
     #[arg(short, long)]
     pub versions: bool,
 }
 
 #[derive(Subcommand)]
 pub enum ConfigAction {
-    /// List all config variables and their values
+    /// List all configuration parameters and their current values
     List,
 
-    /// View config setting value
+    /// View the value of a specific configuration parameter
     Get(ConfigGetArgs),
 
-    /// Update config setting value
+    /// Assign a new value to a configuration parameter
     Set(ConfigSetArgs),
 }
 
 #[derive(Args)]
 pub struct ConfigGetArgs {
-    /// Name of config setting to view
+    /// The name of configuration parameter to view
     pub key: String,
 }
 
 #[derive(Args)]
 pub struct ConfigSetArgs {
-    /// Name of config setting to change
+    /// The name of configuration parameter to update
     pub key: String,
 
-    /// New value of the setting
+    /// The new value for the configuration parameter
     pub value: String,
 }
