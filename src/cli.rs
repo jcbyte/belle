@@ -7,6 +7,7 @@ use crate::{
     fetch,
 };
 
+mod config;
 mod registry;
 mod schema;
 pub use schema::Cli;
@@ -40,13 +41,13 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
         }
         Commands::Config(action) => match action {
             ConfigAction::List => {
-                BelleConfig::read_config(|c| c.print_all());
+                cli::config::print_all_config()?;
             }
             ConfigAction::Get(args) => {
-                BelleConfig::read_config(|c| c.print(&args.key))?;
+                cli::config::print_config(&args.key)?;
             }
             ConfigAction::Set(args) => {
-                BelleConfig::write_config(|c| c.set(&args.key, &args.value))?;
+                cli::config::set_config(&args.key, &args.value)?;
             }
         },
     }

@@ -1,26 +1,11 @@
 use anyhow::Context;
-use serde::{Deserialize, Serialize};
 use std::{
     env, fs,
     path::PathBuf,
     sync::{OnceLock, RwLock},
 };
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ConfigData {
-    pub home: PathBuf,
-}
-
-impl Default for ConfigData {
-    /// Defaults for config
-    fn default() -> Self {
-        // Default root directory under the user's application data
-        let data_dir = dirs::data_dir().expect("Could not get users data folder");
-        let home_dir = data_dir.join("belle");
-
-        return Self { home: home_dir };
-    }
-}
+use crate::config::types::ConfigData;
 
 #[derive(Debug)]
 pub struct BelleConfig {
@@ -28,7 +13,11 @@ pub struct BelleConfig {
     config_file: PathBuf,
 }
 
+/// Global config instance
+static CONFIG_INSTANCE: OnceLock<RwLock<BelleConfig>> = OnceLock::new();
+
 impl BelleConfig {
+    /// Load config from disk, or use default
     fn load() -> anyhow::Result<Self> {
         // Load config file from location at environment variable `BELLE_CONFIG` or check the executables location if that is not set
         let config_path = env::var("BELLE_CONFIG").unwrap_or(String::from("./belle_config.toml"));
@@ -58,17 +47,14 @@ impl BelleConfig {
         });
     }
 
-    pub fn save(&self) -> anyhow::Result<()> {
+    /// Save config back to disk
+    fn save(&self) -> anyhow::Result<()> {
         let content = toml::to_string(&self.data)?;
         fs::write(&self.config_file, content)?;
         return Ok(());
     }
-}
 
-// Global config instance
-static CONFIG_INSTANCE: OnceLock<RwLock<BelleConfig>> = OnceLock::new();
-
-impl BelleConfig {
+    /// Initialise the config (should be called once)
     pub fn init() -> anyhow::Result<()> {
         let mgr = BelleConfig::load()?;
         CONFIG_INSTANCE
@@ -90,52 +76,5 @@ impl BelleConfig {
         // Auto-save on write
         let _ = lock.save();
         return res;
-    }
-}
-
-impl ConfigData {
-    /// Print all settings, for CLI
-    pub fn print_all(&self) {
-        println!("home is {}", self.home.to_string_lossy().to_string());
-    }
-
-    /// Retrieve string value of config setting, for CLI
-    pub fn print(&self, key: &str) -> anyhow::Result<()> {
-        let value = match key {
-            "home" => Ok(self.home.to_string_lossy().to_string()),
-            _ => Err(anyhow::anyhow!("Unknown config setting '{}'", key)),
-        }?;
-
-        println!("{} is {}", key, value);
-
-        return Ok(());
-    }
-
-    /// Set string value of key, for CLI
-    pub fn set(&mut self, key: &str, value: &String) -> anyhow::Result<()> {
-        match key {
-            "home" => {
-                self.home = PathBuf::from(value);
-                Ok(())
-            }
-            _ => Err(anyhow::anyhow!("Unknown config setting '{}'", key)),
-        }
-    }
-}
-
-impl ConfigData {
-    /// Get folder for metadata
-    pub fn get_meta_dir(&self) -> PathBuf {
-        return self.home.join("meta");
-    }
-
-    /// Get folder for manifest
-    pub fn get_manifest_dir(&self) -> PathBuf {
-        return self.home.join("manifest");
-    }
-
-    /// Get folder for theories
-    pub fn get_theory_dir(&self) -> PathBuf {
-        return self.home.join("theory");
     }
 }
