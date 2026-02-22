@@ -1,4 +1,4 @@
-use belle::cli_schema::Cli;
+use belle::cli;
 use belle::config::BelleConfig;
 use clap::Parser;
 
@@ -10,9 +10,10 @@ async fn main() {
     }
 
     // Parse command-line arguments and dispatch to the appropriate action
-    let args = Cli::parse();
+    let args = cli::Cli::parse();
 
-    if let Err(e) = belle::run(args).await {
+    // Execute the commands
+    if let Err(e) = cli::run(args).await {
         // todo error handling
     }
 }
