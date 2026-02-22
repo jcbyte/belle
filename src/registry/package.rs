@@ -4,43 +4,8 @@ use anyhow::Context;
 
 use crate::{
     config::BelleConfig,
-    registry::{Manifest, Package, PackageIdentifier},
+    registry::{Package, PackageIdentifier, types::Manifest},
 };
-
-impl PackageIdentifier {
-    /// Get metadata path for the given package
-    fn get_meta_path(&self) -> PathBuf {
-        // Meta file is located within `$meta_dir/{name}/{version}.toml`
-        let meta_dir = BelleConfig::read_config(|c| c.get_meta_dir());
-        let meta_file = meta_dir
-            .join(self.name.clone())
-            .join(self.version.to_string())
-            .with_added_extension("toml");
-
-        return meta_file;
-    }
-
-    /// Get manifest path for the given package
-    fn get_manifest_path(&self) -> PathBuf {
-        // Manifest file is located within `$manifest_dir/{name}/{version}.toml`
-        let manifest_dir = BelleConfig::read_config(|c| c.get_manifest_dir());
-        let manifest_file = manifest_dir
-            .join(self.name.clone())
-            .join(self.version.to_string())
-            .with_added_extension("toml");
-
-        return manifest_file;
-    }
-
-    /// Get theory location
-    fn get_theory_location(&self) -> PathBuf {
-        // Manifest file is located within `$theory_dir/{name}/{version}.toml`
-        let theories_dir = BelleConfig::read_config(|c| c.get_theory_dir());
-        let theory_dir = theories_dir.join(self.name.clone()).join(self.version.to_string());
-
-        return theory_dir;
-    }
-}
 
 impl Package {
     /// Write package metadata and manifest to disk
@@ -77,6 +42,39 @@ impl Package {
 }
 
 impl PackageIdentifier {
+    /// Get metadata path for the given package
+    fn get_meta_path(&self) -> PathBuf {
+        // Meta file is located within `$meta_dir/{name}/{version}.toml`
+        let meta_dir = BelleConfig::read_config(|c| c.get_meta_dir());
+        let meta_file = meta_dir
+            .join(&self.name)
+            .join(self.version.to_string())
+            .with_added_extension("toml");
+
+        return meta_file;
+    }
+
+    /// Get manifest path for the given package
+    fn get_manifest_path(&self) -> PathBuf {
+        // Manifest file is located within `$manifest_dir/{name}/{version}.toml`
+        let manifest_dir = BelleConfig::read_config(|c| c.get_manifest_dir());
+        let manifest_file = manifest_dir
+            .join(self.name.clone())
+            .join(self.version.to_string())
+            .with_added_extension("toml");
+
+        return manifest_file;
+    }
+
+    /// Get theory location
+    fn get_theory_location(&self) -> PathBuf {
+        // Manifest file is located within `$theory_dir/{name}/{version}.toml`
+        let theories_dir = BelleConfig::read_config(|c| c.get_theory_dir());
+        let theory_dir = theories_dir.join(self.name.clone()).join(self.version.to_string());
+
+        return theory_dir;
+    }
+
     /// Check that package exists in our metadata store on disk
     pub fn package_exists(&self) -> bool {
         let manifest_file = self.get_manifest_path();
@@ -123,12 +121,5 @@ impl PackageIdentifier {
     pub fn exists_locally(&self) -> bool {
         let theory_dir = self.get_theory_location();
         return theory_dir.is_dir();
-    }
-
-    /// todo
-    pub fn get_package() {
-        todo!()
-        // should check locally, if not we need to download
-        // what does this return where is it called form?
     }
 }

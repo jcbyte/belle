@@ -1,99 +1,15 @@
-use std::{collections::HashMap, fmt, fs};
+use std::fs;
 
 use anyhow::Context;
 use console::style;
 use pubgrub::SemanticVersion;
-use serde::{Deserialize, Serialize};
 
-use crate::{config::BelleConfig, registry::registry::get_package_versions};
+use crate::{
+    config::BelleConfig,
+    registry::{self, Package, PackageIdentifier},
+};
 
-pub mod package;
-pub mod registry;
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct PackageAuthor {
-    pub name: String,
-    pub email: Option<String>,
-    pub homepages: Option<Vec<String>>,
-    pub orcid: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct PackageSource {
-    pub repo: u32,
-}
-
-/// All package metadata stored on disk
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Package {
-    pub name: String,
-    pub version: SemanticVersion,
-    pub title: String,
-    pub date: toml::value::Date,
-    pub r#abstract: String,
-    pub licence: String,
-    pub topics: Vec<String>,
-    pub note: Option<String>,
-
-    pub authors: Vec<PackageAuthor>,
-    pub contributors: Vec<PackageAuthor>,
-
-    pub dependencies: HashMap<String, SemanticVersion>,
-
-    pub source: PackageSource,
-
-    pub extra: toml::Table,
-}
-
-/// Subset of `Package` stored in disk for quick dependency resolution
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Manifest {
-    name: String,
-    version: SemanticVersion,
-    dependencies: HashMap<String, SemanticVersion>,
-}
-
-/// Key for packages
-#[derive(Clone)]
-pub struct PackageIdentifier {
-    pub name: String,
-    pub version: SemanticVersion,
-}
-
-impl From<&Package> for Manifest {
-    fn from(package: &Package) -> Self {
-        return Self {
-            name: package.name.clone(),
-            version: package.version.clone(),
-            dependencies: package.dependencies.clone(),
-        };
-    }
-}
-
-impl From<&Package> for PackageIdentifier {
-    fn from(package: &Package) -> Self {
-        return Self {
-            name: package.name.clone(),
-            version: package.version.clone(),
-        };
-    }
-}
-
-impl From<&Manifest> for PackageIdentifier {
-    fn from(manifest: &Manifest) -> Self {
-        return Self {
-            name: manifest.name.clone(),
-            version: manifest.version.clone(),
-        };
-    }
-}
-
-impl fmt::Display for PackageIdentifier {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}@{}", self.name, self.version)
-    }
-}
-
+/// Remove theories from disk, if version is not given then remove all
 pub fn clean_theories(version: Option<SemanticVersion>) -> anyhow::Result<()> {
     // todo if folder doesn't exist it will fail
 
@@ -130,6 +46,7 @@ pub fn clean_theories(version: Option<SemanticVersion>) -> anyhow::Result<()> {
     return Ok(());
 }
 
+/// Remove metadata from disk, if version is not given then remove all
 pub fn clean_metadata(version: Option<SemanticVersion>) -> anyhow::Result<()> {
     let meta_dir = BelleConfig::read_config(|c| c.get_meta_dir());
     let manifest_dir = BelleConfig::read_config(|c| c.get_manifest_dir());
@@ -181,8 +98,9 @@ pub fn clean_metadata(version: Option<SemanticVersion>) -> anyhow::Result<()> {
     return Ok(());
 }
 
+/// List versions of a package in our local metadata
 pub fn list_versions(name: String) -> anyhow::Result<()> {
-    let versions = get_package_versions(&name)?;
+    let versions = registry::get_package_versions(&name)?;
 
     if versions.is_empty() {
         println!("No versions of package {} installed", name)
@@ -209,31 +127,8 @@ pub fn list_versions(name: String) -> anyhow::Result<()> {
     return Ok(());
 }
 
-pub fn print_meta(name: String, version: Option<SemanticVersion>) -> anyhow::Result<()> {
-    let package = match version {
-        Some(v) => PackageIdentifier { name, version: v },
-        None => {
-            let versions = get_package_versions(&name)?;
-            versions
-                .iter()
-                .max_by_key(|pi| pi.version)
-                .cloned()
-                .ok_or_else(|| anyhow::anyhow!("No versions of '{}' can be found", name))?
-        }
-    };
-
-    let package_meta = package.get_package_meta()?;
-    match package_meta {
-        Some(meta) => {
-            print_package_meta(&meta);
-        }
-        None => anyhow::bail!("Package '{}' does not exist", package),
-    };
-
-    return Ok(());
-}
-
-fn print_package_meta(meta: &Package) {
+/// Prints nicely formatted metadata for a package to the console
+fn print_meta(meta: &Package) {
     println!();
 
     let header = format!(
@@ -287,4 +182,29 @@ fn print_package_meta(meta: &Package) {
     }
 
     println!();
+}
+
+/// Display metadata for a specific package on the console, if a version is not given then the latest will be shown
+pub fn print_package_meta(name: String, version: Option<SemanticVersion>) -> anyhow::Result<()> {
+    let package = match version {
+        Some(v) => PackageIdentifier { name, version: v },
+        None => {
+            let versions = registry::get_package_versions(&name)?;
+            versions
+                .iter()
+                .max_by_key(|pi| pi.version)
+                .cloned()
+                .ok_or_else(|| anyhow::anyhow!("No versions of '{}' can be found", name))?
+        }
+    };
+
+    let package_meta = package.get_package_meta()?;
+    match package_meta {
+        Some(meta) => {
+            print_meta(&meta);
+        }
+        None => anyhow::bail!("Package '{}' does not exist", package),
+    };
+
+    return Ok(());
 }

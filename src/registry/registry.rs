@@ -25,6 +25,7 @@ pub fn iter_package_files(root_path: &PathBuf, version: &SemanticVersion) -> imp
         .map(|file| file.path().to_path_buf());
 }
 
+/// Scan for all versions for a specific package
 pub fn get_package_versions(name: &String) -> anyhow::Result<Vec<PackageIdentifier>> {
     let package_manifests = BelleConfig::read_config(|c| c.get_manifest_dir()).join(name);
 

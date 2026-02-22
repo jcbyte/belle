@@ -1,19 +1,15 @@
-use crate::{
-    cli::ConfigAction,
-    config::BelleConfig,
-    registry::{clean_metadata, clean_theories, list_versions, print_meta},
-};
-
-pub mod cli;
+mod cli;
+pub mod cli_schema;
 pub mod config;
 mod fetch;
 mod registry;
 mod resolver;
 
 use anyhow::Result;
-use cli::{CacheAction, Commands, RepoAction};
+use cli_schema::{CacheAction, Commands, ConfigAction, RepoAction};
+use config::BelleConfig;
 
-pub async fn run(args: cli::Cli) -> Result<()> {
+pub async fn run(args: cli_schema::Cli) -> Result<()> {
     match args.command {
         Commands::Repo(action) => match action {
             RepoAction::List(args) => {
@@ -27,17 +23,17 @@ pub async fn run(args: cli::Cli) -> Result<()> {
             CacheAction::Clean(args) => {
                 // This should be handled by clap, but ensure it is correct here
                 let target_version = if args.all { None } else { args.version };
-                clean_theories(target_version)?;
+                cli::registry::clean_theories(target_version)?;
                 if args.meta {
-                    clean_metadata(target_version)?;
+                    cli::registry::clean_metadata(target_version)?;
                 }
             }
         },
         Commands::Inspect(args) => {
             if args.versions {
-                list_versions(args.name)?;
+                cli::registry::list_versions(args.name)?;
             } else {
-                print_meta(args.name, args.version)?;
+                cli::registry::print_package_meta(args.name, args.version)?;
             }
         }
         Commands::Config(action) => match action {

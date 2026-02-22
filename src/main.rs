@@ -1,4 +1,4 @@
-use belle::cli::Cli;
+use belle::cli_schema::Cli;
 use belle::config::BelleConfig;
 use clap::Parser;
 
