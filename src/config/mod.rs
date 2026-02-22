@@ -94,12 +94,21 @@ impl BelleConfig {
 }
 
 impl ConfigData {
+    /// Print all settings, for CLI
+    pub fn print_all(&self) {
+        println!("home is {}", self.home.to_string_lossy().to_string());
+    }
+
     /// Retrieve string value of config setting, for CLI
-    pub fn get(&self, key: &str) -> anyhow::Result<String> {
-        match key {
+    pub fn print(&self, key: &str) -> anyhow::Result<()> {
+        let value = match key {
             "home" => Ok(self.home.to_string_lossy().to_string()),
             _ => Err(anyhow::anyhow!("Unknown config setting '{}'", key)),
-        }
+        }?;
+
+        println!("{} is {}", key, value);
+
+        return Ok(());
     }
 
     /// Set string value of key, for CLI

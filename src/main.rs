@@ -52,11 +52,10 @@ async fn main() -> Result<()> {
         }
         Commands::Config(action) => match action {
             ConfigAction::List => {
-                todo!("List all")
+                BelleConfig::read_config(|c| c.print_all());
             }
             ConfigAction::Get(args) => {
-                let value = BelleConfig::read_config(|c| c.get(&args.key))?;
-                println!("{}: {}", args.key, value);
+                BelleConfig::read_config(|c| c.print(&args.key))?;
             }
             ConfigAction::Set(args) => {
                 BelleConfig::write_config(|c| c.set(&args.key, &args.value))?;
