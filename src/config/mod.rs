@@ -1,11 +1,10 @@
-use std::{
-    env, fs,
-    path::{Path, PathBuf},
-    sync::{OnceLock, RwLock, RwLockReadGuard, RwLockWriteGuard},
-};
-
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
+use std::{
+    env, fs,
+    path::PathBuf,
+    sync::{OnceLock, RwLock},
+};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConfigData {
@@ -30,10 +29,10 @@ pub struct BelleConfig {
 }
 
 impl BelleConfig {
-    fn new() -> anyhow::Result<Self> {
+    fn load() -> anyhow::Result<Self> {
         // Load config file from location at environment variable `BELLE_CONFIG` or check the executables location if that is not set
         let config_path = env::var("BELLE_CONFIG").unwrap_or(String::from("./belle_config.toml"));
-        let config_file = Path::new(&config_path);
+        let config_file = PathBuf::from(&config_path);
 
         let parsed_config = if config_file.is_file() {
             let content = fs::read_to_string(&config_file).with_context(|| {
@@ -55,68 +54,58 @@ impl BelleConfig {
 
         return Ok(BelleConfig {
             data: parsed_config,
-            config_file: config_file.to_path_buf(),
+            config_file,
         });
     }
 
-    fn save(&self) -> anyhow::Result<()> {
+    pub fn save(&self) -> anyhow::Result<()> {
         let content = toml::to_string(&self.data)?;
-        fs::write(&self.config_file, content);
+        fs::write(&self.config_file, content)?;
         return Ok(());
-    }
-}
-
-impl BelleConfig {
-    fn get_config() -> &'static RwLock<BelleConfig> {
-        return CONFIG_INSTANCE.get().expect("Config must be initialised before use");
-    }
-
-    fn get_config_read() -> RwLockReadGuard<'static, BelleConfig> {
-        return Self::get_config().read().expect("Config is poised");
-    }
-
-    fn get_config_write() -> RwLockWriteGuard<'static, BelleConfig> {
-        return Self::get_config().write().expect("Config is poised");
-    }
-
-    pub fn get_home() -> PathBuf {
-        let config = Self::get_config_read();
-        return config.data.home.to_path_buf();
-    }
-
-    pub fn set_home(new_home: PathBuf) {
-        let mut config = Self::get_config_write();
-        config.data.home = new_home;
-        config.save();
-    }
-
-    /// Get folder for metadata
-    pub fn get_meta_dir() -> PathBuf {
-        let config = Self::get_config_read();
-        return config.data.home.join("meta");
-    }
-
-    /// Get folder for manifest
-    pub fn get_manifest_dir() -> PathBuf {
-        let config = Self::get_config_read();
-        return config.data.home.join("manifest");
-    }
-
-    /// Get folder for theories
-    pub fn get_theory_dir() -> PathBuf {
-        let config = Self::get_config_read();
-        return config.data.home.join("theory");
     }
 }
 
 // Global config instance
 static CONFIG_INSTANCE: OnceLock<RwLock<BelleConfig>> = OnceLock::new();
 
-pub fn init_config() -> anyhow::Result<()> {
-    let config = BelleConfig::new()?;
-    CONFIG_INSTANCE
-        .set(RwLock::new(config))
-        .expect("Config has already been initialised");
+impl BelleConfig {
+    pub fn init() -> anyhow::Result<()> {
+        let mgr = BelleConfig::load()?;
+        CONFIG_INSTANCE
+            .set(RwLock::new(mgr))
+            .map_err(|_| anyhow::anyhow!("Init failed"))?;
 
-    return Ok(());
+        return Ok(());
+    }
+
+    // Global accessors
+    pub fn read_config<R>(f: impl FnOnce(&ConfigData) -> R) -> R {
+        let lock = CONFIG_INSTANCE.get().expect("Not init").read().unwrap();
+        return f(&lock.data);
+    }
+
+    pub fn write_config<R>(f: impl FnOnce(&mut ConfigData) -> R) -> R {
+        let mut lock = CONFIG_INSTANCE.get().expect("Not init").write().unwrap();
+        let res = f(&mut lock.data);
+        // Auto-save on write
+        let _ = lock.save();
+        return res;
+    }
+}
+
+impl ConfigData {
+    /// Get folder for metadata
+    pub fn get_meta_dir(&self) -> PathBuf {
+        return self.home.join("meta");
+    }
+
+    /// Get folder for manifest
+    pub fn get_manifest_dir(&self) -> PathBuf {
+        return self.home.join("manifest");
+    }
+
+    /// Get folder for theories
+    pub fn get_theory_dir(&self) -> PathBuf {
+        return self.home.join("theory");
+    }
 }
