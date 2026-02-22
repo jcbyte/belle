@@ -54,15 +54,13 @@ async fn main() -> Result<()> {
             ConfigAction::List => {
                 todo!("List all")
             }
-            ConfigAction::Home { new_home } => match new_home {
-                None => {
-                    let home = BelleConfig::read_config(|c| c.home.to_path_buf());
-                    print!("Home is {}", home.to_string_lossy().to_string())
-                }
-                Some(new_home) => {
-                    BelleConfig::write_config(|c| c.home = new_home);
-                }
-            },
+            ConfigAction::Get(args) => {
+                let value = BelleConfig::read_config(|c| c.get(&args.key))?;
+                println!("{}: {}", args.key, value);
+            }
+            ConfigAction::Set(args) => {
+                BelleConfig::write_config(|c| c.set(&args.key, &args.value))?;
+            }
         },
     }
 

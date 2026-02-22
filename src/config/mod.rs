@@ -94,16 +94,15 @@ impl BelleConfig {
 }
 
 impl ConfigData {
-    pub fn get<T>(&self, key: &str) -> anyhow::Result<T>
-    where
-        T: From<PathBuf>,
-    {
+    /// Retrieve string value of config setting, for CLI
+    pub fn get(&self, key: &str) -> anyhow::Result<String> {
         match key {
-            "home" => Ok(self.home.clone().into()),
+            "home" => Ok(self.home.to_string_lossy().to_string()),
             _ => Err(anyhow::anyhow!("Unknown config setting '{}'", key)),
         }
     }
 
+    /// Set string value of key, for CLI
     pub fn set(&mut self, key: &str, value: &String) -> anyhow::Result<()> {
         match key {
             "home" => {

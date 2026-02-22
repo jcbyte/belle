@@ -94,6 +94,24 @@ pub enum ConfigAction {
     /// List all config variables and their values
     List,
 
-    /// Update config home value
-    Home { new_home: Option<PathBuf> },
+    /// View config setting value
+    Get(ConfigGetArgs),
+
+    /// Update config setting value
+    Set(ConfigSetArgs),
+}
+
+#[derive(Args)]
+pub struct ConfigGetArgs {
+    /// Name of config setting to view
+    pub key: String,
+}
+
+#[derive(Args)]
+pub struct ConfigSetArgs {
+    /// Name of config setting to change
+    pub key: String,
+
+    /// New value of the setting
+    pub value: String,
 }
