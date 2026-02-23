@@ -1,7 +1,7 @@
 use anyhow::Context;
 use regex::Regex;
 
-use crate::fetch::AFPRepo;
+use crate::{config::BelleConfig, fetch::AFPRepo};
 
 pub struct BelleClient {
     client: reqwest::Client,
@@ -29,12 +29,14 @@ impl BelleClient {
 
         let per_page: usize = 25;
 
+        let afp_group = BelleConfig::read_config(|c| c.afp_group.clone());
+
         // Continue iterating over pages of results until there is no more results or we reach our limit
         loop {
-            // Retrieve repos/projects within the `isa-afp` group
+            // Retrieve repos/projects within the specified group
             let afp_repo_list_url = format!(
-                "https://foss.heptapod.net/api/v4/groups/isa-afp/projects?order_by=last_activity_at&sort=desc&per_page={}&page={}",
-                per_page, page
+                "https://foss.heptapod.net/api/v4/groups/{}/projects?order_by=last_activity_at&sort=desc&per_page={}&page={}",
+                afp_group, per_page, page
             );
 
             let repos: Vec<AFPRepo> = self
@@ -79,11 +81,13 @@ impl BelleClient {
     pub async fn get_repo(&self, name: &String) -> anyhow::Result<Option<AFPRepo>> {
         let mut page = 1;
 
+        let afp_group = BelleConfig::read_config(|c| c.afp_group.clone());
+
         loop {
             // Query AFP group for repo searching for name (this is a fuzzy search)
             let afp_repo_details_url = format!(
-                "https://foss.heptapod.net/api/v4/groups/isa-afp/projects?search={}&per_page=1&page={}",
-                name, page
+                "https://foss.heptapod.net/api/v4/groups/{}/projects?search={}&per_page=1&page={}",
+                afp_group, name, page
             );
 
             let repo_collection: Vec<AFPRepo> = self

@@ -4,6 +4,6 @@ mod metadata;
 mod parser;
 mod types;
 
-use afp_schema::{AFPAuthorEmailMeta, AFPAuthorMeta, AFPLicenceMeta, AFPTheoryMeta, AFPTheoryRelatedMeta};
+use afp_schema::{AFPAuthorMeta, AFPLicenceMeta, AFPTheoryMeta};
 pub use types::RepoMetadata;
 use types::{AuthorMetadata, TheoryMetadata};

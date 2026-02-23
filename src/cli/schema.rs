@@ -117,6 +117,16 @@ pub struct ConfigSetArgs {
     pub value: String,
 }
 
-// todo environments (create, delete, switch, list)
-// todo package management (add, remove, update, list)
+// todo environments
+// belle env create [name]
+// belle env list
+// belle env remove [name]
+// belle switch [name]
+
+// todo package management
+// belle add [package]
+// belle remove [package]
+// belle update
+// belle list
+
 // todo package file (save, load, lock?)

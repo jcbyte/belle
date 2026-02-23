@@ -3,8 +3,11 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(default)]
 pub struct ConfigData {
     pub home: PathBuf,
+    #[serde(rename = "afp-group")]
+    pub afp_group: String,
 }
 
 impl Default for ConfigData {
@@ -14,6 +17,9 @@ impl Default for ConfigData {
         let data_dir = dirs::data_dir().expect("Could not get users data folder");
         let home_dir = data_dir.join("belle");
 
-        return Self { home: home_dir };
+        return Self {
+            home: home_dir,
+            afp_group: String::from("isa-afp"),
+        };
     }
 }

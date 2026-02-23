@@ -3,8 +3,7 @@ use std::collections::HashMap;
 use anyhow::Context;
 
 use crate::fetch::metadata::{
-    AuthorMetadata, RepoMetadata, TheoryMetadata,
-    afp_schema::{AFPAuthorMeta, AFPLicenceMeta, AFPTheoryMeta},
+    AFPAuthorMeta, AFPLicenceMeta, AFPTheoryMeta, AuthorMetadata, RepoMetadata, TheoryMetadata,
 };
 
 impl RepoMetadata {
