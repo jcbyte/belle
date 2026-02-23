@@ -14,7 +14,7 @@ pub fn switch_env(name: &String) -> anyhow::Result<()> {
     let active_env = Environment::env_dir_for_name(name);
 
     if !active_env.is_dir() {
-        return Err(anyhow::anyhow!("Environment '{}' cannot be found", name));
+        anyhow::bail!("Environment '{}' cannot be found", name);
     }
 
     symlink(active_env, active_env_link).context("Failed to create junction/symlink for active environment")?;

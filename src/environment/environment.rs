@@ -51,10 +51,7 @@ impl Environment {
             toml::from_str(&content)
                 .with_context(|| format!("Failed to parse TOML environment file at '{}'", env_file.display()))?
         } else {
-            return Err(anyhow::anyhow!(
-                "Environment file '{}' does not exist",
-                env_file.display()
-            ));
+            anyhow::bail!("Environment file '{}' does not exist", env_file.display());
         };
 
         return Ok(parsed_env);
