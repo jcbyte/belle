@@ -16,7 +16,7 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
                 fetch::list_repositories(args.limit).await?;
             }
             RepoAction::Update(args) => {
-                fetch::fetch_meta(args.name, !args.no_cache).await?;
+                fetch::fetch_meta(args.name, !args.force).await?;
             }
         },
         Commands::Cache(action) => match action {
@@ -48,20 +48,38 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
             }
         },
         Commands::Switch(args) | Commands::Env(EnvAction::Switch(args)) => {
-            // todo switch env
+            todo!("switch env");
         }
         Commands::Env(action) => match action {
             EnvAction::Create(args) => {
-                // todo create env
+                todo!("create env");
             }
             EnvAction::List => {
-                // todo list env
+                todo!("list env");
             }
             EnvAction::Remove(args) => {
-                // todo remove env
+                todo!("remove env");
             }
             EnvAction::Switch(_args) => unreachable!(),
+            EnvAction::Freeze(args) => {
+                todo!("freeze env");
+            }
+            EnvAction::Sync(args) => {
+                todo!("sync env");
+            }
         },
+        Commands::Add(args) => {
+            todo!("add package");
+        }
+        Commands::Remove(args) => {
+            todo!("remove packages");
+        }
+        Commands::Update => {
+            todo!("update packages");
+        }
+        Commands::List => {
+            todo!("list packages");
+        }
     }
 
     return Ok(());

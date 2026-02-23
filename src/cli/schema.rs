@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::{ArgGroup, Args, Parser, Subcommand};
 use pubgrub::SemanticVersion;
 
@@ -26,19 +28,25 @@ pub enum Commands {
     #[command(subcommand)]
     Config(ConfigAction),
 
-    /// View or modify current environments
+    /// Manage isolated environments
     #[command(subcommand)]
     Env(EnvAction),
 
-    // Switch to environment
+    /// Change the active environment
     Switch(SwitchArgs),
-}
 
-// todo package management
-// belle add [package]
-// belle remove [package]
-// belle update
-// belle list
+    /// Add package into current environment
+    Add(AddArgs),
+
+    /// Remove package from current environment
+    Remove(RemoveArgs),
+
+    /// Update all packages in the current environment
+    Update,
+
+    /// List all packages in the current environment
+    List,
+}
 
 #[derive(Subcommand)]
 pub enum RepoAction {
@@ -65,7 +73,7 @@ pub struct RepoUpdateArgs {
 
     /// Ignore cache and re-fetch all theories
     #[arg(long)]
-    pub no_cache: bool,
+    pub force: bool,
 }
 
 #[derive(Subcommand)]
@@ -132,10 +140,10 @@ pub struct ConfigSetArgs {
 
 #[derive(Subcommand)]
 pub enum EnvAction {
-    /// Create an environment
+    /// Create a new environment
     Create(EnvCreateArgs),
 
-    /// View current environments
+    /// List all environments
     List,
 
     /// Remove an environment
@@ -143,6 +151,12 @@ pub enum EnvAction {
 
     /// Switch to environment
     Switch(SwitchArgs),
+
+    /// Export current environment to a requirements file
+    Freeze(EnvFreezeArgs),
+
+    /// Install packages from a requirements file to match state
+    Sync(EnvSyncArgs),
 }
 
 #[derive(Args)]
@@ -159,8 +173,35 @@ pub struct EnvRemoveArgs {
 
 #[derive(Args)]
 pub struct SwitchArgs {
-    /// The name of environment to switch too
+    /// The name of environment to switch to
     pub name: String,
 }
 
-// todo package file (save, load, lock?)
+#[derive(Args)]
+pub struct EnvFreezeArgs {
+    /// Output requirements file
+    pub filename: Option<PathBuf>,
+}
+
+#[derive(Args)]
+pub struct EnvSyncArgs {
+    /// The filename to sync from
+    pub filename: Option<PathBuf>,
+}
+
+#[derive(Args)]
+pub struct AddArgs {
+    /// The name of package to add
+    pub name: String,
+
+    /// Specific version to add (defaults to latest)
+    pub version: Option<SemanticVersion>,
+}
+
+#[derive(Args)]
+pub struct RemoveArgs {
+    /// The name of package to remove
+    pub name: String,
+}
+
+// todo packages should be called theories
