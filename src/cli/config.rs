@@ -1,11 +1,18 @@
 use std::path::PathBuf;
 
 use anyhow::anyhow;
+use console::style;
 
 use crate::config::BelleConfig;
 
-pub fn print_all_config() -> anyhow::Result<()> {
-    todo!(); // todo implement
+fn display_row(key: &str, value: &str) {
+    println!("{:<8} {}", style(key).cyan().bold(), value);
+}
+
+pub fn print_all_config() {
+    BelleConfig::read_config(|c| {
+        display_row("home", &c.home.to_string_lossy().to_string());
+    });
 }
 
 pub fn print_config(key: &str) -> anyhow::Result<()> {
@@ -14,7 +21,7 @@ pub fn print_config(key: &str) -> anyhow::Result<()> {
         _ => Err(anyhow!("Unknown configuration parameter '{}'", key)),
     })?;
 
-    println!("{} is {}", key, value); // todo formatting
+    display_row(key, &value);
     return Ok(());
 }
 
@@ -27,7 +34,7 @@ pub fn set_config(key: &str, value: &String) -> anyhow::Result<()> {
         _ => Err(anyhow!("Unknown configuration parameter '{}'", key)),
     })?;
 
-    // todo response
+    println!("Updated {} {}", style(key).bold(), style(format!("-> {}", value)).dim());
 
     return Ok(());
 }

@@ -3,7 +3,6 @@ use crate::{
         self,
         schema::{CacheAction, Commands, ConfigAction, RepoAction},
     },
-    config::BelleConfig,
     fetch,
 };
 
@@ -41,7 +40,7 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
         }
         Commands::Config(action) => match action {
             ConfigAction::List => {
-                cli::config::print_all_config()?;
+                cli::config::print_all_config();
             }
             ConfigAction::Get(args) => {
                 cli::config::print_config(&args.key)?;

@@ -24,18 +24,10 @@ impl BelleConfig {
         let config_file = PathBuf::from(&config_path);
 
         let parsed_config = if config_file.is_file() {
-            let content = fs::read_to_string(&config_file).with_context(|| {
-                format!(
-                    "Failed to read config file at '{}'",
-                    config_file.to_string_lossy().to_string()
-                )
-            })?;
-            toml::from_str(&content).with_context(|| {
-                format!(
-                    "Failed to parse TOML config file at '{}'",
-                    config_file.to_string_lossy().to_string()
-                )
-            })?
+            let content = fs::read_to_string(&config_file)
+                .with_context(|| format!("Failed to read config file at '{}'", config_file.display()))?;
+            toml::from_str(&content)
+                .with_context(|| format!("Failed to parse TOML config file at '{}'", config_file.display()))?
         } else {
             // Use default values if the config is not found
             ConfigData::default()
