@@ -1,6 +1,7 @@
 use belle::cli;
 use belle::config::BelleConfig;
 use clap::Parser;
+use console::style;
 
 #[tokio::main]
 async fn main() {
@@ -15,5 +16,6 @@ async fn main() {
     // Execute the commands
     if let Err(e) = cli::run(args).await {
         // todo error handling
+        println!("{}", style(e).bold().red())
     }
 }

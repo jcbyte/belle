@@ -60,7 +60,7 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
                 todo!("list env");
             }
             EnvAction::Remove(args) => {
-                todo!("remove env");
+                environment::remove_env(&args.name)?;
             }
             EnvAction::Switch(_args) => unreachable!(),
             EnvAction::Freeze(args) => {

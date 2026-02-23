@@ -6,16 +6,18 @@ use crate::{config::BelleConfig, environment::Environment};
 
 impl Environment {
     pub fn new(name: String) -> anyhow::Result<Self> {
+        // todo check it doesn't exist
+
         let env = Environment { name, packages: vec![] };
         env.save()?;
         return Ok(env);
     }
 
-    fn env_dir_for_name(name: &String) -> PathBuf {
+    pub(crate) fn env_dir_for_name(name: &String) -> PathBuf {
         return BelleConfig::read_config(|c| c.get_env_dir()).join(name);
     }
 
-    fn env_file_for_name(name: &String) -> PathBuf {
+    pub(crate) fn env_file_for_name(name: &String) -> PathBuf {
         return Self::env_dir_for_name(name).join("env.toml");
     }
 
