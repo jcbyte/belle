@@ -48,3 +48,5 @@ pub fn set_config(key: &str, value: &String) -> anyhow::Result<()> {
 
     return Ok(());
 }
+
+// todo have hint of what it is, also can this be done with less repetition

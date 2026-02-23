@@ -1,6 +1,6 @@
 use crate::cli::{
     self,
-    schema::{CacheAction, Commands, ConfigAction, RepoAction},
+    schema::{CacheAction, Commands, ConfigAction, EnvAction, RepoAction},
 };
 
 mod config;
@@ -46,6 +46,21 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
             ConfigAction::Set(args) => {
                 cli::config::set_config(&args.key, &args.value)?;
             }
+        },
+        Commands::Switch(args) | Commands::Env(EnvAction::Switch(args)) => {
+            // todo switch env
+        }
+        Commands::Env(action) => match action {
+            EnvAction::Create(args) => {
+                // todo create env
+            }
+            EnvAction::List => {
+                // todo list env
+            }
+            EnvAction::Remove(args) => {
+                // todo remove env
+            }
+            EnvAction::Switch(_args) => unreachable!(),
         },
     }
 

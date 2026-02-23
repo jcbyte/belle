@@ -25,7 +25,20 @@ pub enum Commands {
     /// View or modify application configuration
     #[command(subcommand)]
     Config(ConfigAction),
+
+    /// View or modify current environments
+    #[command(subcommand)]
+    Env(EnvAction),
+
+    // Switch to environment
+    Switch(SwitchArgs),
 }
+
+// todo package management
+// belle add [package]
+// belle remove [package]
+// belle update
+// belle list
 
 #[derive(Subcommand)]
 pub enum RepoAction {
@@ -117,16 +130,37 @@ pub struct ConfigSetArgs {
     pub value: String,
 }
 
-// todo environments
-// belle env create [name]
-// belle env list
-// belle env remove [name]
-// belle switch [name]
+#[derive(Subcommand)]
+pub enum EnvAction {
+    /// Create an environment
+    Create(EnvCreateArgs),
 
-// todo package management
-// belle add [package]
-// belle remove [package]
-// belle update
-// belle list
+    /// View current environments
+    List,
+
+    /// Remove an environment
+    Remove(EnvRemoveArgs),
+
+    /// Switch to environment
+    Switch(SwitchArgs),
+}
+
+#[derive(Args)]
+pub struct EnvCreateArgs {
+    /// The name of environment to create
+    pub name: String,
+}
+
+#[derive(Args)]
+pub struct EnvRemoveArgs {
+    /// The name of environment to remove
+    pub name: String,
+}
+
+#[derive(Args)]
+pub struct SwitchArgs {
+    /// The name of environment to switch too
+    pub name: String,
+}
 
 // todo package file (save, load, lock?)
