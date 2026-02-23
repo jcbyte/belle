@@ -4,9 +4,11 @@ use crate::cli::{
 };
 
 mod config;
+mod environment;
 mod fetch;
 mod registry;
 mod schema;
+
 pub use schema::Cli;
 
 pub async fn run(args: Cli) -> anyhow::Result<()> {
@@ -52,7 +54,7 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
         }
         Commands::Env(action) => match action {
             EnvAction::Create(args) => {
-                todo!("create env");
+                environment::create_env(args.name)?;
             }
             EnvAction::List => {
                 todo!("list env");

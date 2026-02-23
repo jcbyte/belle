@@ -5,10 +5,10 @@ use anyhow::Context;
 use crate::{config::BelleConfig, environment::Environment};
 
 impl Environment {
-    pub fn new(name: String) -> Self {
+    pub fn new(name: String) -> anyhow::Result<Self> {
         let env = Environment { name, packages: vec![] };
-        env.save();
-        return env;
+        env.save()?;
+        return Ok(env);
     }
 
     fn env_dir_for_name(name: &String) -> PathBuf {
@@ -44,6 +44,12 @@ impl Environment {
 
     fn save(&self) -> anyhow::Result<()> {
         let env_file = self.get_env_file();
+
+        // Recursively create parent directory and parents so that we can write to the file
+        if let Some(parent) = env_file.parent() {
+            fs::create_dir_all(parent)
+                .with_context(|| format!("Could not create {} environment directories on disk", &self.name))?;
+        }
 
         let content =
             toml::to_string(self).with_context(|| format!("Failed to parse TOML for environment '{}'", &self.name))?;
