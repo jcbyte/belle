@@ -4,17 +4,30 @@ use console::style;
 
 use crate::environment::{Environment, manager};
 
+pub fn switch_env(name: &String) -> anyhow::Result<()> {
+    manager::switch_env(name)?;
+    return Ok(());
+}
+
 pub fn create_env(name: String) -> anyhow::Result<()> {
     Environment::new(name)?;
     return Ok(());
 }
 
-pub fn list_envs() {
+pub fn list_envs() -> anyhow::Result<()> {
     let envs = manager::get_envs();
+    let active_env = manager::get_active_env()?;
 
     for env in envs {
-        print!(" {:<9}", style(&env),);
+        if active_env.as_deref().eq(&Some(env.as_str())) {
+            print!("*");
+        } else {
+            print!(" ");
+        }
+        println!(" {:<9}", style(&env),);
     }
+
+    return Ok(());
 }
 
 pub fn remove_env(name: &String) -> anyhow::Result<()> {
@@ -26,10 +39,5 @@ pub fn remove_env(name: &String) -> anyhow::Result<()> {
         return Err(anyhow::anyhow!("Environment '{}' cannot be found", name));
     }
 
-    return Ok(());
-}
-
-pub fn switch_env(name: &String) -> anyhow::Result<()> {
-    manager::switch_env(name)?;
     return Ok(());
 }

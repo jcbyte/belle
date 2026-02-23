@@ -6,19 +6,34 @@ use crate::{config::BelleConfig, environment::Environment};
 
 impl Environment {
     pub fn new(name: String) -> anyhow::Result<Self> {
-        // todo check it doesn't exist
+        // todo check it doesn't already exist
 
         let env = Environment { name, packages: vec![] };
         env.save()?;
         return Ok(env);
     }
 
+    pub fn active() -> anyhow::Result<Option<Self>> {
+        let active_env = BelleConfig::read_config(|c| c.get_active_env_link());
+        let env_file = Self::join_env_file(active_env);
+
+        if !env_file.is_file() {
+            return Ok(None);
+        };
+
+        return Ok(Some(Self::load(env_file)?));
+    }
+
     pub(crate) fn env_dir_for_name(name: &String) -> PathBuf {
         return BelleConfig::read_config(|c| c.get_env_dir()).join(name);
     }
 
+    pub(crate) fn join_env_file(env_dir: PathBuf) -> PathBuf {
+        return env_dir.join("env.toml");
+    }
+
     pub(crate) fn env_file_for_name(name: &String) -> PathBuf {
-        return Self::env_dir_for_name(name).join("env.toml");
+        return Self::join_env_file(Self::env_dir_for_name(name));
     }
 
     fn get_env_dir(&self) -> PathBuf {
@@ -26,19 +41,20 @@ impl Environment {
     }
 
     fn get_env_file(&self) -> PathBuf {
-        return Self::env_file_for_name(&self.name);
+        return Self::join_env_file(self.get_env_dir());
     }
 
-    pub fn load(name: String) -> anyhow::Result<Self> {
-        let env_file = Self::env_file_for_name(&name);
-
+    fn load(env_file: PathBuf) -> anyhow::Result<Self> {
         let parsed_env = if env_file.is_file() {
             let content = fs::read_to_string(&env_file)
                 .with_context(|| format!("Failed to read environment file at '{}'", env_file.display()))?;
             toml::from_str(&content)
                 .with_context(|| format!("Failed to parse TOML environment file at '{}'", env_file.display()))?
         } else {
-            return Err(anyhow::anyhow!("Environments '{}' does not exist", &name));
+            return Err(anyhow::anyhow!(
+                "Environment file '{}' does not exist",
+                env_file.display()
+            ));
         };
 
         return Ok(parsed_env);

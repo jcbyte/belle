@@ -1,5 +1,3 @@
-use std::fs;
-
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
 
@@ -7,13 +5,9 @@ use std::os::unix::fs::symlink;
 use junction::create as symlink;
 
 use anyhow::Context;
-use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 
-use crate::{
-    config::BelleConfig,
-    environment::{EnvManager, Environment},
-};
+use crate::{config::BelleConfig, environment::Environment};
 
 pub fn switch_env(name: &String) -> anyhow::Result<()> {
     let active_env_link = BelleConfig::read_config(|c| c.get_active_env_link());
@@ -29,13 +23,8 @@ pub fn switch_env(name: &String) -> anyhow::Result<()> {
 }
 
 pub fn get_active_env() -> anyhow::Result<Option<String>> {
-    let active_env_link = BelleConfig::read_config(|c| c.get_active_env_link());
-
-    // Environment::load(name);
-
-    todo!();
-
-    return Ok(None);
+    let active_env = Environment::active()?;
+    return Ok(active_env.map(|env| env.name.clone()));
 }
 
 pub fn get_envs() -> Vec<String> {

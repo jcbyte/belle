@@ -57,7 +57,7 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
                 environment::create_env(args.name)?;
             }
             EnvAction::List => {
-                todo!("list env");
+                environment::list_envs()?;
             }
             EnvAction::Remove(args) => {
                 environment::remove_env(&args.name)?;
