@@ -17,4 +17,9 @@ impl ConfigData {
     pub fn get_theory_dir(&self) -> PathBuf {
         return self.home.join("theory");
     }
+
+    /// Get folder for environments
+    pub fn get_env_dir(&self) -> PathBuf {
+        return self.home.join("env");
+    }
 }

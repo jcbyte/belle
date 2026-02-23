@@ -49,7 +49,7 @@ pub struct Manifest {
 }
 
 /// Package identifier for lookup and passing
-#[derive(Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct PackageIdentifier {
     pub name: String,
     pub version: SemanticVersion,
