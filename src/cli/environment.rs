@@ -1,10 +1,20 @@
 use std::fs;
 
-use crate::environment::Environment;
+use console::style;
+
+use crate::environment::{Environment, manager};
 
 pub fn create_env(name: String) -> anyhow::Result<()> {
     Environment::new(name)?;
     return Ok(());
+}
+
+pub fn list_envs() {
+    let envs = manager::get_envs();
+
+    for env in envs {
+        print!(" {:<9}", style(&env),);
+    }
 }
 
 pub fn remove_env(name: &String) -> anyhow::Result<()> {
@@ -16,5 +26,10 @@ pub fn remove_env(name: &String) -> anyhow::Result<()> {
         return Err(anyhow::anyhow!("Environment '{}' cannot be found", name));
     }
 
+    return Ok(());
+}
+
+pub fn switch_env(name: &String) -> anyhow::Result<()> {
+    manager::switch_env(name)?;
     return Ok(());
 }

@@ -1,5 +1,6 @@
 mod environment;
-mod manager;
+pub mod manager;
 mod types;
 
+use types::EnvManager;
 pub use types::Environment;

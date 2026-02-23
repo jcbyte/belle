@@ -18,8 +18,17 @@ impl ConfigData {
         return self.home.join("theory");
     }
 
+    fn get_root_env_dir(&self) -> PathBuf {
+        return self.home.join("env");
+    }
+
     /// Get folder for environments
     pub fn get_env_dir(&self) -> PathBuf {
-        return self.home.join("env");
+        return self.get_root_env_dir().join("envs");
+    }
+
+    /// Get folder for environments
+    pub fn get_active_env_link(&self) -> PathBuf {
+        return self.get_root_env_dir().join("active");
     }
 }

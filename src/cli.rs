@@ -50,7 +50,7 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
             }
         },
         Commands::Switch(args) | Commands::Env(EnvAction::Switch(args)) => {
-            todo!("switch env");
+            environment::switch_env(&args.name)?;
         }
         Commands::Env(action) => match action {
             EnvAction::Create(args) => {
