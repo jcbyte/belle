@@ -5,13 +5,9 @@ use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
 
 use crate::{
-    fetch::{client::BelleClient, metadata::RepoMetadata},
+    fetch::{BelleClient, RepoMetadata},
     registry::PackageIdentifier,
 };
-
-mod afp_repo;
-pub mod client;
-pub mod metadata;
 
 /// List AFP repositories and print them in a simple table
 pub async fn list_repositories(limit: usize) -> anyhow::Result<()> {
@@ -75,7 +71,7 @@ pub async fn fetch_meta(repo_name: Option<String>, use_cache: bool) -> anyhow::R
     ));
 
     // Get the metadata from the repo, and then create our metadata struct from this
-    let repo_metadata = RepoMetadata::new(&repo, &client).await?;
+    let repo_metadata = RepoMetadata::get(&repo, &client).await?;
     let repo_theories = repo_metadata.all_theories();
 
     pb.finish_with_message(format!(

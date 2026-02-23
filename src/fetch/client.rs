@@ -1,7 +1,7 @@
 use anyhow::Context;
 use regex::Regex;
 
-use crate::fetch::afp_repo::AFPRepo;
+use crate::fetch::AFPRepo;
 
 pub struct BelleClient {
     client: reqwest::Client,

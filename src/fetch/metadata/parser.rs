@@ -2,14 +2,15 @@ use std::collections::HashMap;
 
 use anyhow::Context;
 
-use super::schema;
-
-use super::{AuthorMetadata, RepoMetadata, TheoryMetadata};
+use crate::fetch::metadata::{
+    AuthorMetadata, RepoMetadata, TheoryMetadata,
+    afp_schema::{AFPAuthorMeta, AFPLicenceMeta, AFPTheoryMeta},
+};
 
 impl RepoMetadata {
     /// Convert from raw received data to our author metadata interpretation
     pub(super) fn parse_authors(toml_content: &String) -> anyhow::Result<HashMap<String, AuthorMetadata>> {
-        let authors_raw: HashMap<String, schema::MetaAuthor> =
+        let authors_raw: HashMap<String, AFPAuthorMeta> =
             toml::from_str(toml_content).context("Failed to parse TOML for authors metadata")?;
 
         let authors = authors_raw
@@ -36,7 +37,7 @@ impl RepoMetadata {
 
     /// Convert from raw received data to our licence metadata interpretation
     pub(super) fn parse_licences(toml_content: &String) -> anyhow::Result<HashMap<String, String>> {
-        let licences_raw: HashMap<String, schema::MetaLicence> =
+        let licences_raw: HashMap<String, AFPLicenceMeta> =
             toml::from_str(toml_content).context("Failed to parse TOML for licences metadata")?;
 
         let licences = licences_raw
@@ -49,7 +50,7 @@ impl RepoMetadata {
 
     /// Convert from raw received data to our theory metadata interpretation
     pub(super) fn parse_theory(toml_content: &String) -> anyhow::Result<TheoryMetadata> {
-        let theory_raw: schema::MetaTheory =
+        let theory_raw: AFPTheoryMeta =
             toml::from_str(&toml_content).context("Failed to parse TOML for theory metadata")?;
 
         // Add dois, and pubs into extra if they exist

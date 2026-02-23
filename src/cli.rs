@@ -1,12 +1,10 @@
-use crate::{
-    cli::{
-        self,
-        schema::{CacheAction, Commands, ConfigAction, RepoAction},
-    },
-    fetch,
+use crate::cli::{
+    self,
+    schema::{CacheAction, Commands, ConfigAction, RepoAction},
 };
 
 mod config;
+mod fetch;
 mod registry;
 mod schema;
 pub use schema::Cli;

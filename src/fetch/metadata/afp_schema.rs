@@ -1,40 +1,41 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt};
 
 use serde::Deserialize;
 
 // Schema types to mirror the TOML structure used in AFP metadata
 
 #[derive(Deserialize, Debug)]
-pub struct MetaAuthorEmail {
+pub struct AFPAuthorEmailMeta {
     pub user: Vec<String>,
     pub host: Vec<String>,
 }
-impl MetaAuthorEmail {
-    pub fn to_string(&self) -> String {
-        format!("{}@{}", self.user.join("."), self.host.join("."))
+
+impl fmt::Display for AFPAuthorEmailMeta {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}@{}", self.user.join("."), self.host.join("."))
     }
 }
 
 #[derive(Deserialize, Debug)]
-pub struct MetaAuthor {
+pub struct AFPAuthorMeta {
     pub name: String,
     pub orcid: Option<String>,
 
     // Default to empty map if the section is missing in TOML
     #[serde(default)]
-    pub emails: HashMap<String, MetaAuthorEmail>,
+    pub emails: HashMap<String, AFPAuthorEmailMeta>,
 
     #[serde(default)]
     pub homepages: HashMap<String, String>,
 }
 
 #[derive(serde::Deserialize)]
-pub struct MetaLicence {
+pub struct AFPLicenceMeta {
     pub name: String,
 }
 
 #[derive(Debug, Deserialize, Default)]
-pub struct MetaTheoryRelated {
+pub struct AFPTheoryRelatedMeta {
     #[serde(default)]
     pub dois: Vec<String>,
     #[serde(default)]
@@ -42,7 +43,7 @@ pub struct MetaTheoryRelated {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct MetaTheory {
+pub struct AFPTheoryMeta {
     pub title: String,
     pub date: toml::value::Date,
     pub topics: Vec<String>,
@@ -57,5 +58,5 @@ pub struct MetaTheory {
     #[serde(default)]
     pub extra: toml::Table,
     #[serde(default)]
-    pub related: MetaTheoryRelated,
+    pub related: AFPTheoryRelatedMeta,
 }

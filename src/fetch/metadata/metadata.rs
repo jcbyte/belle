@@ -4,49 +4,14 @@ use std::io::Read;
 use std::{collections::HashMap, io::Cursor};
 use zip::ZipArchive;
 
-use crate::fetch::afp_repo::AFPRepo;
+use crate::fetch::AFPRepo;
 use crate::fetch::client::BelleClient;
+use crate::fetch::metadata::{AuthorMetadata, RepoMetadata, TheoryMetadata, dependency};
 use crate::registry::{Package, PackageAuthor, PackageIdentifier, PackageSource};
-
-pub mod dependency;
-mod parser;
-mod schema;
-
-/// Interpretation of AFP Author metadata
-#[derive(Debug, Clone)]
-struct AuthorMetadata {
-    name: String,
-    email: Option<String>,
-    homepages: Option<Vec<String>>,
-    orcid: Option<String>,
-}
-
-/// Interpretation of AFP Theory metadata
-#[derive(Debug, Clone)]
-struct TheoryMetadata {
-    title: String,
-    date: toml::value::Date,
-    r#abstract: String,
-    licence_key: String,
-    topics: Vec<String>,
-    note: Option<String>,
-    author_keys: Vec<String>,
-    contributor_keys: Vec<String>,
-    extra: toml::Table,
-}
-
-/// Interpretation of AFP repo metadata
-#[derive(Debug)]
-pub struct RepoMetadata {
-    repo: AFPRepo,
-    authors: HashMap<String, AuthorMetadata>,
-    licences: HashMap<String, String>,
-    theories: HashMap<String, TheoryMetadata>,
-}
 
 impl RepoMetadata {
     /// Fetch metadata from repo and parse it into interpreted repo metadata
-    pub async fn new(repo: &AFPRepo, client: &BelleClient) -> anyhow::Result<Self> {
+    pub async fn get(repo: &AFPRepo, client: &BelleClient) -> anyhow::Result<Self> {
         // Download full metadata archive bytes from repo
         let bytes = client.get_metadata_archive(repo).await?;
 
@@ -194,16 +159,5 @@ impl RepoMetadata {
         };
 
         return Ok(package);
-    }
-}
-
-impl From<AuthorMetadata> for PackageAuthor {
-    fn from(meta: AuthorMetadata) -> Self {
-        Self {
-            name: meta.name,
-            email: meta.email,
-            homepages: meta.homepages,
-            orcid: meta.orcid,
-        }
     }
 }

@@ -5,16 +5,19 @@ use console::style;
 
 use crate::config::BelleConfig;
 
+/// Display a single key-value pair
 fn display_row(key: &str, value: &str) {
     println!("{:<8} {}", style(key).cyan().bold(), value);
 }
 
+/// List all configuration parameters
 pub fn print_all_config() {
     BelleConfig::read_config(|c| {
         display_row("home", &c.home.to_string_lossy().to_string());
     });
 }
 
+/// List a single configuration parameter
 pub fn print_config(key: &str) -> anyhow::Result<()> {
     let value = BelleConfig::read_config(|c| match key {
         "home" => Ok(c.home.to_string_lossy().to_string()),
@@ -25,6 +28,7 @@ pub fn print_config(key: &str) -> anyhow::Result<()> {
     return Ok(());
 }
 
+/// Set a configuration parameter
 pub fn set_config(key: &str, value: &String) -> anyhow::Result<()> {
     BelleConfig::write_config(|c| match key {
         "home" => {
