@@ -2,7 +2,9 @@ use std::{fs, path::PathBuf};
 
 use anyhow::Context;
 
-use crate::{config::BelleConfig, environment::Environment, registry::PackageIdentifier};
+use crate::{
+    config::BelleConfig, environment::Environment, registry::PackageIdentifier, resolver::BelleDependencyProvider,
+};
 
 impl Environment {
     pub fn new(name: String) -> anyhow::Result<Self> {
@@ -81,7 +83,27 @@ impl Environment {
         return Ok(());
     }
 
-    fn add_package(&mut self, package: PackageIdentifier) {
+    pub fn add_package(&mut self, package: PackageIdentifier) {
         todo!();
+    }
+
+    pub fn remove_package(&mut self, name: String) -> anyhow::Result<()> {
+        // Remove package from array
+        self.packages.retain(|p| !p.name.eq(&name));
+
+        // Resolve the new transitive dependencies
+        self.resolve_lock()?;
+
+        // Save back to disk
+        self.save()?;
+
+        return Ok(());
+    }
+
+    fn resolve_lock(&mut self) -> anyhow::Result<()> {
+        let resolved_packages = BelleDependencyProvider::resolve(self.packages.clone())?;
+        self.lock = resolved_packages;
+
+        return Ok(());
     }
 }

@@ -9,7 +9,7 @@ use crate::{
 
 type SemVS = Ranges<SemanticVersion>;
 
-struct BelleDependencyProvider {
+pub struct BelleDependencyProvider {
     root_packages: Vec<PackageIdentifier>,
 }
 
