@@ -22,9 +22,14 @@ pub fn list_envs() -> anyhow::Result<()> {
 
     for env in envs {
         let env_line = if active_env.as_deref() == Some(env.as_str()) {
-            style(format!("* {}", &env)).cyan().bold()
+            format!(
+                "{} {:<9} {}",
+                style("*").cyan().bold(),
+                style(&env).cyan().bold(),
+                style("[active]").dim()
+            )
         } else {
-            style(format!("  {}", &env))
+            format!("  {:<9}", &env)
         };
         println!("{}", env_line);
     }

@@ -6,7 +6,11 @@ use crate::{config::BelleConfig, environment::Environment};
 
 impl Environment {
     pub fn new(name: String) -> anyhow::Result<Self> {
-        // todo check it doesn't already exist
+        let env_dir = Self::env_dir_for_name(&name);
+
+        if env_dir.is_dir() {
+            anyhow::bail!("Environment '{}' already exists", &name);
+        }
 
         let env = Environment { name, packages: vec![] };
         env.save()?;
@@ -71,21 +75,5 @@ impl Environment {
         fs::write(env_file, content).with_context(|| format!("Failed to save environment '{}'", &self.name))?;
 
         return Ok(());
-    }
-
-    pub fn is_active(&self) -> bool {
-        todo!()
-    }
-
-    pub fn switch(&self) {
-        todo!();
-    }
-
-    pub fn add_package(&mut self) {
-        todo!();
-    }
-
-    pub fn to_roots(&self) {
-        todo!();
     }
 }

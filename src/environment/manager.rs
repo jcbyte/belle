@@ -1,8 +1,9 @@
-#[cfg(unix)]
-use std::os::unix::fs::symlink;
+use std::fs;
 
 #[cfg(windows)]
 use junction::create as symlink;
+#[cfg(unix)]
+use std::os::unix::fs::symlink;
 
 use anyhow::Context;
 use walkdir::WalkDir;
@@ -17,7 +18,11 @@ pub fn switch_env(name: &String) -> anyhow::Result<()> {
         anyhow::bail!("Environment '{}' cannot be found", name);
     }
 
-    symlink(active_env, active_env_link).context("Failed to create junction/symlink for active environment")?;
+    // Create a temporary symlink and overwrite to avoid `AlreadyExists` errors
+    let temp_link = active_env_link.with_added_extension("tmp");
+    symlink(active_env, &temp_link).context("Failed to create junction/symlink for active environment")?;
+    fs::rename(temp_link, active_env_link)
+        .context("Failed to overwrite existing junction/symlink for the active environment")?;
 
     return Ok(());
 }
