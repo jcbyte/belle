@@ -6,6 +6,7 @@ use crate::cli::{
 mod config;
 mod environment;
 mod fetch;
+mod package;
 mod registry;
 mod schema;
 
@@ -71,10 +72,11 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
             }
         },
         Commands::Add(args) => {
-            todo!("add package");
+            // todo what about version
+            package::add_package(&args.name);
         }
         Commands::Remove(args) => {
-            todo!("remove packages");
+            package::remove_package(&args.name)?;
         }
         Commands::Update => {
             todo!("update packages");

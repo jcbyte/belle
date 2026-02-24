@@ -87,9 +87,9 @@ impl Environment {
         todo!();
     }
 
-    pub fn remove_package(&mut self, name: String) -> anyhow::Result<()> {
+    pub fn remove_package(&mut self, name: &String) -> anyhow::Result<()> {
         // Remove package from array
-        self.packages.retain(|p| !p.name.eq(&name));
+        self.packages.retain(|p| !p.name.eq(name));
 
         // Resolve the new transitive dependencies
         self.resolve_lock()?;
