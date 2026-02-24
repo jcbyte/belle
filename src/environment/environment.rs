@@ -1,6 +1,7 @@
-use std::{fs, path::PathBuf};
+use std::{collections::HashMap, fs, path::PathBuf};
 
 use anyhow::Context;
+use pubgrub::SemanticVersion;
 
 use crate::{
     config::BelleConfig, environment::Environment, registry::PackageIdentifier, resolver::BelleDependencyProvider,
@@ -16,8 +17,8 @@ impl Environment {
 
         let env = Environment {
             name,
-            packages: vec![],
-            lock: vec![],
+            packages: HashMap::new(),
+            lock: HashMap::new(),
         };
         env.save()?;
         return Ok(env);
@@ -83,13 +84,20 @@ impl Environment {
         return Ok(());
     }
 
-    pub fn add_package(&mut self, package: PackageIdentifier) {
-        todo!();
+    pub fn add_package(&mut self, name: String, version: Option<SemanticVersion>) -> anyhow::Result<()> {
+        // todo if this fails i should return to stable state
+        // todo check it does not already exist
+        self.packages.insert(name, version);
+        self.resolve_lock()?;
+        self.save()?;
+
+        return Ok(());
     }
 
     pub fn remove_package(&mut self, name: &String) -> anyhow::Result<()> {
-        // Remove package from array
-        self.packages.retain(|p| !p.name.eq(name));
+        // todo if this fails i should return to stable state
+        // Remove package from environment
+        self.packages.remove(name);
 
         // Resolve the new transitive dependencies
         self.resolve_lock()?;

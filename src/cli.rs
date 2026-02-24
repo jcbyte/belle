@@ -72,8 +72,7 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
             }
         },
         Commands::Add(args) => {
-            // todo what about version
-            package::add_package(&args.name);
+            package::add_package(args.name, args.version)?;
         }
         Commands::Remove(args) => {
             package::remove_package(&args.name)?;
