@@ -81,7 +81,7 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
             todo!("update packages");
         }
         Commands::List => {
-            todo!("list packages");
+            package::list_packages()?;
         }
     }
 

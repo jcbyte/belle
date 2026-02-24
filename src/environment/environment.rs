@@ -86,7 +86,10 @@ impl Environment {
 
     pub fn add_package(&mut self, name: String, version: Option<SemanticVersion>) -> anyhow::Result<()> {
         // todo if this fails i should return to stable state
-        // todo check it does not already exist
+        if self.packages.contains_key(&name) {
+            anyhow::bail!("Package '{}' is already installed in this environment", &name);
+        }
+
         self.packages.insert(name, version);
         self.resolve_lock()?;
         self.save()?;
