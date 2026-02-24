@@ -81,5 +81,7 @@ impl Environment {
         return Ok(());
     }
 
-    fn add_package(&mut self, package: PackageIdentifier) {}
+    fn add_package(&mut self, package: PackageIdentifier) {
+        todo!();
+    }
 }

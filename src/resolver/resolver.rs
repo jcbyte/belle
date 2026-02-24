@@ -1,24 +1,34 @@
 use anyhow::Context;
 use pubgrub::{Dependencies, DependencyProvider, PackageResolutionStatistics, Ranges, SemanticVersion, resolve};
-use std::collections::HashMap;
+use std::{cmp::Reverse, collections::HashMap};
 
-use crate::registry::{PackageIdentifier, get_package_versions};
+use crate::{
+    registry::{PackageIdentifier, get_package_versions},
+    resolver::SolverError,
+};
 
 type SemVS = Ranges<SemanticVersion>;
 
-struct BelleDependencyProvider {}
+struct BelleDependencyProvider {
+    root_packages: Vec<PackageIdentifier>,
+}
+
+impl BelleDependencyProvider {
+    fn new(root_packages: Vec<PackageIdentifier>) -> Self {
+        return Self { root_packages };
+    }
+}
 
 impl DependencyProvider for BelleDependencyProvider {
-    fn choose_version(&self, package: &String, range: &SemVS) -> anyhow::Result<Option<SemanticVersion>> {
+    fn choose_version(&self, package: &String, range: &SemVS) -> Result<Option<SemanticVersion>, SolverError> {
         // Return the highest version of the package that satisfies the range
-        // ! fix unsafe behaviour later
-        let versions = get_package_versions(package).unwrap();
+        let versions = get_package_versions(package)?;
         let top_valid_version = versions.iter().map(|v| v.version).filter(|v| range.contains(&v)).max();
 
         return Ok(top_valid_version);
     }
 
-    type Priority = usize;
+    type Priority = Reverse<usize>;
     fn prioritize(
         &self,
         package: &String,
@@ -27,19 +37,35 @@ impl DependencyProvider for BelleDependencyProvider {
     ) -> Self::Priority {
         // Prioritize packages with fewer compatible versions
 
-        // ! fix unsafe behaviour later
+        // Always prioritise the root package
+        if package == "." {
+            return Reverse(0);
+        }
+
+        // ! fix unsafe behaviour
         let versions = get_package_versions(package).unwrap();
         let valid_versions_count = versions.iter().filter(|v| range.contains(&v.version)).count();
 
-        // todo why reverse
-        return 1000 - valid_versions_count;
+        // Invert to pick packages with fewest versions
+        return Reverse(valid_versions_count);
     }
 
     fn get_dependencies(
         &self,
         package: &String,
         version: &SemanticVersion,
-    ) -> anyhow::Result<Dependencies<String, SemVS, Self::M>> {
+    ) -> Result<Dependencies<String, SemVS, Self::M>, SolverError> {
+        // If the package name is "." this is our root package so its dependencies are as given
+        if package.eq(".") {
+            let deps: HashMap<String, Ranges<SemanticVersion>, rustc_hash::FxBuildHasher> = self
+                .root_packages
+                .iter()
+                .map(|p| (p.name.clone(), SemVS::singleton(p.version)))
+                .collect();
+
+            return Ok(Dependencies::Available(deps));
+        }
+
         let package = PackageIdentifier {
             name: package.clone(),
             version: version.clone(),
@@ -52,32 +78,32 @@ impl DependencyProvider for BelleDependencyProvider {
         let deps: HashMap<String, Ranges<SemanticVersion>, rustc_hash::FxBuildHasher> = manifest
             .dependencies
             .iter()
+            // Use a singleton so ony the exact package will match
             .map(|(name, version)| (name.clone(), SemVS::singleton(version)))
             .collect();
 
         return Ok(Dependencies::Available(deps));
     }
 
-    type Err = anyhow::Error;
+    type Err = SolverError;
     type P = String;
     type V = SemanticVersion;
     type VS = SemVS;
     type M = String;
 }
 
-fn main() {
-    println!("Hello, world");
+impl BelleDependencyProvider {
+    pub fn resolve(packages: Vec<PackageIdentifier>) -> anyhow::Result<Vec<PackageIdentifier>> {
+        let resolver = BelleDependencyProvider::new(packages);
 
-    let provider = BelleDependencyProvider {};
+        // todo what happens to errors here?
+        let resolved_dependencies =
+            resolve(&resolver, String::from("."), SemanticVersion::zero()).context("Dependency resolution failed")?;
 
-    // Resolve dependencies
-    match resolve(&provider, String::from("myapp"), SemanticVersion::new(1, 0, 0)) {
-        Ok(solution) => {
-            println!("Resolution successful!");
-            for (package, version) in solution.iter() {
-                println!("  {} @ {}", package, version);
-            }
-        }
-        Err(e) => println!("Resolution failed: {:?}", e),
+        return Ok(resolved_dependencies
+            .into_iter()
+            .filter(|(name, _version)| !name.eq("."))
+            .map(|(name, version)| PackageIdentifier { name, version })
+            .collect());
     }
 }
