@@ -2,7 +2,7 @@ use std::{fs, path::PathBuf};
 
 use anyhow::Context;
 
-use crate::{config::BelleConfig, environment::Environment};
+use crate::{config::BelleConfig, environment::Environment, registry::PackageIdentifier};
 
 impl Environment {
     pub fn new(name: String) -> anyhow::Result<Self> {
@@ -12,7 +12,11 @@ impl Environment {
             anyhow::bail!("Environment '{}' already exists", &name);
         }
 
-        let env = Environment { name, packages: vec![] };
+        let env = Environment {
+            name,
+            packages: vec![],
+            lock: vec![],
+        };
         env.save()?;
         return Ok(env);
     }
@@ -76,4 +80,6 @@ impl Environment {
 
         return Ok(());
     }
+
+    fn add_package(&mut self, package: PackageIdentifier) {}
 }

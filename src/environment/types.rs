@@ -6,4 +6,5 @@ use crate::registry::PackageIdentifier;
 pub struct Environment {
     pub(super) name: String,
     pub(super) packages: Vec<PackageIdentifier>,
+    pub(super) lock: Vec<PackageIdentifier>,
 }

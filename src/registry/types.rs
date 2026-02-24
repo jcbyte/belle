@@ -43,9 +43,9 @@ pub struct Package {
 /// Subset of `Package` for quick dependency resolution
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Manifest {
-    name: String,
-    version: SemanticVersion,
-    dependencies: HashMap<String, SemanticVersion>,
+    pub name: String,
+    pub version: SemanticVersion,
+    pub dependencies: HashMap<String, SemanticVersion>,
 }
 
 /// Package identifier for lookup and passing
