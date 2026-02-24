@@ -1,10 +1,11 @@
-use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
-use crate::registry::PackageIdentifier;
+use pubgrub::SemanticVersion;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct Environment {
     pub(super) name: String,
-    pub(super) packages: Vec<PackageIdentifier>,
-    pub(super) lock: Vec<PackageIdentifier>,
+    pub(super) packages: HashMap<String, Option<SemanticVersion>>,
+    pub(super) lock: HashMap<String, SemanticVersion>,
 }

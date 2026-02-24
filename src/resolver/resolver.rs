@@ -10,11 +10,11 @@ use crate::{
 type SemVS = Ranges<SemanticVersion>;
 
 pub struct BelleDependencyProvider {
-    root_packages: Vec<PackageIdentifier>,
+    root_packages: HashMap<String, Option<SemanticVersion>>,
 }
 
 impl BelleDependencyProvider {
-    fn new(root_packages: Vec<PackageIdentifier>) -> Self {
+    fn new(root_packages: HashMap<String, Option<SemanticVersion>>) -> Self {
         return Self { root_packages };
     }
 }
@@ -60,7 +60,15 @@ impl DependencyProvider for BelleDependencyProvider {
             let deps: HashMap<String, Ranges<SemanticVersion>, rustc_hash::FxBuildHasher> = self
                 .root_packages
                 .iter()
-                .map(|p| (p.name.clone(), SemVS::singleton(p.version)))
+                .map(|(name, version)| {
+                    (
+                        name.clone(),
+                        match version {
+                            Some(v) => SemVS::singleton(v),
+                            None => SemVS::full(),
+                        },
+                    )
+                })
                 .collect();
 
             return Ok(Dependencies::Available(deps));
@@ -93,17 +101,16 @@ impl DependencyProvider for BelleDependencyProvider {
 }
 
 impl BelleDependencyProvider {
-    pub fn resolve(packages: Vec<PackageIdentifier>) -> anyhow::Result<Vec<PackageIdentifier>> {
+    pub fn resolve(
+        packages: HashMap<String, Option<SemanticVersion>>,
+    ) -> anyhow::Result<HashMap<String, SemanticVersion>> {
         let resolver = BelleDependencyProvider::new(packages);
 
         // todo what happens to errors here?
-        let resolved_dependencies =
+        let mut resolved_dependencies =
             resolve(&resolver, String::from("."), SemanticVersion::zero()).context("Dependency resolution failed")?;
+        resolved_dependencies.remove(".");
 
-        return Ok(resolved_dependencies
-            .into_iter()
-            .filter(|(name, _version)| !name.eq("."))
-            .map(|(name, version)| PackageIdentifier { name, version })
-            .collect());
+        return Ok(resolved_dependencies.into_iter().collect());
     }
 }
