@@ -51,10 +51,6 @@ impl DependencyProvider for BelleDependencyProvider {
         // Return the highest version of the package that satisfies the range
         let top_valid_version = versions.iter().map(|v| v.version).filter(|v| range.contains(&v)).max();
 
-        println!("choose vers {}", package);
-        println!("v {:?}", versions);
-        println!("res {:?}", top_valid_version);
-
         return Ok(top_valid_version);
     }
 
@@ -122,9 +118,6 @@ impl DependencyProvider for BelleDependencyProvider {
             // Use a singleton so ony the exact package will match
             .map(|(name, version)| (name.clone(), SemVS::singleton(version)))
             .collect();
-
-        println!("get deps {}", package);
-        println!("res {:?}", deps);
 
         return Ok(Dependencies::Available(deps));
     }

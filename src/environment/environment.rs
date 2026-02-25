@@ -73,6 +73,8 @@ impl Environment {
     fn save(&self) -> anyhow::Result<()> {
         let env_file = self.get_env_file();
 
+        println!("{:?}", self);
+
         // Recursively create parent directory and parents so that we can write to the file
         if let Some(parent) = env_file.parent() {
             fs::create_dir_all(parent)
@@ -115,7 +117,7 @@ impl Environment {
             anyhow::bail!("Package '{}' is already installed in this environment", &name);
         }
 
-        self.packages.insert(name, version);
+        self.packages.insert(name, version.into());
         self.resolve_lock()?;
         self.save()?;
 
