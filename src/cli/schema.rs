@@ -180,13 +180,13 @@ pub struct SwitchArgs {
 #[derive(Args)]
 pub struct EnvFreezeArgs {
     /// Output requirements file
-    pub filename: Option<PathBuf>,
+    pub file: Option<PathBuf>,
 }
 
 #[derive(Args)]
 pub struct EnvSyncArgs {
     /// The filename to sync from
-    pub filename: Option<PathBuf>,
+    pub file: Option<PathBuf>,
 }
 
 #[derive(Args)]

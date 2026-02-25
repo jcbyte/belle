@@ -65,7 +65,7 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
             }
             EnvAction::Switch(_args) => unreachable!(),
             EnvAction::Freeze(args) => {
-                todo!("freeze env");
+                environment::freeze_env(args.file)?;
             }
             EnvAction::Sync(args) => {
                 todo!("sync env");

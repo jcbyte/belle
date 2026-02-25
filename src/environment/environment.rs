@@ -6,7 +6,6 @@ use pubgrub::SemanticVersion;
 use crate::{
     config::BelleConfig,
     environment::{Environment, PackageListing},
-    registry::PackageIdentifier,
     resolver::BelleDependencyProvider,
 };
 
@@ -87,6 +86,29 @@ impl Environment {
         return Ok(());
     }
 
+    fn get_freeze_file() -> PathBuf {
+        return PathBuf::from(".").join("belle.toml");
+    }
+
+    pub fn freeze(&self, filename: Option<PathBuf>) -> anyhow::Result<()> {
+        let freeze_file = filename.unwrap_or_else(|| Self::get_freeze_file());
+
+        let content =
+            toml::to_string(self).with_context(|| format!("Failed to parse TOML for environment '{}'", &self.name))?;
+        fs::write(freeze_file, content)
+            .with_context(|| format!("Failed to write to freeze file for '{}'", &self.name))?;
+
+        return Ok(());
+    }
+
+    pub fn sync(filename: Option<PathBuf>) -> anyhow::Result<()> {
+        let freeze_file = filename.unwrap_or_else(|| Self::get_freeze_file());
+
+        todo!();
+
+        return Ok(());
+    }
+
     pub fn add_package(&mut self, name: String, version: Option<SemanticVersion>) -> anyhow::Result<()> {
         // todo if this fails i should return to stable state
         if self.packages.contains_key(&name) {
@@ -110,6 +132,13 @@ impl Environment {
 
         // Save back to disk
         self.save()?;
+
+        return Ok(());
+    }
+
+    fn resolve_lock(&mut self) -> anyhow::Result<()> {
+        let resolved_packages = BelleDependencyProvider::resolve(self.packages.clone())?;
+        self.lock = resolved_packages;
 
         return Ok(());
     }
@@ -154,12 +183,5 @@ impl Environment {
             .collect();
 
         return packages;
-    }
-
-    fn resolve_lock(&mut self) -> anyhow::Result<()> {
-        let resolved_packages = BelleDependencyProvider::resolve(self.packages.clone())?;
-        self.lock = resolved_packages;
-
-        return Ok(());
     }
 }

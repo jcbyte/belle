@@ -19,3 +19,7 @@ async fn main() {
         println!("{}", style(e).bold().red())
     }
 }
+
+// todo fetch theories
+// todo create ROOTS files
+// todo integrate with isabelle

@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, path::PathBuf};
 
 use console::style;
 
@@ -46,6 +46,13 @@ pub fn remove_env(name: &String) -> anyhow::Result<()> {
 
     fs::remove_dir_all(env_dir)?;
     println!("Removed environment: {}", style(name).cyan().bold());
+
+    return Ok(());
+}
+
+pub fn freeze_env(filename: Option<PathBuf>) -> anyhow::Result<()> {
+    let active_env = Environment::active()?.ok_or(anyhow::anyhow!("No environment is selected"))?;
+    active_env.freeze(filename)?;
 
     return Ok(());
 }
