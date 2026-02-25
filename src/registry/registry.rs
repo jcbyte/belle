@@ -27,6 +27,7 @@ pub fn iter_package_files(root_path: &PathBuf, version: &SemanticVersion) -> imp
 
 /// Scan for all versions for a specific package
 pub fn get_package_versions(name: &String) -> anyhow::Result<Vec<PackageIdentifier>> {
+    // todo conver this into an iter, for performance
     let package_manifests = BelleConfig::read_config(|c| c.get_manifest_dir()).join(name);
 
     let versions: Result<Vec<PackageIdentifier>, _> = WalkDir::new(package_manifests)

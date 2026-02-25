@@ -1,6 +1,9 @@
 use anyhow::Context;
 use pubgrub::{Dependencies, DependencyProvider, PackageResolutionStatistics, Ranges, SemanticVersion, resolve};
-use std::{cmp::Reverse, collections::HashMap};
+use std::{cmp::Reverse, collections::HashMap, ops::Bound};
+
+// todo get a list of these and move to somewhere new
+static ISA_PACKAGES: &[&str] = &["HOL-Real_Asymp", "HOL-Eisbach", "HOL-Analysis"];
 
 use crate::{
     registry::{PackageIdentifier, get_package_versions},
@@ -11,19 +14,46 @@ type SemVS = Ranges<SemanticVersion>;
 
 pub struct BelleDependencyProvider {
     root_packages: HashMap<String, Option<SemanticVersion>>,
+    isabelle_versions: Vec<SemanticVersion>,
 }
 
 impl BelleDependencyProvider {
     fn new(root_packages: HashMap<String, Option<SemanticVersion>>) -> Self {
-        return Self { root_packages };
+        // todo get this from root packages
+        let isabelle_versions = vec![SemanticVersion::new(2025, 2, 0), SemanticVersion::new(2025, 1, 0)];
+
+        return Self {
+            root_packages,
+            isabelle_versions,
+        };
     }
 }
 
 impl DependencyProvider for BelleDependencyProvider {
     fn choose_version(&self, package: &String, range: &SemVS) -> Result<Option<SemanticVersion>, SolverError> {
+        if package.eq(".") {
+            return Ok(Some(SemanticVersion::zero()));
+        }
+
+        // todo extract only versions for performance
+        let versions = if !ISA_PACKAGES.contains(&package.as_str()) {
+            get_package_versions(package)?
+        } else {
+            self.isabelle_versions
+                .iter()
+                .map(|version| PackageIdentifier {
+                    name: package.clone(),
+                    version: version.clone(),
+                })
+                .collect()
+        };
+
         // Return the highest version of the package that satisfies the range
-        let versions = get_package_versions(package)?;
         let top_valid_version = versions.iter().map(|v| v.version).filter(|v| range.contains(&v)).max();
+
+        println!("choose vers {}", package);
+        println!("v {:?}", versions);
+        println!("res {:?}", top_valid_version);
 
         return Ok(top_valid_version);
     }
@@ -36,6 +66,10 @@ impl DependencyProvider for BelleDependencyProvider {
         _conflicts_counts: &PackageResolutionStatistics,
     ) -> Self::Priority {
         // Prioritize packages with fewer compatible versions
+
+        if package.eq(".") {
+            return Reverse(0);
+        }
 
         // ! fix unsafe behaviour
         let versions = get_package_versions(package).unwrap();
@@ -69,6 +103,10 @@ impl DependencyProvider for BelleDependencyProvider {
             return Ok(Dependencies::Available(deps));
         }
 
+        if ISA_PACKAGES.contains(&package.as_str()) {
+            return Ok(Dependencies::Available(HashMap::default()));
+        }
+
         let package = PackageIdentifier {
             name: package.clone(),
             version: version.clone(),
@@ -84,6 +122,9 @@ impl DependencyProvider for BelleDependencyProvider {
             // Use a singleton so ony the exact package will match
             .map(|(name, version)| (name.clone(), SemVS::singleton(version)))
             .collect();
+
+        println!("get deps {}", package);
+        println!("res {:?}", deps);
 
         return Ok(Dependencies::Available(deps));
     }
@@ -102,8 +143,7 @@ impl BelleDependencyProvider {
         let resolver = BelleDependencyProvider::new(packages);
 
         // todo what happens to errors here?
-        let mut resolved_dependencies =
-            resolve(&resolver, String::from("."), SemanticVersion::zero()).context("Dependency resolution failed")?;
+        let mut resolved_dependencies = resolve(&resolver, String::from("."), SemanticVersion::zero())?;
         resolved_dependencies.remove(".");
 
         return Ok(resolved_dependencies.into_iter().collect());

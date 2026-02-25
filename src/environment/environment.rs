@@ -119,6 +119,8 @@ impl Environment {
         self.resolve_lock()?;
         self.save()?;
 
+        println!("{:?}", self.packages);
+
         return Ok(());
     }
 

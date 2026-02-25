@@ -180,12 +180,14 @@ pub struct SwitchArgs {
 #[derive(Args)]
 pub struct EnvFreezeArgs {
     /// Output requirements file
+    #[arg(short, long)]
     pub file: Option<PathBuf>,
 }
 
 #[derive(Args)]
 pub struct EnvSyncArgs {
     /// The filename to sync from
+    #[arg(short, long)]
     pub file: Option<PathBuf>,
 }
 
@@ -195,6 +197,7 @@ pub struct AddArgs {
     pub name: String,
 
     /// Specific version to add (defaults to latest)
+    #[arg(short, long)]
     pub version: Option<SemanticVersion>,
 }
 
@@ -207,6 +210,7 @@ pub struct RemoveArgs {
 #[derive(Args)]
 pub struct ListArgs {
     /// List all packages for environment (includes transitive dependencies)
+    #[arg(short, long)]
     pub all: bool,
 }
 
