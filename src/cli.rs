@@ -80,8 +80,8 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
         Commands::Update => {
             todo!("update packages");
         }
-        Commands::List => {
-            package::list_packages()?;
+        Commands::List(args) => {
+            package::list_packages(args.all)?;
         }
     }
 

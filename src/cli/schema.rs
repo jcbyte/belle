@@ -45,7 +45,7 @@ pub enum Commands {
     Update,
 
     /// List all packages in the current environment
-    List,
+    List(ListArgs),
 }
 
 #[derive(Subcommand)]
@@ -202,6 +202,12 @@ pub struct AddArgs {
 pub struct RemoveArgs {
     /// The name of package to remove
     pub name: String,
+}
+
+#[derive(Args)]
+pub struct ListArgs {
+    /// List all packages for environment (includes transitive dependencies)
+    pub all: bool,
 }
 
 // todo packages should be called theories
