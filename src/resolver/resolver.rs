@@ -3,7 +3,7 @@ use pubgrub::{Dependencies, DependencyProvider, PackageResolutionStatistics, Ran
 use std::{cmp::Reverse, collections::HashMap, ops::Bound};
 
 // todo get a list of these and move to somewhere new
-static ISA_PACKAGES: &[&str] = &["HOL-Real_Asymp", "HOL-Eisbach", "HOL-Analysis"];
+static ISA_PACKAGES: &[&str] = &["HOL-Real_Asymp", "HOL-Eisbach", "HOL-Analysis", "HOL-Cardinals"];
 
 use crate::{
     registry::{PackageIdentifier, get_package_versions},
@@ -35,21 +35,14 @@ impl DependencyProvider for BelleDependencyProvider {
             return Ok(Some(SemanticVersion::zero()));
         }
 
-        // todo extract only versions for performance
         let versions = if !ISA_PACKAGES.contains(&package.as_str()) {
-            get_package_versions(package)?
+            get_package_versions(package)?.into_iter().map(|v| v.version).collect()
         } else {
-            self.isabelle_versions
-                .iter()
-                .map(|version| PackageIdentifier {
-                    name: package.clone(),
-                    version: version.clone(),
-                })
-                .collect()
+            self.isabelle_versions.clone()
         };
 
         // Return the highest version of the package that satisfies the range
-        let top_valid_version = versions.iter().map(|v| v.version).filter(|v| range.contains(&v)).max();
+        let top_valid_version = versions.iter().map(|v| v).filter(|v| range.contains(v)).max().cloned();
 
         return Ok(top_valid_version);
     }
@@ -80,6 +73,8 @@ impl DependencyProvider for BelleDependencyProvider {
         package: &String,
         version: &SemanticVersion,
     ) -> Result<Dependencies<String, SemVS, Self::M>, SolverError> {
+        println!("deps {}", package);
+
         // If the package name is "." this is our root package so its dependencies are as given
         if package.eq(".") {
             let deps: HashMap<String, Ranges<SemanticVersion>, rustc_hash::FxBuildHasher> = self

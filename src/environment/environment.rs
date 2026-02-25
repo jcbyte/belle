@@ -112,11 +112,11 @@ impl Environment {
     }
 
     pub fn add_package(&mut self, name: String, version: Option<SemanticVersion>) -> anyhow::Result<()> {
-        // todo if this fails i should return to stable state
         if self.packages.contains_key(&name) {
             anyhow::bail!("Package '{}' is already installed in this environment", &name);
         }
 
+        // If this fails it will not reach `save`, hence the environment will be saved in a stable state
         self.packages.insert(name, version.into());
         self.resolve_lock()?;
         self.save()?;
@@ -127,14 +127,9 @@ impl Environment {
     }
 
     pub fn remove_package(&mut self, name: &String) -> anyhow::Result<()> {
-        // todo if this fails i should return to stable state
-        // Remove package from environment
+        // If this fails it will not reach `save`, hence the environment will be saved in a stable state
         self.packages.remove(name);
-
-        // Resolve the new transitive dependencies
         self.resolve_lock()?;
-
-        // Save back to disk
         self.save()?;
 
         return Ok(());
