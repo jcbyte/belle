@@ -37,11 +37,6 @@ impl DependencyProvider for BelleDependencyProvider {
     ) -> Self::Priority {
         // Prioritize packages with fewer compatible versions
 
-        // Always prioritise the root package
-        if package == "." {
-            return Reverse(0);
-        }
-
         // ! fix unsafe behaviour
         let versions = get_package_versions(package).unwrap();
         let valid_versions_count = versions.iter().filter(|v| range.contains(&v.version)).count();

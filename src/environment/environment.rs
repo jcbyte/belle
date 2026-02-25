@@ -4,7 +4,10 @@ use anyhow::Context;
 use pubgrub::SemanticVersion;
 
 use crate::{
-    config::BelleConfig, environment::Environment, registry::PackageIdentifier, resolver::BelleDependencyProvider,
+    config::BelleConfig,
+    environment::{Environment, PackageListing},
+    registry::PackageIdentifier,
+    resolver::BelleDependencyProvider,
 };
 
 impl Environment {
@@ -109,6 +112,48 @@ impl Environment {
         self.save()?;
 
         return Ok(());
+    }
+
+    pub fn get_packages(&self) -> anyhow::Result<Vec<PackageListing>> {
+        let packages = self
+            .packages
+            .iter()
+            .map(|(name, version)| {
+                let found_version = match version {
+                    Some(v) => v,
+                    None => &self
+                        .lock
+                        .get(name)
+                        .with_context(|| format!("Expected package '{}' in lock, but it didn't exist", name))?,
+                };
+
+                Ok(PackageListing {
+                    name: name.clone(),
+                    version: found_version.clone(),
+                    given_version: version.is_some(),
+                    transitive: false,
+                })
+            })
+            .collect();
+
+        return packages;
+    }
+
+    pub fn get_all_packages(&self) -> anyhow::Result<Vec<PackageListing>> {
+        let packages = self
+            .lock
+            .iter()
+            .map(|(name, version)| {
+                Ok(PackageListing {
+                    name: name.clone(),
+                    version: version.clone(),
+                    given_version: self.packages.get(name).map(|v| v.is_some()).unwrap_or(false),
+                    transitive: !self.packages.contains_key(name),
+                })
+            })
+            .collect();
+
+        return packages;
     }
 
     fn resolve_lock(&mut self) -> anyhow::Result<()> {

@@ -9,3 +9,10 @@ pub struct Environment {
     pub(super) packages: HashMap<String, Option<SemanticVersion>>,
     pub(super) lock: HashMap<String, SemanticVersion>,
 }
+
+pub struct PackageListing {
+    pub name: String,
+    pub version: SemanticVersion,
+    pub given_version: bool,
+    pub transitive: bool,
+}
