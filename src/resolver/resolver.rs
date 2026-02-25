@@ -1,6 +1,10 @@
 use anyhow::Context;
 use pubgrub::{Dependencies, DependencyProvider, PackageResolutionStatistics, Ranges, SemanticVersion, resolve};
-use std::{cmp::Reverse, collections::HashMap, ops::Bound};
+use std::{
+    cell::RefCell,
+    cmp::Reverse,
+    collections::{HashMap, hash_map::Entry},
+};
 
 // todo get a list of these and move to somewhere new
 static ISA_PACKAGES: &[&str] = &["HOL-Real_Asymp", "HOL-Eisbach", "HOL-Analysis", "HOL-Cardinals"];
@@ -15,6 +19,9 @@ type SemVS = Ranges<SemanticVersion>;
 pub struct BelleDependencyProvider {
     root_packages: HashMap<String, Option<SemanticVersion>>,
     isabelle_versions: Vec<SemanticVersion>,
+
+    /// Cache for package versions
+    package_versions: RefCell<HashMap<String, Vec<SemanticVersion>>>,
 }
 
 impl BelleDependencyProvider {
@@ -25,7 +32,20 @@ impl BelleDependencyProvider {
         return Self {
             root_packages,
             isabelle_versions,
+            package_versions: RefCell::new(HashMap::new()),
         };
+    }
+
+    fn get_package_versions(&self, name: &String) -> anyhow::Result<Vec<SemanticVersion>> {
+        if let Some(versions) = self.package_versions.borrow().get(name) {
+            return Ok(versions.clone());
+        }
+
+        let mut cache = self.package_versions.borrow_mut();
+        let fetched = get_package_versions(name)?.into_iter().map(|v| v.version).collect::<Vec<_>>();
+        cache.insert(name.clone(), fetched.clone());
+
+        return Ok(fetched);
     }
 }
 
@@ -36,7 +56,7 @@ impl DependencyProvider for BelleDependencyProvider {
         }
 
         let versions = if !ISA_PACKAGES.contains(&package.as_str()) {
-            get_package_versions(package)?.into_iter().map(|v| v.version).collect()
+            self.get_package_versions(package)?
         } else {
             self.isabelle_versions.clone()
         };
@@ -61,8 +81,8 @@ impl DependencyProvider for BelleDependencyProvider {
         }
 
         // ! fix unsafe behaviour
-        let versions = get_package_versions(package).unwrap();
-        let valid_versions_count = versions.iter().filter(|v| range.contains(&v.version)).count();
+        let versions = self.get_package_versions(package).unwrap();
+        let valid_versions_count = versions.iter().filter(|v| range.contains(v)).count();
 
         // Invert to pick packages with fewest versions
         return Reverse(valid_versions_count);
