@@ -15,8 +15,10 @@ pub struct PackageAuthor {
 /// Theory source information
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PackageSource {
-    pub repo: u32,
+    pub afp: u32,
 }
+// todo allow external repos
+// todo this should be an enum instead
 
 /// All package metadata
 #[derive(Serialize, Deserialize, Debug)]
@@ -34,6 +36,7 @@ pub struct Package {
     pub contributors: Vec<PackageAuthor>,
 
     pub dependencies: HashMap<String, SemanticVersion>,
+    pub isabelles: Vec<String>,
 
     pub source: PackageSource,
 
@@ -46,6 +49,7 @@ pub struct Manifest {
     pub name: String,
     pub version: SemanticVersion,
     pub dependencies: HashMap<String, SemanticVersion>,
+    pub isabelles: Vec<String>,
 }
 
 /// Package identifier for lookup and passing
@@ -61,6 +65,7 @@ impl From<&Package> for Manifest {
             name: package.name.clone(),
             version: package.version.clone(),
             dependencies: package.dependencies.clone(),
+            isabelles: package.isabelles.clone(),
         };
     }
 }

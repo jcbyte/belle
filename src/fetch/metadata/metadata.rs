@@ -154,7 +154,7 @@ impl RepoMetadata {
             authors: authors,
             contributors: contributors,
             dependencies,
-            source: PackageSource { repo: self.repo.id },
+            source: PackageSource { afp: self.repo.id },
             extra: meta.extra.clone(),
         };
 

@@ -8,6 +8,7 @@ use std::{
 
 // todo get a list of these and move to somewhere new
 static ISA_PACKAGES: &[&str] = &["HOL-Real_Asymp", "HOL-Eisbach", "HOL-Analysis", "HOL-Cardinals"];
+// todo make this all depend on isa_version which ensures a valid version across all isabelle packages
 
 use crate::{
     registry::{PackageIdentifier, get_package_versions},
