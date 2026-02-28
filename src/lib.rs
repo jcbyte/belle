@@ -4,3 +4,4 @@ mod environment;
 pub mod fetch;
 mod registry;
 mod resolver;
+pub mod util;

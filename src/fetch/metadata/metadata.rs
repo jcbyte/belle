@@ -8,6 +8,7 @@ use crate::fetch::AFPRepo;
 use crate::fetch::client::BelleClient;
 use crate::fetch::metadata::{AuthorMetadata, RepoMetadata, TheoryMetadata, dependency};
 use crate::registry::{Package, PackageAuthor, PackageIdentifier, PackageSource};
+use crate::util::date_to_version;
 
 impl RepoMetadata {
     /// Fetch metadata from repo and parse it into interpreted repo metadata
@@ -73,10 +74,10 @@ impl RepoMetadata {
     pub fn all_theories(&self) -> Vec<PackageIdentifier> {
         return self
             .theories
-            .keys()
-            .map(|theory| PackageIdentifier {
+            .iter()
+            .map(|(theory, meta)| PackageIdentifier {
                 name: theory.clone(),
-                version: self.repo.get_version().clone(),
+                version: date_to_version(&meta.date),
             })
             .collect();
     }
@@ -93,8 +94,31 @@ impl RepoMetadata {
         // Extract the dependency list
         let deps = dependency::extract_root_deps(&thy_root)?;
         // All dependencies will require the same version that this theory file is part of
-        let dependencies: HashMap<String, SemanticVersion> =
-            deps.iter_all().cloned().map(|s| (s, self.repo.get_version().clone())).collect();
+        let dependencies: HashMap<String, SemanticVersion> = deps
+            .iter_all()
+            .cloned()
+            .map(|s| {
+                (
+                    s,
+                    date_to_version(
+                        &self
+                            .theories
+                            .get(&s)
+                            .ok_or_else(|| {
+                                anyhow!(
+                                    "Theory '{}' depends on '{}' but that does not exist in the repo metadata",
+                                    thy_name,
+                                    s
+                                )
+                            })?
+                            .date,
+                    ),
+                )
+            })
+            .collect();
+
+        // todo handle isabelle dependencies
+        // todo when new theories are fetched it should add to there isabelle versions
 
         // Get licence from matching its key
         let licence = self.licences.get(&meta.licence_key).ok_or_else(|| {
@@ -144,7 +168,7 @@ impl RepoMetadata {
         // Return created package will all metadata
         let package = Package {
             name: thy_name.clone(),
-            version: self.repo.get_version().clone(),
+            version: date_to_version(&meta.date),
             title: meta.title.clone(),
             date: meta.date,
             r#abstract: meta.r#abstract.clone(),
@@ -154,6 +178,7 @@ impl RepoMetadata {
             authors: authors,
             contributors: contributors,
             dependencies,
+            isabelles: vec![self.repo.name.clone()],
             source: PackageSource { afp: self.repo.id },
             extra: meta.extra.clone(),
         };
