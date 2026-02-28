@@ -70,3 +70,5 @@ impl BelleConfig {
         return res;
     }
 }
+
+// todo can i write back to file with correct config

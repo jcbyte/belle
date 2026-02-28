@@ -4,6 +4,7 @@ use std::io::Read;
 use std::{collections::HashMap, io::Cursor};
 use zip::ZipArchive;
 
+use crate::config::BelleConfig;
 use crate::fetch::AFPRepo;
 use crate::fetch::client::BelleClient;
 use crate::fetch::metadata::{AuthorMetadata, RepoMetadata, TheoryMetadata, dependency};
@@ -91,33 +92,31 @@ impl RepoMetadata {
 
         // Fetch theories ROOT file from the repo
         let thy_root = client.get_thy_root(&self.repo, thy_name).await?;
+
+        let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
+
         // Extract the dependency list
         let deps = dependency::extract_root_deps(&thy_root)?;
         // All dependencies will require the same version that this theory file is part of
-        let dependencies: HashMap<String, SemanticVersion> = deps
+        let dependencies = deps
             .iter_all()
             .cloned()
-            .map(|s| {
-                (
-                    s,
-                    date_to_version(
-                        &self
-                            .theories
-                            .get(&s)
-                            .ok_or_else(|| {
-                                anyhow!(
-                                    "Theory '{}' depends on '{}' but that does not exist in the repo metadata",
-                                    thy_name,
-                                    s
-                                )
-                            })?
-                            .date,
-                    ),
-                )
-            })
-            .collect();
+            .map(|dependency| {
+                if isabelle_packages.contains(&dependency) {
+                    return Ok((dependency, self.repo.get_version().clone()));
+                }
 
-        // todo handle isabelle dependencies
+                let dep_meta = self.theories.get(&dependency).ok_or_else(|| {
+                    anyhow!(
+                        "Theory '{}' depends on '{}' but that does not exist in the repo metadata",
+                        thy_name,
+                        dependency
+                    )
+                })?;
+                return Ok((dependency, date_to_version(&dep_meta.date)));
+            })
+            .collect::<anyhow::Result<HashMap<String, SemanticVersion>>>()?;
+
         // todo when new theories are fetched it should add to there isabelle versions
 
         // Get licence from matching its key
