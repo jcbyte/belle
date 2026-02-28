@@ -24,12 +24,13 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
         },
         Commands::Cache(action) => match action {
             CacheAction::Clean(args) => {
-                // This should be handled by clap, but ensure it is correct here
-                let target_version = if args.all { None } else { args.version };
-                cli::registry::clean_theories(target_version)?;
+                cli::registry::clean_theories()?;
                 if args.meta {
-                    cli::registry::clean_metadata(target_version)?;
+                    cli::registry::clean_metadata()?;
                 }
+            }
+            CacheAction::Purge => {
+                todo!("purge");
             }
         },
         Commands::Inspect(args) => {

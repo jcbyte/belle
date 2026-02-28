@@ -74,6 +74,9 @@ pub struct RepoUpdateArgs {
 
 #[derive(Subcommand)]
 pub enum CacheAction {
+    /// Remove downloaded packages which are not used within any environments
+    Purge,
+
     /// Remove downloaded files to free up disk space
     Clean(CacheCleanArgs),
 }
@@ -81,13 +84,6 @@ pub enum CacheAction {
 #[derive(Args)]
 #[command(group(ArgGroup::new("selection").required(true).args(["version", "all"])))]
 pub struct CacheCleanArgs {
-    /// The specific version to remove from cache
-    pub version: Option<SemanticVersion>,
-
-    /// Remove all cached versions
-    #[arg(long)]
-    pub all: bool,
-
     /// Also remove package/theory metadata (requires a 'repo update' to restore)
     #[arg(short, long)]
     pub meta: bool,
