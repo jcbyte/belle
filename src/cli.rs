@@ -51,7 +51,7 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
             }
         },
         Commands::Switch(args) | Commands::Env(EnvAction::Switch(args)) => {
-            environment::switch_env(&args.name)?;
+            environment::switch_env(args.name)?;
         }
         Commands::Env(action) => match action {
             EnvAction::Create(args) => {
@@ -64,10 +64,10 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
                 environment::remove_env(&args.name)?;
             }
             EnvAction::Switch(_args) => unreachable!(),
-            EnvAction::Freeze(args) => {
-                environment::freeze_env(args.file)?;
+            EnvAction::Freeze => {
+                environment::freeze_env()?;
             }
-            EnvAction::Sync(args) => {
+            EnvAction::Sync => {
                 todo!("sync env");
             }
         },

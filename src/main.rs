@@ -23,3 +23,6 @@ async fn main() {
 // todo fetch theories
 // todo create ROOTS files
 // todo integrate with isabelle
+// todo check all error handling cases are needed (should we just expect), ensure messages are correct
+// todo testing
+// todo "purge" command which can remove all theories unused in any environments

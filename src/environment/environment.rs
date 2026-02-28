@@ -92,8 +92,8 @@ impl Environment {
         return PathBuf::from(".").join("belle.toml");
     }
 
-    pub fn freeze(&self, filename: Option<PathBuf>) -> anyhow::Result<()> {
-        let freeze_file = filename.unwrap_or_else(|| Self::get_freeze_file());
+    pub fn freeze(&self) -> anyhow::Result<()> {
+        let freeze_file = Self::get_freeze_file();
 
         let content =
             toml::to_string(self).with_context(|| format!("Failed to parse TOML for environment '{}'", &self.name))?;
@@ -103,8 +103,8 @@ impl Environment {
         return Ok(());
     }
 
-    pub fn sync(filename: Option<PathBuf>) -> anyhow::Result<()> {
-        let freeze_file = filename.unwrap_or_else(|| Self::get_freeze_file());
+    pub fn sync() -> anyhow::Result<()> {
+        let freeze_file = Self::get_freeze_file();
 
         todo!();
 

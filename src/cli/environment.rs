@@ -4,13 +4,17 @@ use console::style;
 
 use crate::environment::{Environment, manager};
 
-pub fn switch_env(name: &String) -> anyhow::Result<()> {
-    manager::switch_env(name)?;
+pub fn switch_env(name: Option<String>) -> anyhow::Result<()> {
+    let name = name.unwrap(); // todo try load config file to extract name instead
+
+    manager::switch_env(&name)?;
     println!("Switched to environment {}", style(name).cyan().bold());
     return Ok(());
 }
 
-pub fn create_env(name: String) -> anyhow::Result<()> {
+pub fn create_env(name: Option<String>) -> anyhow::Result<()> {
+    let name = name.unwrap(); // todo try load config file to extract name instead
+
     Environment::new(name.clone())?;
     println!("Created new environment: {}", style(name).cyan().bold());
     return Ok(());
@@ -50,9 +54,9 @@ pub fn remove_env(name: &String) -> anyhow::Result<()> {
     return Ok(());
 }
 
-pub fn freeze_env(filename: Option<PathBuf>) -> anyhow::Result<()> {
+pub fn freeze_env() -> anyhow::Result<()> {
     let active_env = Environment::active()?.ok_or(anyhow::anyhow!("No environment is selected"))?;
-    active_env.freeze(filename)?;
+    active_env.freeze()?;
 
     return Ok(());
 }

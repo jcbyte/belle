@@ -153,16 +153,20 @@ pub enum EnvAction {
     Switch(SwitchArgs),
 
     /// Export current environment to a requirements file
-    Freeze(EnvFreezeArgs),
+    Freeze,
 
     /// Install packages from a requirements file to match state
-    Sync(EnvSyncArgs),
+    Sync,
 }
 
 #[derive(Args)]
 pub struct EnvCreateArgs {
-    /// The name of environment to create
-    pub name: String,
+    /// The name of the environment (defaults to name inside belle file, or overwrites if both provided)
+    pub name: Option<String>,
+
+    /// Ignore belle file and create fresh environment
+    #[arg(short, long)]
+    pub new: bool,
 }
 
 #[derive(Args)]
@@ -173,22 +177,8 @@ pub struct EnvRemoveArgs {
 
 #[derive(Args)]
 pub struct SwitchArgs {
-    /// The name of environment to switch to
-    pub name: String,
-}
-
-#[derive(Args)]
-pub struct EnvFreezeArgs {
-    /// Output requirements file
-    #[arg(short, long)]
-    pub file: Option<PathBuf>,
-}
-
-#[derive(Args)]
-pub struct EnvSyncArgs {
-    /// The filename to sync from
-    #[arg(short, long)]
-    pub file: Option<PathBuf>,
+    /// The name of environment to switch to (defaults to name inside belle file)
+    pub name: Option<String>,
 }
 
 #[derive(Args)]
