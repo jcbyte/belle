@@ -19,7 +19,7 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
                 fetch::list_repositories(args.limit).await?;
             }
             RepoAction::Update(args) => {
-                fetch::fetch_meta(args.name, !args.force).await?;
+                fetch::fetch_meta(args.name).await?;
             }
         },
         Commands::Cache(action) => match action {

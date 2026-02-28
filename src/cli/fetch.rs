@@ -41,7 +41,7 @@ pub async fn list_repositories(limit: usize) -> anyhow::Result<()> {
 
 /// Fetch metadata for a specific repository (or the latest if not specified)
 /// Register packages which do not yet exist locally
-pub async fn fetch_meta(repo_name: Option<String>, use_cache: bool) -> anyhow::Result<()> {
+pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
     let client = BelleClient::new()?;
 
     // Get the repo structure
@@ -83,47 +83,44 @@ pub async fn fetch_meta(repo_name: Option<String>, use_cache: bool) -> anyhow::R
         style("]").dim(),
     ));
 
-    // No need to register packages that already exist
-    let to_fetch: Vec<&PackageIdentifier> = if use_cache {
-        repo_theories.iter().filter(|t| !t.package_exists()).collect()
-    } else {
-        // If no cache is set then we must collect all of them
-        repo_theories.iter().collect()
-    };
+    let pb = ProgressBar::new(repo_theories.len() as u64);
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("{spinner} [{bar:40.cyan/blue}] {pos}/{len} {msg}")?
+            .progress_chars("#>-"),
+    );
 
-    if to_fetch.is_empty() {
-        println!("No new theories, local registry is already up to date!");
-    } else {
-        println!("Found {} new theories to sync.", style(to_fetch.len()).bold());
+    for theory in repo_metadata.all_theories() {
+        pb.set_message(format!("Syncing {}", style(&theory).cyan()));
 
-        let pb = ProgressBar::new(to_fetch.len() as u64);
-        pb.set_style(
-            ProgressStyle::default_bar()
-                .template("{spinner} [{bar:40.cyan/blue}] {pos}/{len} {msg}")?
-                .progress_chars("#>-"),
-        );
-
-        // Iterate though all theories in the repository metadata
-        for theory in to_fetch.iter() {
+        if theory.package_exists() {
+            // If the package already exists, we must ensure that we have this isabelle version listed
+            let mut theory_meta = theory
+                .get_package_meta()?
+                .expect("Package exists, but its metadata could not be found");
+            if theory_meta.isabelles.insert(repo.name.clone()) {
+                // Only re-register if this modified to avoid unnecessary IO
+                theory_meta.register()?;
+            }
+        } else {
             // Create the package metadata and register it
             // Creating metadata will require network, so this could take some time
-            pb.set_message(format!("Syncing {}", style(theory).cyan()));
             let package = repo_metadata.create_package_meta(&theory.name, &client).await?;
             package.register()?;
-
-            pb.inc(1);
         }
 
-        pb.finish_and_clear();
-        println!(
-            "Synced {} packages from {} {}{}{}.",
-            style(to_fetch.len()).bold(),
-            style(&repo.name).cyan().bold(),
-            style("[").dim(),
-            style(repo.get_version()).yellow(),
-            style("]").dim(),
-        );
+        pb.inc(1);
     }
+
+    pb.finish_and_clear();
+    println!(
+        "Synced {} packages from {} {}{}{}.",
+        style(repo_theories.len()).bold(),
+        style(&repo.name).cyan().bold(),
+        style("[").dim(),
+        style(repo.get_version()).yellow(),
+        style("]").dim(),
+    );
 
     return Ok(());
 }

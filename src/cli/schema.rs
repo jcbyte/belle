@@ -70,10 +70,6 @@ pub struct RepoUpdateArgs {
     /// Optional name of AFP repo (defaults to latest)
     #[arg(value_name = "REPO")]
     pub name: Option<String>,
-
-    /// Ignore cache and re-fetch all theories
-    #[arg(long)]
-    pub force: bool,
 }
 
 #[derive(Subcommand)]

@@ -1,4 +1,7 @@
-use std::{collections::HashMap, fmt};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt,
+};
 
 use pubgrub::SemanticVersion;
 use serde::{Deserialize, Serialize};
@@ -36,7 +39,7 @@ pub struct Package {
     pub contributors: Vec<PackageAuthor>,
 
     pub dependencies: HashMap<String, SemanticVersion>,
-    pub isabelles: Vec<String>,
+    pub isabelles: HashSet<String>,
 
     pub source: PackageSource,
 
@@ -49,7 +52,7 @@ pub struct Manifest {
     pub name: String,
     pub version: SemanticVersion,
     pub dependencies: HashMap<String, SemanticVersion>,
-    pub isabelles: Vec<String>,
+    pub isabelles: HashSet<String>,
 }
 
 /// Package identifier for lookup and passing

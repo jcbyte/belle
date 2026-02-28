@@ -1,5 +1,6 @@
 use anyhow::{Context, anyhow};
 use pubgrub::SemanticVersion;
+use std::collections::HashSet;
 use std::io::Read;
 use std::{collections::HashMap, io::Cursor};
 use zip::ZipArchive;
@@ -103,7 +104,8 @@ impl RepoMetadata {
             .cloned()
             .map(|dependency| {
                 if isabelle_packages.contains(&dependency) {
-                    return Ok((dependency, self.repo.get_version().clone()));
+                    // Isabelle packages will depend on the isabelle version so this version does not matter
+                    return Ok((dependency, SemanticVersion::zero()));
                 }
 
                 let dep_meta = self.theories.get(&dependency).ok_or_else(|| {
@@ -116,8 +118,6 @@ impl RepoMetadata {
                 return Ok((dependency, date_to_version(&dep_meta.date)));
             })
             .collect::<anyhow::Result<HashMap<String, SemanticVersion>>>()?;
-
-        // todo when new theories are fetched it should add to there isabelle versions
 
         // Get licence from matching its key
         let licence = self.licences.get(&meta.licence_key).ok_or_else(|| {
@@ -177,7 +177,7 @@ impl RepoMetadata {
             authors: authors,
             contributors: contributors,
             dependencies,
-            isabelles: vec![self.repo.name.clone()],
+            isabelles: HashSet::from([self.repo.name.clone()]),
             source: PackageSource { afp: self.repo.id },
             extra: meta.extra.clone(),
         };
