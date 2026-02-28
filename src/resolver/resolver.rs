@@ -1,16 +1,9 @@
 use anyhow::Context;
 use pubgrub::{Dependencies, DependencyProvider, PackageResolutionStatistics, Ranges, SemanticVersion, resolve};
-use std::{
-    cell::RefCell,
-    cmp::Reverse,
-    collections::{HashMap, hash_map::Entry},
-};
-
-// todo get a list of these and move to somewhere new
-static ISA_PACKAGES: &[&str] = &["HOL-Real_Asymp", "HOL-Eisbach", "HOL-Analysis", "HOL-Cardinals"];
-// todo make this all depend on isa_version which ensures a valid version across all isabelle packages
+use std::{cell::RefCell, cmp::Reverse, collections::HashMap};
 
 use crate::{
+    config::BelleConfig,
     registry::{PackageIdentifier, get_package_versions},
     resolver::SolverError,
 };
@@ -56,7 +49,8 @@ impl DependencyProvider for BelleDependencyProvider {
             return Ok(Some(SemanticVersion::zero()));
         }
 
-        let versions = if !ISA_PACKAGES.contains(&package.as_str()) {
+        let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
+        let versions = if !isabelle_packages.contains(package) {
             self.get_package_versions(package)?
         } else {
             self.isabelle_versions.clone()
@@ -115,7 +109,8 @@ impl DependencyProvider for BelleDependencyProvider {
             return Ok(Dependencies::Available(deps));
         }
 
-        if ISA_PACKAGES.contains(&package.as_str()) {
+        let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
+        if isabelle_packages.contains(package) {
             return Ok(Dependencies::Available(HashMap::default()));
         }
 

@@ -8,7 +8,11 @@ pub struct ConfigData {
     pub home: PathBuf,
     #[serde(rename = "afp-group")]
     pub afp_group: String,
+    #[serde(rename = "isabelle-packages")]
+    pub isabelle_packages: Vec<String>,
 }
+
+// todo make isabelles all depend on isa_version which ensures a valid version across all isabelle packages
 
 impl Default for ConfigData {
     /// Defaults for config
@@ -20,6 +24,12 @@ impl Default for ConfigData {
         return Self {
             home: home_dir,
             afp_group: String::from("isa-afp"),
+            isabelle_packages: vec![
+                String::from("HOL-Real_Asymp"),
+                String::from("HOL-Eisbach"),
+                String::from("HOL-Analysis"),
+                String::from("HOL-Cardinals"),
+            ],
         };
     }
 }
