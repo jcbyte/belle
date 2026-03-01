@@ -12,8 +12,6 @@ pub struct ConfigData {
     pub isabelle_packages: Vec<String>,
 }
 
-// todo make isabelles all depend on isa_version which ensures a valid version across all isabelle packages
-
 impl Default for ConfigData {
     /// Defaults for config
     fn default() -> Self {

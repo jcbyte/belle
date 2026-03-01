@@ -194,4 +194,4 @@ pub struct ListArgs {
     pub all: bool,
 }
 
-// todo packages should be called theories
+// todo ensure consistent nam,ing of packages
