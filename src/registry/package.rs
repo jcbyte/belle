@@ -85,10 +85,13 @@ impl PackageIdentifier {
 
         let manifest_toml_string = fs::read_to_string(manifest_file)
             .with_context(|| format!("Failed to read manifest file for {} package", self))?;
-        let manifest: Package = toml::from_str(&manifest_toml_string)
+        let package: RegisteredPackage = toml::from_str(&manifest_toml_string)
             .with_context(|| format!("Failed to parse TOML for {} manifest file", self))?;
 
-        return Ok(Some(manifest));
+        return match package {
+            RegisteredPackage::Package(package) => Ok(Some(package)),
+            RegisteredPackage::Alias(alias) => PackageIdentifier::from(&alias).get_package_manifest(),
+        };
     }
 
     /// Get if this package has been downloaded already
@@ -97,5 +100,3 @@ impl PackageIdentifier {
         return theory_dir.is_dir();
     }
 }
-
-// todo get new package typre
