@@ -177,7 +177,7 @@ impl RepoMetadata {
             authors: authors,
             contributors: contributors,
             dependencies,
-            isabelles: HashSet::from([self.repo.name.clone()]),
+            isabelles: HashSet::from([self.repo.get_version().clone()]),
             source: PackageSource { afp: self.repo.id },
             extra: meta.extra.clone(),
         };

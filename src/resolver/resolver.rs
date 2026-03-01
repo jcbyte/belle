@@ -1,5 +1,6 @@
 use anyhow::Context;
 use pubgrub::{Dependencies, DependencyProvider, PackageResolutionStatistics, Ranges, SemanticVersion, resolve};
+use rustc_hash::FxHashMap;
 use std::{cell::RefCell, cmp::Reverse, collections::HashMap};
 
 use crate::{
@@ -9,6 +10,8 @@ use crate::{
 };
 
 type SemVS = Ranges<SemanticVersion>;
+
+static ISABELLE_PACKAGE: &str = "!Isabelle";
 
 pub struct BelleDependencyProvider {
     root_packages: HashMap<String, Option<SemanticVersion>>,
@@ -50,10 +53,10 @@ impl DependencyProvider for BelleDependencyProvider {
         }
 
         let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
-        let versions = if !isabelle_packages.contains(package) {
-            self.get_package_versions(package)?
-        } else {
+        let versions = if package.eq(ISABELLE_PACKAGE) || isabelle_packages.contains(package) {
             self.isabelle_versions.clone()
+        } else {
+            self.get_package_versions(package)?
         };
 
         // Return the highest version of the package that satisfies the range
@@ -73,6 +76,15 @@ impl DependencyProvider for BelleDependencyProvider {
 
         if package.eq(".") {
             return Reverse(0);
+        }
+
+        let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
+        if isabelle_packages.contains(package) {
+            return Reverse(10);
+        }
+
+        if package.eq(ISABELLE_PACKAGE) {
+            return Reverse(10);
         }
 
         // ! fix unsafe behaviour
@@ -111,6 +123,11 @@ impl DependencyProvider for BelleDependencyProvider {
 
         let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
         if isabelle_packages.contains(package) {
+            let isabelle_dep = FxHashMap::from_iter([(String::from(ISABELLE_PACKAGE), SemVS::singleton(version))]);
+            return Ok(Dependencies::Available(isabelle_dep));
+        }
+
+        if package.eq(ISABELLE_PACKAGE) {
             return Ok(Dependencies::Available(HashMap::default()));
         }
 
@@ -123,12 +140,27 @@ impl DependencyProvider for BelleDependencyProvider {
             .get_package_manifest()?
             .with_context(|| format!("Package '{}' does not exist", package))?;
 
-        let deps: HashMap<String, Ranges<SemanticVersion>, rustc_hash::FxBuildHasher> = manifest
+        let isabelle_versions = manifest
+            .isabelles
+            .iter()
+            .fold(SemVS::empty(), |acc, version| acc.union(&SemVS::singleton(version)));
+
+        let mut deps: HashMap<String, SemVS, rustc_hash::FxBuildHasher> = manifest
             .dependencies
             .iter()
             // Use a singleton so ony the exact package will match
-            .map(|(name, version)| (name.clone(), SemVS::singleton(version)))
+            .map(|(name, version)| {
+                // If the dependency is an isabelle package then, we can accept any versions of isabelle that this package accepts
+                if isabelle_packages.contains(name) {
+                    return (name.clone(), isabelle_versions.clone());
+                }
+
+                return (name.clone(), SemVS::singleton(version));
+            })
             .collect();
+
+        // Add isabelle itself as a dependency
+        deps.insert(String::from(ISABELLE_PACKAGE), isabelle_versions);
 
         return Ok(Dependencies::Available(deps));
     }

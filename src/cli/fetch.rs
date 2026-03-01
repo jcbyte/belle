@@ -91,6 +91,7 @@ pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
             .progress_chars("#>-"),
     );
 
+    let mut failed = 0;
     for theory in repo_metadata.all_theories() {
         pb.set_message(format!("Syncing {}", style(&theory).cyan()));
 
@@ -99,7 +100,7 @@ pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
             let mut theory_meta = theory
                 .get_package_meta()?
                 .expect("Package exists, but its metadata could not be found");
-            if theory_meta.isabelles.insert(repo.name.clone()) {
+            if theory_meta.isabelles.insert(repo.get_version().clone()) {
                 // Only re-register if this modified to avoid unnecessary IO
                 theory_meta.register()?;
             }
@@ -110,7 +111,10 @@ pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
             match package_meta {
                 Ok(package) => package.register()?,
                 // If this produces an error then don't crash the entire fetch process
-                Err(e) => pb.println(format!("{}", style(e).red())),
+                Err(e) => {
+                    pb.println(format!("{}", style(e).red()));
+                    failed += 1
+                }
             }
         }
 
@@ -120,7 +124,7 @@ pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
     pb.finish_and_clear();
     println!(
         "Synced {} packages from {} {}{}{}.",
-        style(repo_theories.len()).bold(),
+        style(repo_theories.len() - failed).bold(),
         style(&repo.name).cyan().bold(),
         style("[").dim(),
         style(repo.get_version()).yellow(),

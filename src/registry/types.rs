@@ -39,7 +39,7 @@ pub struct Package {
     pub contributors: Vec<PackageAuthor>,
 
     pub dependencies: HashMap<String, SemanticVersion>,
-    pub isabelles: HashSet<String>,
+    pub isabelles: HashSet<SemanticVersion>,
 
     pub source: PackageSource,
 
@@ -52,7 +52,7 @@ pub struct Manifest {
     pub name: String,
     pub version: SemanticVersion,
     pub dependencies: HashMap<String, SemanticVersion>,
-    pub isabelles: HashSet<String>,
+    pub isabelles: HashSet<SemanticVersion>,
 }
 
 /// Package identifier for lookup and passing
