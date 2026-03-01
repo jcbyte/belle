@@ -6,6 +6,13 @@ use std::{
 use pubgrub::SemanticVersion;
 use serde::{Deserialize, Serialize};
 
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(tag = "_type")]
+pub enum RegisteredPackage {
+    Package(Package),
+    Alias(AliasPackage),
+}
+
 /// Theory author information
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PackageAuthor {
@@ -65,5 +72,34 @@ impl From<&Package> for PackageIdentifier {
 impl fmt::Display for PackageIdentifier {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}@{}", self.name, self.version)
+    }
+}
+
+/// A package which is an alias for another package
+#[derive(Serialize, Deserialize, Debug)]
+pub struct AliasPackage {
+    pub name: String,
+    pub version: SemanticVersion,
+    pub alias: PackageIdentifier,
+}
+
+impl From<&AliasPackage> for PackageIdentifier {
+    fn from(alias: &AliasPackage) -> Self {
+        return Self {
+            name: alias.name.clone(),
+            version: alias.version.clone(),
+        };
+    }
+}
+
+impl From<Package> for RegisteredPackage {
+    fn from(package: Package) -> Self {
+        return Self::Package(package);
+    }
+}
+
+impl From<AliasPackage> for RegisteredPackage {
+    fn from(alias: AliasPackage) -> Self {
+        return Self::Alias(alias);
     }
 }

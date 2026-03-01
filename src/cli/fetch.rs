@@ -4,7 +4,10 @@ use anyhow::Context;
 use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
 
-use crate::fetch::{BelleClient, RepoMetadata};
+use crate::{
+    fetch::{BelleClient, RepoMetadata},
+    registry::{Package, RegistrablePackage},
+};
 
 /// List AFP repositories and print them in a simple table
 pub async fn list_repositories(limit: usize) -> anyhow::Result<()> {
@@ -87,6 +90,8 @@ pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
             .progress_chars("#>-"),
     );
 
+    let mut unresolved_packages: Vec<Package> = Vec::new();
+
     let mut failed = 0;
     for theory in repo_metadata.all_theories() {
         pb.set_message(format!("Syncing {}", style(&theory).cyan()));
@@ -105,7 +110,18 @@ pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
             // Creating metadata will require network, so this could take some time
             let package_meta = repo_metadata.create_package_meta(&theory.name, &client).await;
             match package_meta {
-                Ok(package) => package.register()?,
+                Ok((package, fully_resolved, aliases)) => {
+                    if fully_resolved {
+                        package.register()?;
+                    } else {
+                        // Add the package to be resolved later
+                        unresolved_packages.push(package);
+                    }
+
+                    for alias in aliases {
+                        alias.register()?;
+                    }
+                }
                 // If this produces an error then don't crash the entire fetch process
                 Err(e) => {
                     pb.println(format!("{}", style(e).red()));
@@ -115,6 +131,10 @@ pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
         }
 
         pb.inc(1);
+    }
+
+    for unresolved_package in unresolved_packages {
+        // todo try to resolve
     }
 
     pb.finish_and_clear();

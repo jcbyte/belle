@@ -9,7 +9,7 @@ use crate::config::BelleConfig;
 use crate::fetch::AFPRepo;
 use crate::fetch::client::BelleClient;
 use crate::fetch::metadata::{AuthorMetadata, RepoMetadata, TheoryMetadata, dependency};
-use crate::registry::{Package, PackageAuthor, PackageIdentifier, PackageSource};
+use crate::registry::{AliasPackage, Package, PackageAuthor, PackageIdentifier, PackageSource};
 use crate::util::date_to_version;
 
 impl RepoMetadata {
@@ -85,11 +85,16 @@ impl RepoMetadata {
     }
 
     /// Create package metadata by collecting keys and fetching theory ROOT file for dependencies
-    pub async fn create_package_meta(&self, thy_name: &String, client: &BelleClient) -> anyhow::Result<Package> {
+    pub async fn create_package_meta(
+        &self,
+        thy_name: &String,
+        client: &BelleClient,
+    ) -> anyhow::Result<(Package, bool, Vec<AliasPackage>)> {
         let meta = self
             .theories
             .get(thy_name)
             .ok_or_else(|| anyhow!("Theory '{}' does not exist in the repo metadata", thy_name))?;
+        let version = date_to_version(&meta.date);
 
         // Fetch theories ROOT file from the repo
         let thy_root = client.get_thy_root(&self.repo, thy_name).await?;
@@ -108,29 +113,44 @@ impl RepoMetadata {
             .filter(|dep| !session_names.contains(dep))
             .collect();
 
-        let dependencies = entry_deps
+        let alias_packages: Vec<AliasPackage> = session_names
+            .iter()
+            .filter(|s| !s.eq(&&thy_name))
+            .map(|s| AliasPackage {
+                name: s.to_string(),
+                version: version.clone(),
+                alias: PackageIdentifier {
+                    name: thy_name.to_string(),
+                    version: version.clone(),
+                },
+            })
+            .collect();
+
+        let mut fully_resolved = true;
+        let dependencies: HashMap<String, SemanticVersion> = entry_deps
             .iter()
             .cloned()
             .map(|dependency| {
                 if isabelle_packages.contains(&dependency) {
                     // Isabelle packages will depend on the isabelle version so this version does not matter
-                    return Ok((dependency.to_string(), SemanticVersion::zero()));
+                    return (dependency.to_string(), SemanticVersion::one());
                 }
 
-                // todo need to handle aliases
-                // todo we should add these to a repo cache, then read them from there.
-                // todo if they don't exist there check the main registry
-                // todo this may have to be done at the end?
-                let dep_meta = self.theories.get(dependency).ok_or_else(|| {
-                    anyhow!(
-                        "Theory '{}' depends on '{}' but that does not exist in the repo metadata",
-                        thy_name,
-                        dependency
-                    )
-                })?;
-                return Ok((dependency.to_string(), date_to_version(&dep_meta.date)));
+                let dep_version = match self.theories.get(dependency) {
+                    Some(meta) => date_to_version(&meta.date),
+                    // Mark this version as none, meaning it needs to be further resolved (it may be an unknown alias)
+                    None => {
+                        fully_resolved = false;
+                        SemanticVersion::zero()
+                    }
+                };
+
+                //         "Theory '{}' depends on '{}' but that does not exist in the repo metadata",
+                //         thy_name,
+                //         dependency
+                return (dependency.to_string(), dep_version);
             })
-            .collect::<anyhow::Result<HashMap<String, SemanticVersion>>>()?;
+            .collect();
 
         // Get licence from matching its key
         let licence = self.licences.get(&meta.licence_key).ok_or_else(|| {
@@ -180,7 +200,7 @@ impl RepoMetadata {
         // Return created package with all metadata
         let package = Package {
             name: thy_name.clone(),
-            version: date_to_version(&meta.date),
+            version,
             title: meta.title.clone(),
             date: meta.date,
             r#abstract: meta.r#abstract.clone(),
@@ -195,6 +215,6 @@ impl RepoMetadata {
             extra: meta.extra.clone(),
         };
 
-        return Ok(package);
+        return Ok((package, fully_resolved, alias_packages));
     }
 }

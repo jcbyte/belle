@@ -4,18 +4,21 @@ use anyhow::Context;
 
 use crate::{
     config::BelleConfig,
-    registry::{Package, PackageIdentifier},
+    registry::{AliasPackage, Package, PackageIdentifier, RegisteredPackage},
 };
 
-impl Package {
-    /// Write package metadata and manifest to disk
-    pub fn register(&self) -> anyhow::Result<()> {
-        let identifier = PackageIdentifier::from(self);
+pub trait RegistrablePackage: Into<RegisteredPackage> {
+    fn get_identifier(&self) -> PackageIdentifier;
+
+    fn register(self) -> anyhow::Result<()> {
+        let identifier = self.get_identifier();
+
+        let registerable_package: RegisteredPackage = self.into();
 
         // Write metadata manifest
         let manifest_file = identifier.get_manifest_path();
-        let manifest_toml_string =
-            toml::to_string(self).with_context(|| format!("Could not create {} TOML manifest", identifier))?;
+        let manifest_toml_string = toml::to_string(&registerable_package)
+            .with_context(|| format!("Could not create {} TOML manifest", identifier))?;
         // Recursively create parent directory and parents so that we can write to the file
         if let Some(parent) = manifest_file.parent() {
             fs::create_dir_all(parent)
@@ -25,6 +28,20 @@ impl Package {
             .with_context(|| format!("Could not write {} TOML manifest to disk", identifier))?;
 
         return Ok(());
+    }
+}
+
+impl RegistrablePackage for Package {
+    fn get_identifier(&self) -> PackageIdentifier {
+        // Just call your existing logic here
+        PackageIdentifier::from(self)
+    }
+}
+
+impl RegistrablePackage for AliasPackage {
+    fn get_identifier(&self) -> PackageIdentifier {
+        // Just call your existing logic here
+        PackageIdentifier::from(self)
     }
 }
 
@@ -80,3 +97,5 @@ impl PackageIdentifier {
         return theory_dir.is_dir();
     }
 }
+
+// todo get new package typre
