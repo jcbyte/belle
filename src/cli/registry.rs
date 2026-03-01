@@ -11,9 +11,12 @@ use crate::{
 
 /// Remove all theories from disk
 pub fn clean_theories() -> anyhow::Result<()> {
-    // todo if folder doesn't exist it will fail
-
     let thy_dir = BelleConfig::read_config(|c| c.get_theory_dir());
+    if !thy_dir.is_dir() {
+        println!("No theories found in cache");
+        return Ok(());
+    }
+
     fs::remove_dir_all(thy_dir).context("Failed to remove theory cache")?;
     println!("Cleaned {} theories from cache.", style("all").bold());
 
@@ -25,10 +28,21 @@ pub fn clean_metadata() -> anyhow::Result<()> {
     let meta_dir = BelleConfig::read_config(|c| c.get_meta_dir());
     let manifest_dir = BelleConfig::read_config(|c| c.get_manifest_dir());
 
-    fs::remove_dir_all(meta_dir).context("Failed to remove metadata cache")?;
-    fs::remove_dir_all(manifest_dir).context("Failed to remove manifest cache")?;
+    let mut cleaned = false;
+    if meta_dir.is_dir() {
+        fs::remove_dir_all(meta_dir).context("Failed to remove metadata cache")?;
+        cleaned = true;
+    }
+    if manifest_dir.is_dir() {
+        fs::remove_dir_all(manifest_dir).context("Failed to remove manifest cache")?;
+        cleaned = true;
+    }
 
-    println!("Cleaned metadata for {} theories.", style("all").bold());
+    if cleaned {
+        println!("Cleaned metadata for {} theories.", style("all").bold());
+    } else {
+        println!("No metadata found in cache");
+    }
 
     return Ok(());
 }
