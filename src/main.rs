@@ -1,5 +1,7 @@
-use belle::cli;
-use belle::config::BelleConfig;
+use std::{fs, vec};
+
+use anyhow::Context;
+use belle::{cli, config::BelleConfig};
 use clap::Parser;
 use console::style;
 

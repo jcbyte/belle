@@ -1,52 +1,136 @@
-use anyhow::{Context, anyhow};
-use regex::Regex;
+use anyhow::Context;
 
-#[derive(Debug)]
-pub struct RootFileDependencies {
+#[derive(Debug, Clone)]
+pub struct RootFileSession {
+    pub name: String,
     pub parent: String,
     pub sessions: Vec<String>,
 }
 
-impl RootFileDependencies {
-    // Iterate over parent + external sessions
-    pub fn iter_all(&self) -> impl Iterator<Item = &String> {
-        return std::iter::once(&self.parent).chain(&self.sessions);
+/// Strip nested Isabelle comments "(* ... *)" and formal "\<comment> \<open> ... \<close>" comments
+fn strip_comments(input: &str) -> String {
+    let mut result = String::new();
+    let mut depth = 0;
+    // let mut i = 0;
+    // let bytes = input.as_bytes();
+
+    let mut chars = input.chars().peekable();
+
+    while let Some(c) = chars.next() {}
+
+    let mut i = 0;
+    while i < input.len() {
+        let rest = &input[i..];
+
+        // Check for opening comment
+        if rest.starts_with("(*") {
+            depth += 1;
+            i += 2;
+            continue;
+        } else if rest.starts_with("\\<open>") {
+            depth += 1;
+            i += 7;
+            continue;
+        }
+
+        // Check for closing comment
+        if rest.starts_with("*)") {
+            depth -= 1;
+            i += 2;
+            continue;
+        } else if rest.starts_with("\\<close>") {
+            depth -= 1;
+            i += 8;
+            continue;
+        }
+
+        // Ignore \<comment> tags
+        if rest.starts_with("\\<comment>") {
+            i += 10;
+            continue;
+        }
+
+        if let Some(c) = rest.chars().next() {
+            // Record the character if not currently inside a comment
+            if depth == 0 {
+                result.push(c);
+            }
+
+            // Skip the next character safely
+            i += c.len_utf8();
+        }
     }
+    return result;
 }
 
-/// Extract the parent and any external sessions from an Isabelle/HOL ROOT file using static analysis
-pub fn extract_root_deps(content: &str) -> anyhow::Result<RootFileDependencies> {
-    // Match and capture the parent session (after '=') if it is quoted or unquoted
-    let parent_re = Regex::new(
-        r#"(?x)
-        session\s+.*?\s*=\s* # Skip past the 'session [name] =' 
-        (?:"(?P<q>[^"]+)"|(?P<u>[\w\-]+)) # Capture quoted or unquoted parent
-    "#,
-    )
-    .context("Failed to create parent Regex pattern")?;
+/// Parse an identifier: either quoted string or unquoted alphanumeric
+fn parse_identifier(input: &str) -> Option<(&str, &str)> {
+    let input = input.trim_start();
 
-    let parent_captures = parent_re
-        .captures(content)
-        .ok_or_else(|| anyhow!("Missing 'session' definition."))?;
-    let parent = parent_captures
-        .name("q")
-        .or(parent_captures.name("u"))
-        .map(|s| s.as_str().to_string())
-        .ok_or_else(|| anyhow!("Failed to capture parent"))?;
-
-    // Find the block starting with 'sessions' until the next block keyword or end of string.
-    let sessions_block_re =
-        Regex::new(r#"(?s)\bsessions\b\s*(.*?)(?:\btheories\b|\bdocument_files\b|\bdirectories\b|\boptions\b|$)"#)
-            .context("Failed to create session block Regex patten")?;
-
-    let mut sessions = Vec::new();
-    if let Some(block) = sessions_block_re.captures(content) {
-        // Extract quoted names within the sessions block, the external sessions
-        let quote_re = Regex::new(r#""([^"]+)""#).context("Failed to create session regex pattern")?;
-        for capture in quote_re.captures_iter(&block[1]) {
-            sessions.push(capture[1].to_string());
+    if input.starts_with('"') {
+        // Parse quoted identifier
+        if let Some(end_quote) = input[1..].find('"') {
+            let id = &input[1..end_quote + 1];
+            let rest = &input[end_quote + 2..];
+            return Some((id, rest));
+        }
+    } else {
+        // Parse unquoted identifier (alphanumeric+-._)
+        let mut end = 0;
+        for ch in input.chars() {
+            match ch {
+                'a'..='z' | 'A'..='Z' | '0'..='9' | '_' | '-' | '.' | '+' => {
+                    end += ch.len_utf8();
+                }
+                _ => break,
+            }
+        }
+        if end > 0 {
+            return Some((&input[..end], &input[end..]));
         }
     }
 
-    return Ok(RootFileDependencies { parent, sessions });
+    return None;
+}
+
+pub fn parse_root(root: &str) -> anyhow::Result<Vec<RootFileSession>> {
+    let mut sessions: Vec<RootFileSession> = Vec::new();
+
+    // Skip the first block as this will be preamble
+    let session_blocks = root.split("session ").skip(1);
+    for session_block in session_blocks {
+        // The name is th first thing after the session
+        let (name, rest) = parse_identifier(session_block).context("The session name could not be parsed")?;
+
+        // This skips any notes after the name
+        let (_, rest) = rest
+            .split_once("=")
+            .context("The session header could not be skipped during parsing")?;
+
+        // The parent session is given after the "="
+        let (parent, rest) = parse_identifier(rest).context("The session parent could not be parsed")?;
+
+        let mut dependencies: Vec<String> = Vec::new();
+        // Skip any details and go to where sessions are defined (if any)
+        if let Some((_, session_rest)) = rest.split_once("sessions") {
+            let mut rest = session_rest;
+
+            while let Some((dep, next_rest)) = parse_identifier(rest) {
+                if matches!(dep, "theories" | "document_files" | "directories" | "options") {
+                    break;
+                }
+
+                dependencies.push(dep.to_string());
+                rest = next_rest;
+            }
+        };
+
+        sessions.push(RootFileSession {
+            name: name.to_string(),
+            parent: parent.to_string(),
+            sessions: dependencies,
+        });
+    }
+
+    return Ok(sessions);
 }

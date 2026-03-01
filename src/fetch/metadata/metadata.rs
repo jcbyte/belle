@@ -97,7 +97,7 @@ impl RepoMetadata {
         let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
 
         // Extract the dependency list
-        let deps = dependency::extract_root_deps(&thy_root)?;
+        let deps = dependency::extract_root_deps(&thy_root)?; // todo handle this newly
         // All dependencies will require the same version that this theory file is part of
         let dependencies = deps
             .iter_all()
