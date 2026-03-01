@@ -1,6 +1,3 @@
-use std::{fs, vec};
-
-use anyhow::Context;
 use belle::{cli, config::BelleConfig};
 use clap::Parser;
 use console::style;
@@ -22,7 +19,6 @@ async fn main() {
     }
 }
 
-// todo no need for separate manifest and meta files
 // todo fetch theories
 // todo create ROOTS files
 // todo integrate with isabelle

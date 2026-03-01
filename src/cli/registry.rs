@@ -25,24 +25,15 @@ pub fn clean_theories() -> anyhow::Result<()> {
 
 /// Remove all metadata from disk
 pub fn clean_metadata() -> anyhow::Result<()> {
-    let meta_dir = BelleConfig::read_config(|c| c.get_meta_dir());
     let manifest_dir = BelleConfig::read_config(|c| c.get_manifest_dir());
 
-    let mut cleaned = false;
-    if meta_dir.is_dir() {
-        fs::remove_dir_all(meta_dir).context("Failed to remove metadata cache")?;
-        cleaned = true;
-    }
-    if manifest_dir.is_dir() {
-        fs::remove_dir_all(manifest_dir).context("Failed to remove manifest cache")?;
-        cleaned = true;
+    if !manifest_dir.is_dir() {
+        println!("No metadata found in cache");
+        return Ok(());
     }
 
-    if cleaned {
-        println!("Cleaned metadata for {} theories.", style("all").bold());
-    } else {
-        println!("No metadata found in cache");
-    }
+    fs::remove_dir_all(manifest_dir).context("Failed to remove manifest cache")?;
+    println!("Cleaned metadata for {} theories.", style("all").bold());
 
     return Ok(());
 }
@@ -147,7 +138,7 @@ pub fn print_package_meta(name: String, version: Option<SemanticVersion>) -> any
         }
     };
 
-    let package_meta = package.get_package_meta()?;
+    let package_meta = package.get_package_manifest()?;
     match package_meta {
         Some(meta) => {
             print_meta(&meta);

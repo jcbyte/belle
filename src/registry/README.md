@@ -2,13 +2,7 @@ All package data is stored under the `$dir_root` path defined in your `belle_con
 
 ```
 $dir_root/
-├── meta/           <-- Full package details
+├── meta/
 │   └── {name}/
 │       └── {version}.toml
-└── manifest/       <-- Subset for resolution
-    └── {name}/
-        └── {version}.toml
 ```
-
-- **Metadata:** The "Source of Truth." Contains every detail about the package.
-- **Manifests:** Subset of metadata. It contains only the specific fields required for package resolution.

@@ -4,11 +4,7 @@ use anyhow::Context;
 use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
 
-use crate::{
-    cli::package,
-    fetch::{BelleClient, RepoMetadata},
-    registry::PackageIdentifier,
-};
+use crate::fetch::{BelleClient, RepoMetadata};
 
 /// List AFP repositories and print them in a simple table
 pub async fn list_repositories(limit: usize) -> anyhow::Result<()> {
@@ -98,8 +94,8 @@ pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
         if theory.package_exists() {
             // If the package already exists, we must ensure that we have this isabelle version listed
             let mut theory_meta = theory
-                .get_package_meta()?
-                .expect("Package exists, but its metadata could not be found");
+                .get_package_manifest()?
+                .expect("Package exists, but its manifest could not be found");
             if theory_meta.isabelles.insert(repo.get_version().clone()) {
                 // Only re-register if this modified to avoid unnecessary IO
                 theory_meta.register()?;

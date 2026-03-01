@@ -1,6 +1,4 @@
-use std::path::PathBuf;
-
-use clap::{ArgGroup, Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 use pubgrub::SemanticVersion;
 
 #[derive(Parser)]

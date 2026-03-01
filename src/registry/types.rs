@@ -46,15 +46,6 @@ pub struct Package {
     pub extra: toml::Table,
 }
 
-/// Subset of `Package` for quick dependency resolution
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Manifest {
-    pub name: String,
-    pub version: SemanticVersion,
-    pub dependencies: HashMap<String, SemanticVersion>,
-    pub isabelles: HashSet<SemanticVersion>,
-}
-
 /// Package identifier for lookup and passing
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct PackageIdentifier {
@@ -62,31 +53,11 @@ pub struct PackageIdentifier {
     pub version: SemanticVersion,
 }
 
-impl From<&Package> for Manifest {
-    fn from(package: &Package) -> Self {
-        return Self {
-            name: package.name.clone(),
-            version: package.version.clone(),
-            dependencies: package.dependencies.clone(),
-            isabelles: package.isabelles.clone(),
-        };
-    }
-}
-
 impl From<&Package> for PackageIdentifier {
     fn from(package: &Package) -> Self {
         return Self {
             name: package.name.clone(),
             version: package.version.clone(),
-        };
-    }
-}
-
-impl From<&Manifest> for PackageIdentifier {
-    fn from(manifest: &Manifest) -> Self {
-        return Self {
-            name: manifest.name.clone(),
-            version: manifest.version.clone(),
         };
     }
 }

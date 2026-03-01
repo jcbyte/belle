@@ -1,8 +1,5 @@
 use std::collections::HashMap;
 
-use pubgrub::SemanticVersion;
-use toml::value::Date;
-
 use crate::{fetch::AFPRepo, registry::PackageAuthor};
 
 /// Interpretation of AFP Author metadata
