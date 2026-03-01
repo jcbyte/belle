@@ -5,6 +5,7 @@ use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
 
 use crate::{
+    cli::package,
     fetch::{BelleClient, RepoMetadata},
     registry::PackageIdentifier,
 };
@@ -105,8 +106,12 @@ pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
         } else {
             // Create the package metadata and register it
             // Creating metadata will require network, so this could take some time
-            let package = repo_metadata.create_package_meta(&theory.name, &client).await?;
-            package.register()?;
+            let package_meta = repo_metadata.create_package_meta(&theory.name, &client).await;
+            match package_meta {
+                Ok(package) => package.register()?,
+                // If this produces an error then don't crash the entire fetch process
+                Err(e) => pb.println(format!("{}", style(e).red())),
+            }
         }
 
         pb.inc(1);

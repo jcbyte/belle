@@ -82,7 +82,6 @@ pub enum CacheAction {
 }
 
 #[derive(Args)]
-#[command(group(ArgGroup::new("selection").required(true).args(["version", "all"])))]
 pub struct CacheCleanArgs {
     /// Also remove package/theory metadata (requires a 'repo update' to restore)
     #[arg(short, long)]
