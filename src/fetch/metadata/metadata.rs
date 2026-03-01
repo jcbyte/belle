@@ -8,6 +8,7 @@ use zip::ZipArchive;
 use crate::config::BelleConfig;
 use crate::fetch::AFPRepo;
 use crate::fetch::client::BelleClient;
+use crate::fetch::metadata::dependency::RootFileSession;
 use crate::fetch::metadata::{AuthorMetadata, RepoMetadata, TheoryMetadata, dependency};
 use crate::registry::{Package, PackageAuthor, PackageIdentifier, PackageSource};
 use crate::util::date_to_version;
@@ -96,26 +97,39 @@ impl RepoMetadata {
 
         let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
 
-        // Extract the dependency list
-        let deps = dependency::extract_root_deps(&thy_root)?; // todo handle this newly
-        // All dependencies will require the same version that this theory file is part of
-        let dependencies = deps
-            .iter_all()
+        // Extract sessions from the root file
+        let sessions = dependency::parse_root(&thy_root)?;
+
+        let session_names: Vec<&String> = sessions.iter().map(|s| &s.name).collect();
+        let entry_deps: HashSet<&String> = sessions
+            .iter()
+            // Collect dependencies from all sessions
+            .flat_map(|s| s.iter_all())
+            // Remove sessions that are defined in this entry, as to not produce circular dependencies
+            .filter(|dep| !session_names.contains(dep))
+            .collect();
+
+        let dependencies = entry_deps
+            .iter()
             .cloned()
             .map(|dependency| {
                 if isabelle_packages.contains(&dependency) {
                     // Isabelle packages will depend on the isabelle version so this version does not matter
-                    return Ok((dependency, SemanticVersion::zero()));
+                    return Ok((dependency.to_string(), SemanticVersion::zero()));
                 }
 
-                let dep_meta = self.theories.get(&dependency).ok_or_else(|| {
+                // todo need to handle aliases
+                // todo we should add these to a repo cache, then read them from there.
+                // todo if they don't exist there check the main registry
+                // todo this may have to be done at the end?
+                let dep_meta = self.theories.get(dependency).ok_or_else(|| {
                     anyhow!(
                         "Theory '{}' depends on '{}' but that does not exist in the repo metadata",
                         thy_name,
                         dependency
                     )
                 })?;
-                return Ok((dependency, date_to_version(&dep_meta.date)));
+                return Ok((dependency.to_string(), date_to_version(&dep_meta.date)));
             })
             .collect::<anyhow::Result<HashMap<String, SemanticVersion>>>()?;
 
@@ -164,7 +178,7 @@ impl RepoMetadata {
             })
             .collect::<anyhow::Result<Vec<_>>>()?;
 
-        // Return created package will all metadata
+        // Return created package with all metadata
         let package = Package {
             name: thy_name.clone(),
             version: date_to_version(&meta.date),

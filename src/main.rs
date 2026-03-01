@@ -22,6 +22,7 @@ async fn main() {
     }
 }
 
+// todo no need for separate manifest and meta files
 // todo fetch theories
 // todo create ROOTS files
 // todo integrate with isabelle

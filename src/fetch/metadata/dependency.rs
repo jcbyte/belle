@@ -1,3 +1,5 @@
+use std::iter;
+
 use anyhow::Context;
 
 #[derive(Debug, Clone)]
@@ -7,16 +9,16 @@ pub struct RootFileSession {
     pub sessions: Vec<String>,
 }
 
+impl RootFileSession {
+    pub fn iter_all(&self) -> impl Iterator<Item = &String> {
+        return iter::once(&self.parent).chain(self.sessions.iter());
+    }
+}
+
 /// Strip nested Isabelle comments "(* ... *)" and formal "\<comment> \<open> ... \<close>" comments
 fn strip_comments(input: &str) -> String {
     let mut result = String::new();
     let mut depth = 0;
-    // let mut i = 0;
-    // let bytes = input.as_bytes();
-
-    let mut chars = input.chars().peekable();
-
-    while let Some(c) = chars.next() {}
 
     let mut i = 0;
     while i < input.len() {
@@ -94,10 +96,11 @@ fn parse_identifier(input: &str) -> Option<(&str, &str)> {
 }
 
 pub fn parse_root(root: &str) -> anyhow::Result<Vec<RootFileSession>> {
+    let clean_root = strip_comments(root);
     let mut sessions: Vec<RootFileSession> = Vec::new();
 
     // Skip the first block as this will be preamble
-    let session_blocks = root.split("session ").skip(1);
+    let session_blocks = clean_root.split("session ").skip(1);
     for session_block in session_blocks {
         // The name is th first thing after the session
         let (name, rest) = parse_identifier(session_block).context("The session name could not be parsed")?;
