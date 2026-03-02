@@ -243,9 +243,6 @@ impl RepoMetadata {
                     } else {
                         // Go though each version in case there are multiple connected to different packages
                         for package in get_package_versions(&dep_name)? {
-                            package
-                                .get_package_manifest()?
-                                .expect("Package version listed, but did not find");
                             // If the alias points to a package in the repo then this is the correct package
                             if let Some(meta) = self.theories.get(&package.name) {
                                 found_meta = Some(meta);

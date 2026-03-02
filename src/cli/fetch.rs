@@ -99,7 +99,7 @@ pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
         if theory.package_exists() {
             // If the package already exists, we must ensure that we have this isabelle version listed
             let mut theory_meta = theory
-                .get_package_manifest()?
+                .get_resolved_package_manifest()?
                 .expect("Package exists, but its manifest could not be found");
             if theory_meta.isabelles.insert(repo.get_version().clone()) {
                 // Only re-register if this modified to avoid unnecessary IO

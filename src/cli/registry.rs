@@ -6,7 +6,7 @@ use pubgrub::SemanticVersion;
 
 use crate::{
     config::BelleConfig,
-    registry::{self, Package, PackageIdentifier},
+    registry::{self, AliasPackage, Package, PackageIdentifier, RegisteredPackage},
 };
 
 /// Remove all theories from disk
@@ -68,9 +68,7 @@ pub fn list_versions(name: String) -> anyhow::Result<()> {
 }
 
 /// Prints nicely formatted metadata for a package to the console
-fn print_meta(meta: &Package) {
-    println!();
-
+fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
     let header = format!(
         "{} {} {}{}{}",
         style(&meta.name).cyan().bold(),
@@ -80,6 +78,18 @@ fn print_meta(meta: &Package) {
         style("]").dim()
     );
     println!("{}", header);
+
+    if let Some(alias) = alias {
+        println!(
+            "{} {}{}{} {}",
+            style(&alias.name).cyan().dim(),
+            style("[").dim(),
+            style(alias.version).green().dim(),
+            style("]").dim(),
+            style("[Alias]").dim(),
+        )
+    }
+
     println!("{}", style("─".repeat(console::measure_text_width(&header))).dim());
 
     println!("{}", style(&meta.r#abstract).italic());
@@ -139,12 +149,22 @@ pub fn print_package_meta(name: String, version: Option<SemanticVersion>) -> any
     };
 
     let package_meta = package.get_package_manifest()?;
+
     match package_meta {
-        Some(meta) => {
-            print_meta(&meta);
-        }
+        Some(meta) => match meta {
+            RegisteredPackage::Package(meta) => print_meta(&meta, None),
+            RegisteredPackage::Alias(alias) => {
+                let resolved_package = alias
+                    .alias
+                    .get_resolved_package_manifest()?
+                    .expect(format!("Resolved alias '{}' cannot be found", alias.name).as_str());
+                print_meta(&resolved_package, Some(&alias));
+            }
+        },
         None => anyhow::bail!("Package '{}' does not exist", package),
     };
 
     return Ok(());
 }
+
+// todo add isabelle versions to listing and colour dependencies correctly

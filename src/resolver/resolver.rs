@@ -1,11 +1,11 @@
 use anyhow::Context;
 use pubgrub::{Dependencies, DependencyProvider, PackageResolutionStatistics, Ranges, SemanticVersion, resolve};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxBuildHasher, FxHashMap};
 use std::{cell::RefCell, cmp::Reverse, collections::HashMap};
 
 use crate::{
     config::BelleConfig,
-    registry::{PackageIdentifier, get_package_versions},
+    registry::{PackageIdentifier, RegisteredPackage, get_package_versions},
     resolver::SolverError,
 };
 
@@ -140,27 +140,35 @@ impl DependencyProvider for BelleDependencyProvider {
             .get_package_manifest()?
             .with_context(|| format!("Package '{}' does not exist", package))?;
 
-        let isabelle_versions = manifest
-            .isabelles
-            .iter()
-            .fold(SemVS::empty(), |acc, version| acc.union(&SemVS::singleton(version)));
+        let mut deps: HashMap<String, SemVS, rustc_hash::FxBuildHasher> =
+            HashMap::with_hasher(FxBuildHasher::default());
 
-        let mut deps: HashMap<String, SemVS, rustc_hash::FxBuildHasher> = manifest
-            .dependencies
-            .iter()
-            // Use a singleton so ony the exact package will match
-            .map(|(name, version)| {
-                // If the dependency is an isabelle package then, we can accept any versions of isabelle that this package accepts
-                if isabelle_packages.contains(name) {
-                    return (name.clone(), isabelle_versions.clone());
+        match manifest {
+            RegisteredPackage::Alias(alias) => {
+                // If this package is an alias then just add its aliases package as a version
+                deps.insert(alias.alias.name, SemVS::singleton(alias.alias.version));
+            }
+            RegisteredPackage::Package(manifest) => {
+                let isabelle_versions = manifest
+                    .isabelles
+                    .iter()
+                    .fold(SemVS::empty(), |acc, version| acc.union(&SemVS::singleton(version)));
+
+                for (name, version) in manifest.dependencies {
+                    // If the dependency is an isabelle package then, we can accept any versions of isabelle that this package accepts
+                    if isabelle_packages.contains(&name) {
+                        deps.insert(name, isabelle_versions.clone());
+                        continue;
+                    }
+
+                    // Use a singleton so ony the exact package will match
+                    deps.insert(name, SemVS::singleton(version));
                 }
 
-                return (name.clone(), SemVS::singleton(version));
-            })
-            .collect();
-
-        // Add isabelle itself as a dependency
-        deps.insert(String::from(ISABELLE_PACKAGE), isabelle_versions);
+                // Add isabelle itself as a dependency
+                deps.insert(String::from(ISABELLE_PACKAGE), isabelle_versions);
+            }
+        }
 
         return Ok(Dependencies::Available(deps));
     }

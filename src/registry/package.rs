@@ -73,9 +73,9 @@ impl PackageIdentifier {
         return manifest_file.is_file();
     }
 
-    /// Retrieve a packages manifest data
+    /// Retrieve a packages manifest data, it may return an alias or the value (to automatically resolve this use `get_resolved_package_manifest`)
     /// Will be `None` if the package does not exist in our metadata store
-    pub fn get_package_manifest(&self) -> anyhow::Result<Option<Package>> {
+    pub fn get_package_manifest(&self) -> anyhow::Result<Option<RegisteredPackage>> {
         let manifest_file = self.get_manifest_path();
 
         // If the manifest file does not exist then it is not in our store
@@ -88,13 +88,22 @@ impl PackageIdentifier {
         let package: RegisteredPackage = toml::from_str(&manifest_toml_string)
             .with_context(|| format!("Failed to parse TOML for {} manifest file", self))?;
 
-        return match package {
-            RegisteredPackage::Package(package) => Ok(Some(package)),
-            RegisteredPackage::Alias(alias) => {
-                println!("getting {} for {}", alias.alias, alias.name);
-                alias.alias.get_package_manifest()
-            } // todo should i indicate that we've got an alias
-        };
+        return Ok(Some(package));
+    }
+
+    /// Retrieve a packages manifest resolving all aliases data
+    /// Will be `None` if the package does not exist in our metadata store
+    pub fn get_resolved_package_manifest(&self) -> anyhow::Result<Option<Package>> {
+        let package = self.get_package_manifest()?;
+
+        if let Some(registered_package) = package {
+            return match registered_package {
+                RegisteredPackage::Package(package) => Ok(Some(package)),
+                RegisteredPackage::Alias(alias) => alias.alias.get_resolved_package_manifest(),
+            };
+        }
+
+        return Ok(None);
     }
 
     /// Get if this package has been downloaded already
