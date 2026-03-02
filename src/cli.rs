@@ -1,9 +1,8 @@
 use crate::cli::{
     self,
-    schema::{CacheAction, Commands, ConfigAction, EnvAction, RepoAction},
+    schema::{CacheAction, Commands, EnvAction, RepoAction},
 };
 
-mod config;
 mod environment;
 mod fetch;
 mod package;
@@ -40,17 +39,6 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
                 cli::registry::print_package_meta(args.name, args.version)?;
             }
         }
-        Commands::Config(action) => match action {
-            ConfigAction::List => {
-                cli::config::print_all_config();
-            }
-            ConfigAction::Get(args) => {
-                cli::config::print_config(&args.key)?;
-            }
-            ConfigAction::Set(args) => {
-                cli::config::set_config(&args.key, &args.value)?;
-            }
-        },
         Commands::Switch(args) | Commands::Env(EnvAction::Switch(args)) => {
             environment::switch_env(args.name)?;
         }

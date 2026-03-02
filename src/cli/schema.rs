@@ -22,10 +22,6 @@ pub enum Commands {
     /// Display detailed information for a specific package/theory
     Inspect(InspectArgs),
 
-    /// View or modify application configuration
-    #[command(subcommand)]
-    Config(ConfigAction),
-
     /// Manage isolated environments
     #[command(subcommand)]
     Env(EnvAction),
@@ -98,33 +94,6 @@ pub struct InspectArgs {
     /// List all available versions for this package instead
     #[arg(short, long)]
     pub versions: bool,
-}
-
-#[derive(Subcommand)]
-pub enum ConfigAction {
-    /// List all configuration parameters and their current values
-    List,
-
-    /// View the value of a specific configuration parameter
-    Get(ConfigGetArgs),
-
-    /// Assign a new value to a configuration parameter
-    Set(ConfigSetArgs),
-}
-
-#[derive(Args)]
-pub struct ConfigGetArgs {
-    /// The name of configuration parameter to view
-    pub key: String,
-}
-
-#[derive(Args)]
-pub struct ConfigSetArgs {
-    /// The name of configuration parameter to update
-    pub key: String,
-
-    /// The new value for the configuration parameter
-    pub value: String,
 }
 
 #[derive(Subcommand)]
