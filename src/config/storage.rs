@@ -33,10 +33,14 @@ impl BelleConfig {
             ConfigData::default()
         };
 
-        return Ok(BelleConfig {
+        let config = BelleConfig {
             data: parsed_config,
             config_file,
-        });
+        };
+        // Save the config back to disk to place defaults on disk
+        config.save()?;
+
+        return Ok(config);
     }
 
     /// Save config back to disk
@@ -70,5 +74,3 @@ impl BelleConfig {
         return res;
     }
 }
-
-// todo can i write back to file with correct config
