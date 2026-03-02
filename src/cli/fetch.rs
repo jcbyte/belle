@@ -116,8 +116,16 @@ pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
                         package.register()?;
                     } else {
                         // Add the package to be resolved later
-                        unresolved_packages.push(package);
+                        pb.println(format!(
+                            "{}",
+                            style(format!(
+                                "Deferred resolving {} due to unseen dependencies",
+                                &package.name
+                            ))
+                            .dim()
+                        ));
                         pb.inc_length(1);
+                        unresolved_packages.push(package);
                     }
 
                     for alias in aliases {

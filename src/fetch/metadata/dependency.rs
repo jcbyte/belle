@@ -113,9 +113,22 @@ pub fn parse_root(root: &str) -> anyhow::Result<Vec<RootFileSession>> {
         // The parent session is given after the "="
         let (parent, rest) = parse_identifier(rest).context("The session parent could not be parsed")?;
 
+        // Remove the description part of the session in case it contains "sessions"
+        let rests: Vec<&str> = rest.split("description").collect();
+        let session_body_rest = if let Some(after_desc) = rests.get(1) {
+            let (_description, removed_desc_rest) = parse_identifier(*after_desc)
+                .context("The session provides a description but it could not be parsed")?;
+            let mut parts = rests.into_iter();
+            let first = parts.next().unwrap_or("");
+            let _second = parts.next();
+            format!("{}{}{}", first, removed_desc_rest, parts.collect::<String>())
+        } else {
+            rest.to_string()
+        };
+
         let mut dependencies: Vec<String> = Vec::new();
         // Skip any details and go to where sessions are defined (if any)
-        if let Some((_, session_rest)) = rest.split_once("sessions") {
+        if let Some((_, session_rest)) = session_body_rest.split_once("sessions") {
             let mut rest = session_rest;
 
             while let Some((dep, next_rest)) = parse_identifier(rest) {
