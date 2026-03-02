@@ -1,8 +1,9 @@
-use std::time::Duration;
+use std::{fmt::format, time::Duration};
 
 use anyhow::Context;
 use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
+use nom::combinator::fail;
 
 use crate::{
     fetch::{BelleClient, RepoMetadata},
@@ -71,7 +72,7 @@ pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
     ));
 
     // Get the metadata from the repo, and then create our metadata struct from this
-    let repo_metadata = RepoMetadata::get(&repo, &client).await?;
+    let mut repo_metadata = RepoMetadata::get(&repo, &client).await?;
     let repo_theories = repo_metadata.all_theories();
 
     pb.finish_with_message(format!(
@@ -116,6 +117,7 @@ pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
                     } else {
                         // Add the package to be resolved later
                         unresolved_packages.push(package);
+                        pb.inc_length(1);
                     }
 
                     for alias in aliases {
@@ -133,18 +135,37 @@ pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
         pb.inc(1);
     }
 
-    for unresolved_package in unresolved_packages {
-        // todo try to resolve
+    for mut unresolved_package in unresolved_packages {
+        pb.set_message(format!(
+            "Resolving dependencies for {}",
+            style(&unresolved_package.name).cyan()
+        ));
+
+        match repo_metadata.resolve_package_meta(&mut unresolved_package) {
+            Ok(_) => {}
+            Err(e) => {
+                pb.println(format!("{}", style(e).red()));
+                failed += 1
+            }
+        };
+
+        unresolved_package.register()?;
     }
 
     pb.finish_and_clear();
     println!(
-        "Synced {} packages from {} {}{}{}.",
+        "Synced {} packages from {} {}{}{}. {}",
         style(repo_theories.len() - failed).bold(),
         style(&repo.name).cyan().bold(),
         style("[").dim(),
         style(repo.get_version()).yellow(),
         style("]").dim(),
+        style(if failed > 0 {
+            format!("({} failed)", failed)
+        } else {
+            String::new()
+        })
+        .red()
     );
 
     return Ok(());

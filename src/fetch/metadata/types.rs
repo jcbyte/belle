@@ -32,6 +32,8 @@ pub struct RepoMetadata {
     pub authors: HashMap<String, AuthorMetadata>,
     pub licences: HashMap<String, String>,
     pub theories: HashMap<String, TheoryMetadata>,
+
+    pub seen_aliases: HashMap<String, String>,
 }
 
 impl From<AuthorMetadata> for PackageAuthor {

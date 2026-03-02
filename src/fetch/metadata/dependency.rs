@@ -100,7 +100,7 @@ pub fn parse_root(root: &str) -> anyhow::Result<Vec<RootFileSession>> {
     let mut sessions: Vec<RootFileSession> = Vec::new();
 
     // Skip the first block as this will be preamble
-    let session_blocks = clean_root.split("session ").skip(1);
+    let session_blocks = clean_root.split("\nsession ").skip(1);
     for session_block in session_blocks {
         // The name is th first thing after the session
         let (name, rest) = parse_identifier(session_block).context("The session name could not be parsed")?;

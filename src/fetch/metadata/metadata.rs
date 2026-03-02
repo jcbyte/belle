@@ -1,4 +1,5 @@
 use anyhow::{Context, anyhow};
+use nom::combinator::Opt;
 use pubgrub::SemanticVersion;
 use std::collections::HashSet;
 use std::io::Read;
@@ -9,7 +10,7 @@ use crate::config::BelleConfig;
 use crate::fetch::AFPRepo;
 use crate::fetch::client::BelleClient;
 use crate::fetch::metadata::{AuthorMetadata, RepoMetadata, TheoryMetadata, dependency};
-use crate::registry::{AliasPackage, Package, PackageAuthor, PackageIdentifier, PackageSource};
+use crate::registry::{AliasPackage, Package, PackageAuthor, PackageIdentifier, PackageSource, get_package_versions};
 use crate::util::date_to_version;
 
 impl RepoMetadata {
@@ -69,6 +70,7 @@ impl RepoMetadata {
             authors,
             licences,
             theories,
+            seen_aliases: HashMap::new(),
         });
     }
 
@@ -86,7 +88,7 @@ impl RepoMetadata {
 
     /// Create package metadata by collecting keys and fetching theory ROOT file for dependencies
     pub async fn create_package_meta(
-        &self,
+        &mut self,
         thy_name: &String,
         client: &BelleClient,
     ) -> anyhow::Result<(Package, bool, Vec<AliasPackage>)> {
@@ -126,6 +128,11 @@ impl RepoMetadata {
             })
             .collect();
 
+        for alias in &alias_packages {
+            // todo should this whole thing really be mutable?
+            self.seen_aliases.insert(alias.name.clone(), thy_name.clone());
+        }
+
         let mut fully_resolved = true;
         let dependencies: HashMap<String, SemanticVersion> = entry_deps
             .iter()
@@ -145,9 +152,6 @@ impl RepoMetadata {
                     }
                 };
 
-                //         "Theory '{}' depends on '{}' but that does not exist in the repo metadata",
-                //         thy_name,
-                //         dependency
                 return (dependency.to_string(), dep_version);
             })
             .collect();
@@ -216,5 +220,53 @@ impl RepoMetadata {
         };
 
         return Ok((package, fully_resolved, alias_packages));
+    }
+
+    pub fn resolve_package_meta(&self, package: &mut Package) -> anyhow::Result<()> {
+        let deps = package
+            .dependencies
+            .iter()
+            .map(|(dep_name, dep_version)| {
+                // If the version is zero then this dependency hasn't been resolved properly, try it now
+                let version = if dep_version.eq(&SemanticVersion::zero()) {
+                    let mut found_meta = None;
+
+                    // Use seen aliases first, to try and resolve
+                    if let Some(package_name) = self.seen_aliases.get(dep_name) {
+                        let meta = self.theories.get(package_name).expect("A seen alias was set, but did not find");
+                        found_meta = Some(meta)
+                    // If there was no seen alias check the registry for the alias
+                    } else {
+                        // Go though each version in case there are multiple connected to different packages
+                        for package in get_package_versions(&dep_name)? {
+                            package
+                                .get_package_manifest()?
+                                .expect("Package version listed, but did not find");
+                            // If the alias points to a package in the repo then this is the correct package
+                            if let Some(meta) = self.theories.get(&package.name) {
+                                found_meta = Some(meta);
+                                break;
+                            }
+                        }
+                    }
+
+                    match found_meta {
+                        // Use the version of the original package, as the alias points to the same version number
+                        Some(meta) => Ok(date_to_version(&meta.date)),
+                        None => Err(anyhow!(
+                            "Package '{}' depends on '{}' but that does not seem to exist",
+                            &package.name,
+                            &dep_name
+                        )),
+                    }
+                } else {
+                    Ok(dep_version.clone())
+                };
+                Ok((dep_name.clone(), version?))
+            })
+            .collect::<anyhow::Result<HashMap<String, SemanticVersion>>>()?;
+
+        package.dependencies = deps;
+        return Ok(());
     }
 }

@@ -90,7 +90,10 @@ impl PackageIdentifier {
 
         return match package {
             RegisteredPackage::Package(package) => Ok(Some(package)),
-            RegisteredPackage::Alias(alias) => PackageIdentifier::from(&alias).get_package_manifest(),
+            RegisteredPackage::Alias(alias) => {
+                println!("getting {} for {}", alias.alias, alias.name);
+                alias.alias.get_package_manifest()
+            } // todo should i indicate that we've got an alias
         };
     }
 
