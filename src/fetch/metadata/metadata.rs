@@ -115,9 +115,9 @@ impl RepoMetadata {
             .filter(|dep| !session_names.contains(dep))
             .collect();
 
-        let alias_packages: Vec<AliasPackage> = session_names
+        let provides_packages: Vec<String> = session_names.into_iter().filter(|s| !s.eq(&thy_name)).cloned().collect();
+        let alias_packages: Vec<AliasPackage> = provides_packages
             .iter()
-            .filter(|s| !s.eq(&&thy_name))
             .map(|s| AliasPackage {
                 name: s.to_string(),
                 version: version.clone(),
@@ -214,6 +214,7 @@ impl RepoMetadata {
             note: meta.note.clone(),
             authors: authors,
             contributors: contributors,
+            provides: provides_packages,
             dependencies,
             isabelles: HashSet::from([self.repo.get_version().clone()]),
             source: PackageSource { afp: self.repo.id },

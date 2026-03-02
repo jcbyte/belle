@@ -45,6 +45,7 @@ pub struct Package {
     pub authors: Vec<PackageAuthor>,
     pub contributors: Vec<PackageAuthor>,
 
+    pub provides: Vec<String>,
     pub dependencies: HashMap<String, SemanticVersion>,
     pub isabelles: HashSet<SemanticVersion>,
 

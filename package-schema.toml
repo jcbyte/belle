@@ -32,6 +32,10 @@ name = "The White Rabbit"
 "core-logic" = "2026.1.0"
 "standard-lib" = "2025.2.0"
 
+# Other packages that this Isabelle component provides
+# For when the ROOT file defines multiple sessions
+provides = ["another-package", "another-package-2"]
+
 # List compatible isabelle versions
 isabelles = ["2025-1", "2025"]
 
