@@ -1,9 +1,8 @@
-use std::{fmt::format, time::Duration};
+use std::time::Duration;
 
 use anyhow::Context;
 use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
-use nom::combinator::fail;
 
 use crate::{
     fetch::{BelleClient, RepoMetadata},
@@ -72,7 +71,7 @@ pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
     ));
 
     // Get the metadata from the repo, and then create our metadata struct from this
-    let mut repo_metadata = RepoMetadata::get(&repo, &client).await?;
+    let repo_metadata = RepoMetadata::get(&repo, &client).await?;
     let repo_theories = repo_metadata.all_theories();
 
     pb.finish_with_message(format!(

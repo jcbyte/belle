@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap};
 
 use crate::{fetch::AFPRepo, registry::PackageAuthor};
 
@@ -33,7 +33,7 @@ pub struct RepoMetadata {
     pub licences: HashMap<String, String>,
     pub theories: HashMap<String, TheoryMetadata>,
 
-    pub seen_aliases: HashMap<String, String>,
+    pub seen_aliases: RefCell<HashMap<String, String>>,
 }
 
 impl From<AuthorMetadata> for PackageAuthor {

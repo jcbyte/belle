@@ -1,6 +1,6 @@
 use anyhow::{Context, anyhow};
-use nom::combinator::Opt;
 use pubgrub::SemanticVersion;
+use std::cell::RefCell;
 use std::collections::HashSet;
 use std::io::Read;
 use std::{collections::HashMap, io::Cursor};
@@ -70,7 +70,7 @@ impl RepoMetadata {
             authors,
             licences,
             theories,
-            seen_aliases: HashMap::new(),
+            seen_aliases: RefCell::new(HashMap::new()),
         });
     }
 
@@ -88,7 +88,7 @@ impl RepoMetadata {
 
     /// Create package metadata by collecting keys and fetching theory ROOT file for dependencies
     pub async fn create_package_meta(
-        &mut self,
+        &self,
         thy_name: &String,
         client: &BelleClient,
     ) -> anyhow::Result<(Package, bool, Vec<AliasPackage>)> {
@@ -128,9 +128,10 @@ impl RepoMetadata {
             })
             .collect();
 
+        // Add seen aliases to internal cache for resolving later
+        let mut seen_aliases = self.seen_aliases.borrow_mut();
         for alias in &alias_packages {
-            // todo should this whole thing really be mutable?
-            self.seen_aliases.insert(alias.name.clone(), thy_name.clone());
+            seen_aliases.insert(alias.name.clone(), thy_name.clone());
         }
 
         let mut fully_resolved = true;
@@ -223,6 +224,8 @@ impl RepoMetadata {
     }
 
     pub fn resolve_package_meta(&self, package: &mut Package) -> anyhow::Result<()> {
+        let seen_aliases = self.seen_aliases.borrow();
+
         let deps = package
             .dependencies
             .iter()
@@ -232,7 +235,7 @@ impl RepoMetadata {
                     let mut found_meta = None;
 
                     // Use seen aliases first, to try and resolve
-                    if let Some(package_name) = self.seen_aliases.get(dep_name) {
+                    if let Some(package_name) = seen_aliases.get(dep_name) {
                         let meta = self.theories.get(package_name).expect("A seen alias was set, but did not find");
                         found_meta = Some(meta)
                     // If there was no seen alias check the registry for the alias
