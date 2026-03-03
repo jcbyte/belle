@@ -7,7 +7,7 @@ use crate::{
 };
 
 impl BelleClient {
-    pub async fn get_remote_package_meta(&self, url: Url) -> anyhow::Result<(Package, Vec<AliasPackage>)> {
+    pub async fn get_github_package_meta(&self, url: Url) -> anyhow::Result<(Package, Vec<AliasPackage>)> {
         // Ensure this is a github repo
         if url.host_str() != Some("github.com") {
             return Err(anyhow::anyhow!("Only github repositories are currently supported"));
@@ -24,6 +24,8 @@ impl BelleClient {
             "https://raw.githubusercontent.com/{}/{}/main/{}",
             owner, repo, PACKAGE_FILE
         );
+        let zip_url = Url::parse(&format!("https://github.com/{}/{}/zipball/main", owner, repo))
+            .context("Failed to construct remote archive URL")?;
 
         let package_content = self
             .client
@@ -38,7 +40,7 @@ impl BelleClient {
         let mut package =
             toml::from_str::<Package>(&package_content).context("Failed to parse TOML for package manifest")?;
 
-        package.source = crate::registry::PackageSource::Remote { url };
+        package.source = crate::registry::PackageSource::Remote { url: zip_url };
 
         let aliases: Vec<AliasPackage> = package
             .provides
