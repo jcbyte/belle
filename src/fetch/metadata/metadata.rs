@@ -217,7 +217,7 @@ impl RepoMetadata {
             provides: provides_packages,
             dependencies,
             isabelles: HashSet::from([self.repo.get_version().clone()]),
-            source: PackageSource { afp: self.repo.id },
+            source: PackageSource::Afp { id: self.repo.id },
             extra: meta.extra.clone(),
         };
 

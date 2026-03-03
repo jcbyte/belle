@@ -1,6 +1,7 @@
 use std::{
     collections::{HashMap, HashSet},
     fmt,
+    path::PathBuf,
 };
 
 use pubgrub::SemanticVersion;
@@ -24,11 +25,14 @@ pub struct PackageAuthor {
 
 /// Theory source information
 #[derive(Serialize, Deserialize, Debug)]
-pub struct PackageSource {
-    pub afp: u32,
+#[serde(tag = "type")]
+pub enum PackageSource {
+    Afp { id: u32 },
+    Remote { url: String },
+    Local { path: PathBuf },
 }
-// todo allow external repos
-// todo this should be an enum instead
+
+// todo support remote repos
 
 /// All package metadata
 #[derive(Serialize, Deserialize, Debug)]
