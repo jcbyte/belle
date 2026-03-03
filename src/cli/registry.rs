@@ -126,12 +126,40 @@ fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
 
     if !meta.dependencies.is_empty() {
         println!("{}", style("Dependencies:").bold());
+
+        let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
+
+        let mut dependencies = Vec::new();
+        let mut isabelle_dependencies = Vec::new();
+
         for (name, ver) in &meta.dependencies {
-            println!(" - {} {}", style(&name).magenta(), style(format!("[{}]", ver)).dim());
+            if isabelle_packages.contains(name) {
+                isabelle_dependencies.push(name.clone());
+            } else {
+                dependencies.push((name.clone(), ver.clone()));
+            }
+        }
+
+        for (name, version) in dependencies {
+            println!(
+                "- {} {}{}{}",
+                style(name),
+                style("[").dim(),
+                style(version).dim(),
+                style("]").dim()
+            )
+        }
+
+        for name in isabelle_dependencies {
+            println!("- {}", style(name).dim().italic(),)
         }
     }
 
     println!();
+
+    // todo print extras
+    // todo print provides
+    // todo print source
 }
 
 /// Display metadata for a specific package on the console, if a version is not given then the latest will be shown
@@ -166,5 +194,3 @@ pub fn print_package_meta(name: String, version: Option<SemanticVersion>) -> any
 
     return Ok(());
 }
-
-// todo add isabelle versions to listing and colour dependencies correctly
