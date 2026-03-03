@@ -157,7 +157,15 @@ fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
 
     println!();
 
-    // todo print extras
+    if !meta.extra.is_empty() {
+        println!("{}", style("Extra Information:").bold());
+
+        for extra in &meta.extra {
+            println!("{:<10}{} {}", style(extra.0).dim(), style(":").dim(), extra.1);
+        }
+    }
+
+    // todo prints isabelle versions
     // todo print provides
     // todo print source
 }
