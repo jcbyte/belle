@@ -80,6 +80,10 @@ pub struct RepoUpdateArgs {
 pub struct SourceRemoteAction {
     /// GitHub repository containing the package
     pub url: Url,
+
+    /// Branch containing the package
+    #[arg(short, long, default_value = "main")]
+    pub branch: String,
 }
 
 #[derive(Args)]

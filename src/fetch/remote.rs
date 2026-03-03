@@ -7,7 +7,11 @@ use crate::{
 };
 
 impl BelleClient {
-    pub async fn get_github_package_meta(&self, url: Url) -> anyhow::Result<(Package, Vec<AliasPackage>)> {
+    pub async fn get_github_package_meta(
+        &self,
+        url: Url,
+        branch: &str,
+    ) -> anyhow::Result<(Package, Vec<AliasPackage>)> {
         // Ensure this is a github repo
         if url.host_str() != Some("github.com") {
             return Err(anyhow::anyhow!("Only github repositories are currently supported"));
@@ -21,10 +25,10 @@ impl BelleClient {
         };
 
         let raw_url = format!(
-            "https://raw.githubusercontent.com/{}/{}/main/{}",
-            owner, repo, PACKAGE_FILE
+            "https://raw.githubusercontent.com/{}/{}/{}/{}",
+            owner, repo, branch, PACKAGE_FILE
         );
-        let zip_url = Url::parse(&format!("https://github.com/{}/{}/zipball/main", owner, repo))
+        let zip_url = Url::parse(&format!("https://github.com/{}/{}/zipball/{}", owner, repo, branch))
             .context("Failed to construct remote archive URL")?;
 
         let package_content = self

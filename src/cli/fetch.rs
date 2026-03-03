@@ -180,9 +180,9 @@ pub async fn fetch_afp_meta(repo_name: Option<String>) -> anyhow::Result<()> {
     return Ok(());
 }
 
-pub async fn source_remote_repo(url: Url) -> anyhow::Result<()> {
+pub async fn source_remote_repo(url: Url, branch: &str) -> anyhow::Result<()> {
     let client = BelleClient::new()?;
-    let (package, aliases) = client.get_github_package_meta(url).await?;
+    let (package, aliases) = client.get_github_package_meta(url, branch).await?;
 
     package.register()?;
     for alias in aliases {
