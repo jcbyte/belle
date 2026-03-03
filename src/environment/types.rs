@@ -7,18 +7,22 @@ use crate::environment::{deserialise_optional_version, serialise_optional_versio
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Environment {
-    pub(super) name: String,
+    pub name: String,
     #[serde(
         serialize_with = "serialise_optional_version",
         deserialize_with = "deserialise_optional_version"
     )]
-    pub(super) packages: HashMap<String, Option<SemanticVersion>>,
-    pub(super) lock: HashMap<String, SemanticVersion>,
+    pub packages: HashMap<String, Option<SemanticVersion>>,
+    pub lock: HashMap<String, SemanticVersion>,
+}
+
+pub enum PackageType {
+    Transitive,
+    Direct { given_version: bool },
 }
 
 pub struct PackageListing {
     pub name: String,
     pub version: SemanticVersion,
-    pub given_version: bool,
-    pub transitive: bool,
+    pub kind: PackageType,
 }

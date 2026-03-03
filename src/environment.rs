@@ -4,5 +4,4 @@ mod serialiser;
 mod types;
 
 use serialiser::{deserialise_optional_version, serialise_optional_version};
-pub use types::Environment;
-use types::PackageListing;
+pub use types::{Environment, PackageListing, PackageType};

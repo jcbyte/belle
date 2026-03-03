@@ -11,7 +11,7 @@ use crate::{
 
 type SemVS = Ranges<SemanticVersion>;
 
-static ISABELLE_PACKAGE: &str = "!Isabelle";
+pub static ISABELLE_PACKAGE: &str = "!Isabelle";
 
 pub struct BelleDependencyProvider {
     root_packages: HashMap<String, Option<SemanticVersion>>,

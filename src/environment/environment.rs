@@ -5,7 +5,7 @@ use pubgrub::SemanticVersion;
 
 use crate::{
     config::BelleConfig,
-    environment::{Environment, PackageListing},
+    environment::{Environment, PackageListing, PackageType},
     resolver::BelleDependencyProvider,
 };
 
@@ -156,40 +156,25 @@ impl Environment {
 
     pub fn get_packages(&self) -> anyhow::Result<Vec<PackageListing>> {
         let packages = self
-            .packages
-            .iter()
-            .map(|(name, version)| {
-                let found_version = match version {
-                    Some(v) => v,
-                    None => &self
-                        .lock
-                        .get(name)
-                        .with_context(|| format!("Expected package '{}' in lock, but it didn't exist", name))?,
-                };
-
-                Ok(PackageListing {
-                    name: name.clone(),
-                    version: found_version.clone(),
-                    given_version: version.is_some(),
-                    transitive: false,
-                })
-            })
-            .collect();
-
-        return packages;
-    }
-
-    pub fn get_all_packages(&self) -> anyhow::Result<Vec<PackageListing>> {
-        let packages = self
             .lock
             .iter()
-            .map(|(name, version)| {
-                Ok(PackageListing {
-                    name: name.clone(),
-                    version: version.clone(),
-                    given_version: self.packages.get(name).map(|v| v.is_some()).unwrap_or(false),
-                    transitive: !self.packages.contains_key(name),
-                })
+            .map(|(name, version)| match self.packages.get(name) {
+                None => {
+                    return Ok(PackageListing {
+                        name: name.clone(),
+                        version: version.clone(),
+                        kind: PackageType::Transitive,
+                    });
+                }
+                Some(direct_version) => {
+                    return Ok(PackageListing {
+                        name: name.clone(),
+                        version: version.clone(),
+                        kind: PackageType::Direct {
+                            given_version: direct_version.is_some(),
+                        },
+                    });
+                }
             })
             .collect();
 

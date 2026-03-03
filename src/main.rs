@@ -24,4 +24,3 @@ async fn main() {
 // todo integrate with isabelle
 // todo check all error handling cases are needed (should we just expect), ensure messages are correct
 // todo testing
-// todo when listing packages we must highlight isabelle dependencies
