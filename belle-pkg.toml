@@ -1,0 +1,20 @@
+name = "Example_Package"
+version = "1.0.1"
+title = "This is an example package to be fetched"
+date = 2025-10-16
+abstract = """
+The objective is to be fetched from a remote
+"""
+licence = "BSD"
+topics = ["Belle"]
+contributors = []
+provides = []
+isabelles = ["2025.2.0", "2025.1.0", "2025.0.0"]
+
+[[authors]]
+name = "Joel Cutler"
+
+[dependencies]
+Optics = "2017.5.25"
+
+[extra]
