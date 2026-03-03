@@ -8,8 +8,8 @@ use zip::ZipArchive;
 
 use crate::config::BelleConfig;
 use crate::fetch::AFPRepo;
+use crate::fetch::afp_metadata::{AuthorMetadata, RepoMetadata, TheoryMetadata, dependency};
 use crate::fetch::client::BelleClient;
-use crate::fetch::metadata::{AuthorMetadata, RepoMetadata, TheoryMetadata, dependency};
 use crate::registry::{AliasPackage, Package, PackageAuthor, PackageIdentifier, PackageSource, get_package_versions};
 use crate::util::date_to_version;
 

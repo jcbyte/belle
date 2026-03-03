@@ -1,7 +1,8 @@
+mod afp;
+mod afp_metadata;
 mod client;
-mod metadata;
 mod types;
 
+pub use afp_metadata::RepoMetadata;
 pub use client::BelleClient;
-pub use metadata::RepoMetadata;
 pub use types::AFPRepo;

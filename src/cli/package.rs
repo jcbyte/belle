@@ -1,4 +1,3 @@
-use console::style;
 use pubgrub::SemanticVersion;
 
 use crate::environment::Environment;

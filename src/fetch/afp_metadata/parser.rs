@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::Context;
 
-use crate::fetch::metadata::{
+use crate::fetch::afp_metadata::{
     AFPAuthorMeta, AFPLicenceMeta, AFPTheoryMeta, AuthorMetadata, RepoMetadata, TheoryMetadata,
 };
 

@@ -77,8 +77,8 @@ pub struct RepoUpdateArgs {
 
 #[derive(Args)]
 pub struct SourceRemoteAction {
-    /// todo what is this and how do i get
-    pub uri: String,
+    /// GitHub repository containing the package
+    pub url: String,
 }
 
 #[derive(Args)]
