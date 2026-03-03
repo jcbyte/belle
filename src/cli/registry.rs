@@ -7,6 +7,7 @@ use pubgrub::SemanticVersion;
 use crate::{
     config::BelleConfig,
     registry::{self, AliasPackage, Package, PackageIdentifier, RegisteredPackage},
+    util::get_isabelle_name,
 };
 
 /// Remove all theories from disk
@@ -124,6 +125,19 @@ fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
 
     println!();
 
+    println!("{}", style("Supported Isabelle Versions:").bold());
+    for isabelle_version in &meta.isabelles {
+        println!(
+            "- {} {}{}{}",
+            style(get_isabelle_name(isabelle_version)),
+            style("[").dim(),
+            style(isabelle_version).green(),
+            style("]").dim()
+        )
+    }
+
+    println!();
+
     if !meta.dependencies.is_empty() {
         println!("{}", style("Dependencies:").bold());
 
@@ -157,16 +171,30 @@ fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
 
     println!();
 
+    if !meta.provides.is_empty() {
+        println!("{}", style("Provides Packages:").bold());
+
+        for alias in &meta.provides {
+            println!(
+                "- {} {}{}{}",
+                style(alias),
+                style("[").dim(),
+                style(meta.version).dim(),
+                style("]").dim()
+            )
+        }
+    }
+
+    println!();
+
     if !meta.extra.is_empty() {
         println!("{}", style("Extra Information:").bold());
 
         for extra in &meta.extra {
-            println!("{:<10}{} {}", style(extra.0).dim(), style(":").dim(), extra.1);
+            println!("{:<10} {}", style(format!("{}:", extra.0)).dim(), extra.1);
         }
     }
 
-    // todo prints isabelle versions
-    // todo print provides
     // todo print source
 }
 
