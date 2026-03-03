@@ -15,10 +15,10 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
     match args.command {
         Commands::Source(action) => match action {
             SourceAction::Afp(action) => match action {
-                SourceAfpAction::List(args) => fetch::list_repositories(args.limit).await?,
-                SourceAfpAction::Update(args) => fetch::fetch_meta(args.name).await?,
+                SourceAfpAction::List(args) => fetch::list_afp_repositories(args.limit).await?,
+                SourceAfpAction::Update(args) => fetch::fetch_afp_meta(args.name).await?,
             },
-            SourceAction::Remote(args) => todo!("add remote source"),
+            SourceAction::Remote(args) => fetch::source_remote_repo(args.url).await?,
             SourceAction::Local(args) => todo!("add local source"),
         },
         Commands::Cache(action) => match action {

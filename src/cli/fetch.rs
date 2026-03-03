@@ -3,14 +3,16 @@ use std::time::Duration;
 use anyhow::Context;
 use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
+use url::Url;
 
 use crate::{
-    fetch::{BelleClient, RepoMetadata},
+    cli::environment,
+    fetch::{self, BelleClient, RepoMetadata},
     registry::{Package, RegistrablePackage},
 };
 
 /// List AFP repositories and print them in a simple table
-pub async fn list_repositories(limit: usize) -> anyhow::Result<()> {
+pub async fn list_afp_repositories(limit: usize) -> anyhow::Result<()> {
     let client = BelleClient::new()?;
 
     let pb = ProgressBar::new_spinner();
@@ -41,14 +43,14 @@ pub async fn list_repositories(limit: usize) -> anyhow::Result<()> {
 
 /// Fetch metadata for a specific repository (or the latest if not specified)
 /// Register packages which do not yet exist locally
-pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
+pub async fn fetch_afp_meta(repo_name: Option<String>) -> anyhow::Result<()> {
     let client = BelleClient::new()?;
 
     // Get the repo structure
     let repo = match repo_name {
         Some(name) => {
             // If a name is passed we need to get its id
-            let repo = client.get_repo(&name).await?;
+            let repo = client.get_afp_repo(&name).await?;
             // Warn if the repo does not exist
             repo.with_context(|| format!("Could not find repo with name '{}'", name))?
         }
@@ -174,6 +176,18 @@ pub async fn fetch_meta(repo_name: Option<String>) -> anyhow::Result<()> {
         })
         .red()
     );
+
+    return Ok(());
+}
+
+pub async fn source_remote_repo(url: Url) -> anyhow::Result<()> {
+    let client = BelleClient::new()?;
+    let (package, aliases) = client.get_remote_package_meta(url).await?;
+
+    package.register()?;
+    for alias in aliases {
+        alias.register()?;
+    }
 
     return Ok(());
 }

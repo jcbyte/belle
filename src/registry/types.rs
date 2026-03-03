@@ -6,6 +6,7 @@ use std::{
 
 use pubgrub::SemanticVersion;
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 use crate::fetch::AFPRepo;
 
@@ -26,12 +27,19 @@ pub struct PackageAuthor {
 }
 
 /// Theory source information
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(tag = "type")]
 pub enum PackageSource {
     Afp(AFPRepo),
-    Remote { url: String },
-    Local { path: PathBuf },
+    Remote {
+        url: Url,
+    },
+    Local {
+        path: PathBuf,
+    },
+
+    #[default]
+    Default,
 }
 
 // todo 1 support remote repos
@@ -55,6 +63,7 @@ pub struct Package {
     pub dependencies: HashMap<String, SemanticVersion>,
     pub isabelles: HashSet<SemanticVersion>,
 
+    #[serde(default)]
     pub source: PackageSource,
 
     pub extra: toml::Table,

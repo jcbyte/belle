@@ -1,0 +1,55 @@
+use anyhow::Context;
+use url::Url;
+
+use crate::{
+    fetch::{BelleClient, PACKAGE_FILE},
+    registry::{AliasPackage, Package, PackageIdentifier},
+};
+
+impl BelleClient {
+    pub async fn get_remote_package_meta(&self, url: Url) -> anyhow::Result<(Package, Vec<AliasPackage>)> {
+        // Ensure this is a github repo
+        if url.host_str() != Some("github.com") {
+            return Err(anyhow::anyhow!("Only github repositories are currently supported"));
+        }
+
+        let mut segments = url.path_segments().ok_or(anyhow::anyhow!(""))?;
+        let (owner, repo) = match (segments.next(), segments.next()) {
+            // Strip ".git" from the name if it exists
+            (Some(o), Some(r)) => (o, r.strip_suffix(".git").unwrap_or(r)),
+            _ => return Err(anyhow::anyhow!("Invalid GitHub Repo URL")),
+        };
+
+        let raw_url = format!(
+            "https://raw.githubusercontent.com/{}/{}/main/{}",
+            owner, repo, PACKAGE_FILE
+        );
+
+        let package_content = self
+            .client
+            .get(raw_url)
+            .send()
+            .await
+            .context("Failed to send request to GitHub")?
+            .text()
+            .await
+            .context("Failed to parse response from GitHub")?;
+
+        let mut package =
+            toml::from_str::<Package>(&package_content).context("Failed to parse TOML for package manifest")?;
+
+        package.source = crate::registry::PackageSource::Remote { url };
+
+        let aliases: Vec<AliasPackage> = package
+            .provides
+            .iter()
+            .map(|provided| AliasPackage {
+                name: provided.clone(),
+                version: package.version.clone(),
+                alias: PackageIdentifier::from(&package),
+            })
+            .collect();
+
+        return Ok((package, aliases));
+    }
+}

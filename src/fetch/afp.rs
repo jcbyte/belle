@@ -66,7 +66,7 @@ impl BelleClient {
     }
 
     /// Get a singular repo (id) from its name, or `None` is it does not exist
-    pub async fn get_repo(&self, name: &String) -> anyhow::Result<Option<AFPRepo>> {
+    pub async fn get_afp_repo(&self, name: &String) -> anyhow::Result<Option<AFPRepo>> {
         let mut page = 1;
 
         let afp_group = BelleConfig::read_config(|c| c.afp_group.clone());
@@ -106,7 +106,7 @@ impl BelleClient {
     }
 
     /// Retrieve the metadata archive for a given repo
-    pub async fn get_metadata_archive(&self, repo: &AFPRepo) -> anyhow::Result<bytes::Bytes> {
+    pub async fn get_afp_metadata_archive(&self, repo: &AFPRepo) -> anyhow::Result<bytes::Bytes> {
         // Retrieve the bytes for the archive at `/metadata` for the given repo
         let meta_archive_url = format!(
             "https://foss.heptapod.net/api/v4/projects/{}/repository/archive.zip?path=metadata",
@@ -127,7 +127,7 @@ impl BelleClient {
     }
 
     /// Retrieve the ROOT file for a given theory
-    pub async fn get_thy_root(&self, repo: &AFPRepo, thy: &String) -> anyhow::Result<String> {
+    pub async fn get_afp_thy_root(&self, repo: &AFPRepo, thy: &String) -> anyhow::Result<String> {
         // Retrieve the raw string of the ROOT file at `/thys/$thy/ROOT` for the given theory and repo
         let root_file_url = format!(
             "https://foss.heptapod.net/api/v4/projects/{}/repository/files/{}/raw",

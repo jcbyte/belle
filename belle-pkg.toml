@@ -1,4 +1,4 @@
-name = "Example_Package"
+name = "!!Example_Package"
 version = "1.0.1"
 title = "This is an example package to be fetched"
 date = 2025-10-16

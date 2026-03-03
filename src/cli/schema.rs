@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
 use pubgrub::SemanticVersion;
+use url::Url;
 
 #[derive(Parser)]
 #[command(name = "belle")]
@@ -78,7 +79,7 @@ pub struct RepoUpdateArgs {
 #[derive(Args)]
 pub struct SourceRemoteAction {
     /// GitHub repository containing the package
-    pub url: String,
+    pub url: Url,
 }
 
 #[derive(Args)]

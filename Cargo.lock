@@ -138,6 +138,7 @@ dependencies = [
  "tempfile",
  "tokio",
  "toml",
+ "url",
  "walkdir",
  "zip",
 ]
@@ -2118,6 +2119,7 @@ dependencies = [
  "idna",
  "percent-encoding",
  "serde",
+ "serde_derive",
 ]
 
 [[package]]

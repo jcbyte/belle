@@ -17,7 +17,7 @@ impl RepoMetadata {
     /// Fetch metadata from repo and parse it into interpreted repo metadata
     pub async fn get(repo: &AFPRepo, client: &BelleClient) -> anyhow::Result<Self> {
         // Download full metadata archive bytes from repo
-        let bytes = client.get_metadata_archive(repo).await?;
+        let bytes = client.get_afp_metadata_archive(repo).await?;
 
         let mut authors: HashMap<String, AuthorMetadata> = HashMap::default();
         let mut licences: HashMap<String, String> = HashMap::default();
@@ -99,7 +99,7 @@ impl RepoMetadata {
         let version = date_to_version(&meta.date);
 
         // Fetch theories ROOT file from the repo
-        let thy_root = client.get_thy_root(&self.repo, thy_name).await?;
+        let thy_root = client.get_afp_thy_root(&self.repo, thy_name).await?;
 
         let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
 
