@@ -37,7 +37,7 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
         }
         Commands::Switch(args) | Commands::Env(EnvAction::Switch(args)) => environment::switch_env(args.name)?,
         Commands::Env(action) => match action {
-            EnvAction::Create(args) => environment::create_env(args.name)?,
+            EnvAction::Create(args) => environment::create_env(args.name, args.new)?,
             EnvAction::List => environment::list_envs()?,
             EnvAction::Remove(args) => environment::remove_env(&args.name)?,
             EnvAction::Switch(_args) => unreachable!(),

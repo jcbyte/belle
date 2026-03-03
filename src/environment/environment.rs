@@ -10,6 +10,7 @@ use crate::{
 };
 
 impl Environment {
+    /// Create a new environment with the given name
     pub fn new(name: String) -> anyhow::Result<Self> {
         let env_dir = Self::env_dir_for_name(&name);
 
@@ -26,6 +27,7 @@ impl Environment {
         return Ok(env);
     }
 
+    /// Get the active environment, if any
     pub fn active() -> anyhow::Result<Option<Self>> {
         let active_env = BelleConfig::read_config(|c| c.get_active_env_link());
         let env_file = Self::join_env_file(active_env);
@@ -35,6 +37,17 @@ impl Environment {
         };
 
         return Ok(Some(Self::load(env_file)?));
+    }
+
+    /// Get the environment in the freeze file, if any
+    pub fn frozen() -> anyhow::Result<Option<Self>> {
+        let freeze_file = Self::get_freeze_file();
+
+        if !freeze_file.is_file() {
+            return Ok(None);
+        }
+
+        return Ok(Some(Self::load(freeze_file)?));
     }
 
     pub(crate) fn env_dir_for_name(name: &String) -> PathBuf {
@@ -101,26 +114,14 @@ impl Environment {
         return Ok(());
     }
 
-    /// Sync the contents of the freeze file into the active environment
-    pub fn sync() -> anyhow::Result<()> {
-        let mut active_env = Self::active()?.ok_or(anyhow::anyhow!("No selected environment"))?;
-
-        let freeze_file = Self::get_freeze_file();
-        let content = fs::read_to_string(&freeze_file).with_context(|| {
-            format!(
-                "Freeze file '{}' was not found",
-                freeze_file
-                    .file_name()
-                    .map(|name| name.to_string_lossy().to_string())
-                    .unwrap_or(String::from("default"))
-            )
-        })?;
-        let frozen_environment = toml::from_str::<Self>(&content).context("Failed to parse TOML for freeze file")?;
+    /// Sync the contents of the freeze file into this environment
+    pub fn sync(&mut self) -> anyhow::Result<()> {
+        let frozen_env = Self::frozen()?.ok_or(anyhow::anyhow!("No belle file found in workspace"))?;
 
         // Set the active packages to the ones from freeze file and save it back
-        active_env.packages = frozen_environment.packages;
-        active_env.lock = frozen_environment.lock;
-        active_env.save()?;
+        self.packages = frozen_env.packages;
+        self.lock = frozen_env.lock;
+        self.save()?;
 
         return Ok(());
     }
