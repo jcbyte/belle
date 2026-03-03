@@ -3,7 +3,7 @@ name = "belle"
 version = "0.1.0"
 edition = "2024"
 authors = ["Joel Cutler <joelcutler108@gmail.com>"]
-description = "// todo description"
+description = "Package Manager for Isabelle/HOL"
 
 [dependencies]
 pubgrub = { version = "0.3.0", features = ["serde"] }
