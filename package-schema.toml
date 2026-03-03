@@ -10,7 +10,7 @@ licence = "BSD"
 topics = ["Mathematics/Analysis", "Logic/Set theory"]
 note = "Optional note field"
 
-# todo add source details
+# todo 1 add source details
 
 # Array of Tables for authors, containing given optional fields
 [[authors]]

@@ -19,11 +19,12 @@ async fn main() {
     }
 }
 
-// todo there should be a way to set environment isabelle version
+// todo 2 there should be a way to set environment isabelle version
 
 // todo fetch theories
 // todo create ROOTS files
 // todo integrate with isabelle
 
+// todo ensure consistent naming of packages
 // todo check all error handling cases are needed (should we just expect), ensure messages are correct
 // todo testing

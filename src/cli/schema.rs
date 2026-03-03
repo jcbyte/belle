@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::{Args, Parser, Subcommand};
 use pubgrub::SemanticVersion;
 
@@ -11,15 +13,16 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Manage and explore AFP repositories
+    /// Add packages source (from AFP or externally)
     #[command(subcommand)]
-    Repo(RepoAction),
+    Source(SourceAction),
 
     /// Manage locally cached theories and metadata
     #[command(subcommand)]
     Cache(CacheAction),
 
     /// Display detailed information for a specific package/theory
+    #[command(visible_alias = "show")]
     Inspect(InspectArgs),
 
     /// Manage isolated environments
@@ -36,27 +39,33 @@ pub enum Commands {
     Remove(RemoveArgs),
 
     /// Update all packages in the current environment
-    Update,
+    Upgrade,
 
     /// List all packages in the current environment
     List(ListArgs),
 }
 
 #[derive(Subcommand)]
-pub enum RepoAction {
+pub enum SourceAction {
+    /// Add packages from the AFP
+    #[command(subcommand)]
+    Afp(SourceAfpAction),
+
+    /// Add packages from a remote source
+    Remote(SourceRemoteAction),
+
+    /// Add packages from a local source
+    Local(SourceLocalAction),
+}
+
+#[derive(Subcommand)]
+pub enum SourceAfpAction {
     /// List known AFP repositories
     List(MetaListArgs),
 
     /// Synchronize metadata from a repository to the local system
-    #[command(alias = "fetch")]
+    #[command(visible_alias = "fetch")]
     Update(RepoUpdateArgs),
-}
-
-#[derive(Args)]
-pub struct MetaListArgs {
-    /// Optional maximum number of AFP repos to show
-    #[arg(short, long, value_name = "LIMIT", default_value_t = 20)]
-    pub limit: usize,
 }
 
 #[derive(Args)]
@@ -64,6 +73,25 @@ pub struct RepoUpdateArgs {
     /// Optional name of AFP repo (defaults to latest)
     #[arg(value_name = "REPO")]
     pub name: Option<String>,
+}
+
+#[derive(Args)]
+pub struct SourceRemoteAction {
+    /// todo what is this and how do i get
+    pub uri: String,
+}
+
+#[derive(Args)]
+pub struct SourceLocalAction {
+    /// Directory containing the package
+    pub directory: PathBuf,
+}
+
+#[derive(Args)]
+pub struct MetaListArgs {
+    /// Optional maximum number of AFP repos to show
+    #[arg(short, long, value_name = "LIMIT", default_value_t = 20)]
+    pub limit: usize,
 }
 
 #[derive(Subcommand)]
@@ -160,5 +188,3 @@ pub struct ListArgs {
     #[arg(short, long)]
     pub all: bool,
 }
-
-// todo ensure consistent nam,ing of packages

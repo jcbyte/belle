@@ -23,7 +23,7 @@ pub struct BelleDependencyProvider {
 
 impl BelleDependencyProvider {
     fn new(root_packages: HashMap<String, Option<SemanticVersion>>) -> Self {
-        // todo get this from root packages
+        // todo 2 get this from root packages
         let isabelle_versions = vec![SemanticVersion::new(2025, 2, 0), SemanticVersion::new(2025, 1, 0)];
 
         return Self {
@@ -186,7 +186,7 @@ impl BelleDependencyProvider {
     ) -> anyhow::Result<HashMap<String, SemanticVersion>> {
         let resolver = BelleDependencyProvider::new(packages);
 
-        // todo what happens to errors here?
+        // todo how do we get user friendly error
         let mut resolved_dependencies = resolve(&resolver, String::from("."), SemanticVersion::zero())?;
         resolved_dependencies.remove(".");
 

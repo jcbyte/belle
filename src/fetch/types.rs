@@ -1,12 +1,12 @@
 use std::sync::OnceLock;
 
 use pubgrub::SemanticVersion;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::util::get_isabelle_version;
 
 /// Container holding a repositories name and heptapod id
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AFPRepo {
     pub id: u32,
     pub name: String,

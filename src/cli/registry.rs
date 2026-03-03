@@ -195,7 +195,7 @@ fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
         }
     }
 
-    // todo print source
+    // todo 1 print source
 }
 
 /// Display metadata for a specific package on the console, if a version is not given then the latest will be shown

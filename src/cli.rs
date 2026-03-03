@@ -1,6 +1,6 @@
 use crate::cli::{
     self,
-    schema::{CacheAction, Commands, EnvAction, RepoAction},
+    schema::{CacheAction, Commands, EnvAction, SourceAction, SourceAfpAction},
 };
 
 mod environment;
@@ -13,9 +13,13 @@ pub use schema::Cli;
 
 pub async fn run(args: Cli) -> anyhow::Result<()> {
     match args.command {
-        Commands::Repo(action) => match action {
-            RepoAction::List(args) => fetch::list_repositories(args.limit).await?,
-            RepoAction::Update(args) => fetch::fetch_meta(args.name).await?,
+        Commands::Source(action) => match action {
+            SourceAction::Afp(action) => match action {
+                SourceAfpAction::List(args) => fetch::list_repositories(args.limit).await?,
+                SourceAfpAction::Update(args) => fetch::fetch_meta(args.name).await?,
+            },
+            SourceAction::Remote(args) => todo!("add remote source"),
+            SourceAction::Local(args) => todo!("add local source"),
         },
         Commands::Cache(action) => match action {
             CacheAction::Clean(args) => {
@@ -46,7 +50,7 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
         },
         Commands::Add(args) => package::add_package(args.name, args.version)?,
         Commands::Remove(args) => package::remove_package(&args.name)?,
-        Commands::Update => todo!("update packages"),
+        Commands::Upgrade => todo!("update packages"),
         Commands::List(args) => environment::list_packages(args.all)?,
     }
 

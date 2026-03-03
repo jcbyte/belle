@@ -7,6 +7,8 @@ use std::{
 use pubgrub::SemanticVersion;
 use serde::{Deserialize, Serialize};
 
+use crate::fetch::AFPRepo;
+
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "_type")]
 pub enum RegisteredPackage {
@@ -27,12 +29,12 @@ pub struct PackageAuthor {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "type")]
 pub enum PackageSource {
-    Afp { id: u32 },
+    Afp(AFPRepo),
     Remote { url: String },
     Local { path: PathBuf },
 }
 
-// todo support remote repos
+// todo 1 support remote repos
 
 /// All package metadata
 #[derive(Serialize, Deserialize, Debug)]
