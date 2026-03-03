@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{collections::HashMap, fmt::format, fs, path::PathBuf};
 
 use anyhow::Context;
 use pubgrub::SemanticVersion;
@@ -73,8 +73,6 @@ impl Environment {
     fn save(&self) -> anyhow::Result<()> {
         let env_file = self.get_env_file();
 
-        println!("{:?}", self);
-
         // Recursively create parent directory and parents so that we can write to the file
         if let Some(parent) = env_file.parent() {
             fs::create_dir_all(parent)
@@ -103,10 +101,26 @@ impl Environment {
         return Ok(());
     }
 
+    /// Sync the contents of the freeze file into the active environment
     pub fn sync() -> anyhow::Result<()> {
-        let freeze_file = Self::get_freeze_file();
+        let mut active_env = Self::active()?.ok_or(anyhow::anyhow!("No selected environment"))?;
 
-        todo!();
+        let freeze_file = Self::get_freeze_file();
+        let content = fs::read_to_string(&freeze_file).with_context(|| {
+            format!(
+                "Freeze file '{}' was not found",
+                freeze_file
+                    .file_name()
+                    .map(|name| name.to_string_lossy().to_string())
+                    .unwrap_or(String::from("default"))
+            )
+        })?;
+        let frozen_environment = toml::from_str::<Self>(&content).context("Failed to parse TOML for freeze file")?;
+
+        // Set the active packages to the ones from freeze file and save it back
+        active_env.packages = frozen_environment.packages;
+        active_env.lock = frozen_environment.lock;
+        active_env.save()?;
 
         return Ok(());
     }
@@ -120,8 +134,6 @@ impl Environment {
         self.packages.insert(name, version.into());
         self.resolve_lock()?;
         self.save()?;
-
-        println!("{:?}", self.packages);
 
         return Ok(());
     }

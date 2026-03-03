@@ -60,3 +60,9 @@ pub fn freeze_env() -> anyhow::Result<()> {
 
     return Ok(());
 }
+
+pub fn sync_env() -> anyhow::Result<()> {
+    Environment::sync()?;
+
+    return Ok(());
+}
