@@ -41,6 +41,8 @@ impl BelleClient {
             .await
             .context("Failed to parse response from GitHub")?;
 
+        // todo give specific error for 404
+
         let mut package =
             toml::from_str::<Package>(&package_content).context("Failed to parse TOML for package manifest")?;
 
