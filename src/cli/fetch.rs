@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{path::PathBuf, time::Duration};
 
 use anyhow::Context;
 use console::style;
@@ -7,7 +7,7 @@ use url::Url;
 
 use crate::{
     cli::environment,
-    fetch::{self, BelleClient, RepoMetadata},
+    fetch::{self, BelleClient, RepoMetadata, get_local_package_meta},
     registry::{Package, RegistrablePackage},
 };
 
@@ -183,6 +183,17 @@ pub async fn fetch_afp_meta(repo_name: Option<String>) -> anyhow::Result<()> {
 pub async fn source_remote_repo(url: Url, branch: &str) -> anyhow::Result<()> {
     let client = BelleClient::new()?;
     let (package, aliases) = client.get_github_package_meta(url, branch).await?;
+
+    package.register()?;
+    for alias in aliases {
+        alias.register()?;
+    }
+
+    return Ok(());
+}
+
+pub fn source_local_package(path: PathBuf) -> anyhow::Result<()> {
+    let (package, aliases) = get_local_package_meta(path)?;
 
     package.register()?;
     for alias in aliases {
