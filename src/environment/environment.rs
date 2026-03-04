@@ -1,11 +1,10 @@
-use std::{collections::HashMap, fmt::format, fs, path::PathBuf};
+use std::{collections::HashMap, fs, path::PathBuf};
 
 use anyhow::Context;
-use pubgrub::SemanticVersion;
 
 use crate::{
     config::BelleConfig,
-    environment::{Environment, PackageListing, PackageType},
+    environment::{Environment, PackageListing, PackageType, types::VersionReq},
     resolver::BelleDependencyProvider,
 };
 
@@ -20,6 +19,7 @@ impl Environment {
 
         let env = Environment {
             name,
+            isabelle: VersionReq::Any,
             packages: HashMap::new(),
             lock: HashMap::new(),
         };
@@ -126,13 +126,13 @@ impl Environment {
         return Ok(());
     }
 
-    pub fn add_package(&mut self, name: String, version: Option<SemanticVersion>) -> anyhow::Result<()> {
+    pub fn add_package(&mut self, name: String, version: VersionReq) -> anyhow::Result<()> {
         if self.packages.contains_key(&name) {
             anyhow::bail!("Package '{}' is already installed in this environment", &name);
         }
 
         // If this fails it will not reach `save`, hence the environment will be saved in a stable state
-        self.packages.insert(name, version.into());
+        self.packages.insert(name, version);
         self.resolve_lock()?;
         self.save()?;
 
@@ -172,7 +172,7 @@ impl Environment {
                         name: name.clone(),
                         version: version.clone(),
                         kind: PackageType::Direct {
-                            given_version: direct_version.is_some(),
+                            given_version: !direct_version.is_any(),
                         },
                     });
                 }

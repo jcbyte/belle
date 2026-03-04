@@ -50,7 +50,7 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
         },
         Commands::Add(args) => package::add_package(args.name, args.version)?,
         Commands::Remove(args) => package::remove_package(&args.name)?,
-        Commands::Upgrade => todo!("update packages"),
+        Commands::Upgrade => todo!("2 update packages"),
         Commands::List(args) => environment::list_packages(args.all)?,
     }
 

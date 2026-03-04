@@ -3,16 +3,47 @@ use std::collections::HashMap;
 use pubgrub::SemanticVersion;
 use serde::{Deserialize, Serialize};
 
-use crate::environment::{deserialise_optional_version, serialise_optional_version};
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum VersionReq {
+    Given(SemanticVersion),
+    #[serde(rename = "*")]
+    Any,
+}
+
+impl VersionReq {
+    pub fn is_any(&self) -> bool {
+        matches!(self, Self::Any)
+    }
+}
+
+impl From<VersionReq> for Option<SemanticVersion> {
+    fn from(ver: VersionReq) -> Self {
+        match ver {
+            VersionReq::Given(v) => Some(v),
+            VersionReq::Any => None,
+        }
+    }
+}
+
+impl From<Option<SemanticVersion>> for VersionReq {
+    fn from(opt: Option<SemanticVersion>) -> Self {
+        match opt {
+            Some(v) => Self::Given(v),
+            None => Self::Any,
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Environment {
     pub name: String,
-    #[serde(
-        serialize_with = "serialise_optional_version",
-        deserialize_with = "deserialise_optional_version"
-    )]
-    pub packages: HashMap<String, Option<SemanticVersion>>,
+    // #[serde(
+    //     serialize_with = "serialise_optional_version",
+    //     deserialize_with = "deserialise_optional_version"
+    // )]
+    pub packages: HashMap<String, VersionReq>,
+    pub isabelle: VersionReq,
     pub lock: HashMap<String, SemanticVersion>,
 }
 

@@ -25,6 +25,7 @@ async fn main() {
 // todo create ROOTS files
 // todo integrate with isabelle
 
+// todo CI
 // todo ensure consistent naming of packages
-// todo check all error handling cases are needed (should we just expect), ensure messages are correct
+// todo check all error handling cases are needed (should we just expect), ensure messages are correct (resolving, deserialising etc)
 // todo testing

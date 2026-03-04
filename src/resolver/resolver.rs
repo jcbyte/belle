@@ -5,6 +5,7 @@ use std::{cell::RefCell, cmp::Reverse, collections::HashMap};
 
 use crate::{
     config::BelleConfig,
+    environment::VersionReq,
     registry::{PackageIdentifier, RegisteredPackage, get_package_versions},
     resolver::SolverError,
 };
@@ -14,7 +15,7 @@ type SemVS = Ranges<SemanticVersion>;
 pub static ISABELLE_PACKAGE: &str = "!Isabelle";
 
 pub struct BelleDependencyProvider {
-    root_packages: HashMap<String, Option<SemanticVersion>>,
+    root_packages: HashMap<String, VersionReq>,
     isabelle_versions: Vec<SemanticVersion>,
 
     /// Cache for package versions
@@ -22,7 +23,7 @@ pub struct BelleDependencyProvider {
 }
 
 impl BelleDependencyProvider {
-    fn new(root_packages: HashMap<String, Option<SemanticVersion>>) -> Self {
+    fn new(root_packages: HashMap<String, VersionReq>) -> Self {
         // todo 2 get this from root packages
         let isabelle_versions = vec![SemanticVersion::new(2025, 2, 0), SemanticVersion::new(2025, 1, 0)];
 
@@ -111,8 +112,8 @@ impl DependencyProvider for BelleDependencyProvider {
                     (
                         name.clone(),
                         match version {
-                            Some(v) => SemVS::singleton(v),
-                            None => SemVS::full(),
+                            &VersionReq::Given(v) => SemVS::singleton(v),
+                            VersionReq::Any => SemVS::full(),
                         },
                     )
                 })
@@ -181,12 +182,9 @@ impl DependencyProvider for BelleDependencyProvider {
 }
 
 impl BelleDependencyProvider {
-    pub fn resolve(
-        packages: HashMap<String, Option<SemanticVersion>>,
-    ) -> anyhow::Result<HashMap<String, SemanticVersion>> {
+    pub fn resolve(packages: HashMap<String, VersionReq>) -> anyhow::Result<HashMap<String, SemanticVersion>> {
         let resolver = BelleDependencyProvider::new(packages);
 
-        // todo how do we get user friendly error
         let mut resolved_dependencies = resolve(&resolver, String::from("."), SemanticVersion::zero())?;
         resolved_dependencies.remove(".");
 
