@@ -1,5 +1,6 @@
 name = "an-example-package"
 version = "2026.0.0"
+
 title = "An Incredible Isabelle Theory"
 date = 2026-02-17
 abstract = """
@@ -9,6 +10,14 @@ It can span multiple lines using triple quotes.
 licence = "BSD"
 topics = ["Mathematics/Analysis", "Logic/Set theory"]
 note = "Optional note field"
+
+# Other packages that this Isabelle component provides
+# For when the ROOT file defines multiple sessions
+provides = ["another-package", "another-package-2"]
+
+# List compatible isabelle versions as SemVer listings
+isabelles = ["2025.1.0", "2025.0.0"]
+
 
 # Array of Tables for authors, containing given optional fields
 [[authors]]
@@ -29,13 +38,6 @@ name = "The White Rabbit"
 [dependencies]
 "core-logic" = "2026.1.0"
 "standard-lib" = "2025.2.0"
-
-# Other packages that this Isabelle component provides
-# For when the ROOT file defines multiple sessions
-provides = ["another-package", "another-package-2"]
-
-# List compatible isabelle versions
-isabelles = ["2025.1.0", "2025.0.0"]
 
 # The 'extra' field allows for arbitrary nested data. dois and pubs will be placed here
 [extra]
