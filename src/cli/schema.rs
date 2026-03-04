@@ -110,7 +110,7 @@ pub enum CacheAction {
 
 #[derive(Args)]
 pub struct CacheCleanArgs {
-    /// Also remove package/theory metadata (requires a 'repo update' to restore)
+    /// Also remove package/theory metadata (all sourced packages must be re-sourced)
     #[arg(short, long)]
     pub meta: bool,
 }

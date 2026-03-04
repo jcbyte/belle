@@ -5,8 +5,9 @@ use console::style;
 use pubgrub::SemanticVersion;
 
 use crate::{
+    cli::package,
     config::BelleConfig,
-    registry::{self, AliasPackage, Package, PackageIdentifier, RegisteredPackage},
+    registry::{self, AliasPackage, Package, PackageIdentifier, PackageSource, RegisteredPackage},
     util::get_isabelle_name,
 };
 
@@ -101,11 +102,24 @@ fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
 
     println!();
 
-    println!("{:<10} {}", style("Date:").dim(), meta.date);
+    println!("{:<10} {}", style("Date:").bold(), meta.date);
     if !meta.topics.is_empty() {
-        println!("{:<10} {}", style("Topics:").dim(), meta.topics.join(", "));
+        println!("{:<10} {}", style("Topics:").bold(), meta.topics.join(", "));
     }
-    println!("{:<10} {}", style("License:").dim(), meta.licence);
+    println!("{:<10} {}", style("License:").bold(), meta.licence);
+    let source_str = match &meta.source {
+        PackageSource::Afp(repo) => format!(
+            "{} {}{}{}",
+            repo.name,
+            style("[").dim(),
+            style(repo.get_version()).green(),
+            style("]").dim()
+        ),
+        PackageSource::Remote { url } => format!("Remote: {}", url),
+        PackageSource::Local { path } => format!("Local: {}", path.to_string_lossy().to_string()),
+        _ => format!(""),
+    };
+    println!("{:<10} {}", style("Source:").bold(), source_str);
 
     println!();
 
@@ -125,10 +139,10 @@ fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
 
     println!();
 
-    println!("{}", style("Supported Isabelle Versions:").bold());
+    println!("{}", style("Isabelle Versions:").bold());
     for isabelle_version in &meta.isabelles {
         println!(
-            "- {} {}{}{}",
+            "- {:<6} {}{}{}",
             style(get_isabelle_name(isabelle_version)),
             style("[").dim(),
             style(isabelle_version).green(),
@@ -194,8 +208,6 @@ fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
             println!("{:<10} {}", style(format!("{}:", extra.0)).dim(), extra.1);
         }
     }
-
-    // todo 1 print source
 }
 
 /// Display metadata for a specific package on the console, if a version is not given then the latest will be shown

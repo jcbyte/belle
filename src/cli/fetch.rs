@@ -8,7 +8,7 @@ use url::Url;
 use crate::{
     cli::environment,
     fetch::{self, BelleClient, RepoMetadata, get_local_package_meta},
-    registry::{Package, RegistrablePackage},
+    registry::{Package, PackageIdentifier, RegistrablePackage},
 };
 
 /// List AFP repositories and print them in a simple table
@@ -183,22 +183,28 @@ pub async fn fetch_afp_meta(repo_name: Option<String>) -> anyhow::Result<()> {
 pub async fn source_remote_repo(url: Url, branch: &str) -> anyhow::Result<()> {
     let client = BelleClient::new()?;
     let (package, aliases) = client.get_github_package_meta(url, branch).await?;
+    let package_identifier = PackageIdentifier::from(&package);
 
     package.register()?;
     for alias in aliases {
         alias.register()?;
     }
+
+    println!("Sourced: {}", style(package_identifier).cyan());
 
     return Ok(());
 }
 
 pub fn source_local_package(path: PathBuf) -> anyhow::Result<()> {
     let (package, aliases) = get_local_package_meta(path)?;
+    let package_identifier = PackageIdentifier::from(&package);
 
     package.register()?;
     for alias in aliases {
         alias.register()?;
     }
+
+    println!("Sourced: {}", style(package_identifier).cyan());
 
     return Ok(());
 }

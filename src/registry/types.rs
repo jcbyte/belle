@@ -42,8 +42,6 @@ pub enum PackageSource {
     Default,
 }
 
-// todo 1 support remote repos
-
 /// All package metadata
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Package {
