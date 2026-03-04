@@ -1,4 +1,5 @@
-use anyhow::Context;
+use anyhow::{Context, bail};
+use reqwest::StatusCode;
 use url::Url;
 
 use crate::{
@@ -31,17 +32,18 @@ impl BelleClient {
         let zip_url = Url::parse(&format!("https://github.com/{}/{}/zipball/{}", owner, repo, branch))
             .context("Failed to construct remote archive URL")?;
 
-        let package_content = self
+        let response = self
             .client
             .get(raw_url)
             .send()
             .await
-            .context("Failed to send request to GitHub")?
-            .text()
-            .await
-            .context("Failed to parse response from GitHub")?;
+            .context("Failed to send request to GitHub")?;
 
-        // todo give specific error for 404
+        if response.status() == StatusCode::NOT_FOUND {
+            bail!("Package manifest or repository could not be found");
+        }
+
+        let package_content = response.text().await.context("Failed to parse response from GitHub")?;
 
         let mut package =
             toml::from_str::<Package>(&package_content).context("Failed to parse TOML for package manifest")?;
