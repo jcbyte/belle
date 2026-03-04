@@ -35,7 +35,7 @@ name = "The White Rabbit"
 provides = ["another-package", "another-package-2"]
 
 # List compatible isabelle versions
-isabelles = ["2025-1", "2025"]
+isabelles = ["2025.1.0", "2025.0.0"]
 
 # The 'extra' field allows for arbitrary nested data. dois and pubs will be placed here
 [extra]
