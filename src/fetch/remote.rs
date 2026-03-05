@@ -4,7 +4,7 @@ use url::Url;
 
 use crate::{
     fetch::{BelleClient, PACKAGE_FILE},
-    registry::{AliasPackage, Package, PackageIdentifier},
+    registry::{AliasPackage, Package, PackageIdentifier, PackageSource},
 };
 
 impl BelleClient {
@@ -61,5 +61,19 @@ impl BelleClient {
             .collect();
 
         return Ok((package, aliases));
+    }
+
+    pub async fn get_remote_package(&self, url: Url) -> anyhow::Result<bytes::Bytes> {
+        let bytes = self
+            .client
+            .get(url)
+            .send()
+            .await
+            .context("Failed to send request to fetch package")?
+            .bytes()
+            .await
+            .context("Failed to read archive bytes")?;
+
+        return Ok(bytes);
     }
 }

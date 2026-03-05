@@ -147,4 +147,24 @@ impl BelleClient {
 
         return Ok(file_content);
     }
+
+    pub async fn get_afp_package(&self, name: &str, repo: &AFPRepo) -> anyhow::Result<bytes::Bytes> {
+        let package_archive_url = format!(
+            "https://foss.heptapod.net/api/v4/projects/{}/repository/archive.zip?path={}",
+            repo.id,
+            format!("thys%2F{}", name)
+        );
+
+        let bytes = self
+            .client
+            .get(package_archive_url)
+            .send()
+            .await
+            .with_context(|| format!("Failed to fetch archive for '{}' from '{}' repo", name, repo.name))?
+            .bytes()
+            .await
+            .with_context(|| format!("Failed to read archive bytes for '{}' from '{}' repo", name, repo.name))?;
+
+        return Ok(bytes);
+    }
 }

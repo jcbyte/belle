@@ -33,7 +33,7 @@ pub fn iter_packages() -> impl Iterator<Item = String> {
         .min_depth(1)
         .max_depth(1)
         .into_iter()
-        .filter_map(|(entry)| entry.ok())
+        .filter_map(|entry| entry.ok())
         .map(|entry| entry.file_name().to_string_lossy().to_string())
 }
 

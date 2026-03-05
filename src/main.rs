@@ -20,11 +20,13 @@ async fn main() {
 }
 
 // todo 3 fetch theories
+
 // todo 4 create ROOTS files
 // todo 4 integrate with isabelle
 
 // todo 6.1 ensure consistent naming of packages
-// todo 6.2 check all error handling cases are needed (should we just expect), ensure messages are correct (resolving, deserialising etc)
+// todo 6.2 check all error handling cases are needed (should we just expect), ensure messages are correct (resolving, deserialising etc), use thiserror
 // todo 6.3 use references instead of cloning everywhere
+
 // todo 7 testing
 // todo 7 CI

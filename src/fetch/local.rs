@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::{fmt::format, fs, path::PathBuf};
 
 use anyhow::{self, Context};
 
@@ -18,7 +18,11 @@ pub fn get_local_package_meta(path: PathBuf) -> anyhow::Result<(Package, Vec<Ali
     let mut package =
         toml::from_str::<Package>(&package_content).context("Failed to parse TOML for package manifest")?;
 
-    package.source = crate::registry::PackageSource::Local { path };
+    package.source = crate::registry::PackageSource::Local {
+        path: path
+            .canonicalize()
+            .with_context(|| format!("Failed to canonicalise path '{}'", path.to_string_lossy().to_string()))?,
+    };
 
     let aliases: Vec<AliasPackage> = package
         .provides

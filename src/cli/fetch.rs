@@ -181,6 +181,11 @@ pub async fn fetch_afp_meta(repo_name: Option<String>) -> anyhow::Result<()> {
 
 pub async fn source_remote_repo(url: Url, branch: &str) -> anyhow::Result<()> {
     let client = BelleClient::new()?;
+
+    let pb = ProgressBar::new_spinner();
+    pb.enable_steady_tick(Duration::from_millis(100));
+    pb.set_message(format!("Fetching package manifest"));
+
     let (package, aliases) = client.get_github_package_meta(url, branch).await?;
     let package_identifier = PackageIdentifier::from(&package);
 
@@ -189,6 +194,7 @@ pub async fn source_remote_repo(url: Url, branch: &str) -> anyhow::Result<()> {
         alias.register()?;
     }
 
+    pb.finish_and_clear();
     println!("Sourced: {}", style(package_identifier).cyan());
 
     return Ok(());
