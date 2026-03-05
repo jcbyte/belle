@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{clone, collections::HashMap, fs, path::PathBuf};
 
 use anyhow::Context;
 
@@ -180,5 +180,22 @@ impl Environment {
             .collect();
 
         return packages;
+    }
+
+    pub fn migrate_isabelle(&mut self, version: VersionReq, unpin_existing: bool) -> anyhow::Result<()> {
+        self.isabelle = version;
+
+        if unpin_existing {
+            self.packages = self
+                .packages
+                .iter()
+                .map(|(name, _version)| (name.clone(), VersionReq::Any))
+                .collect()
+        }
+
+        self.resolve_lock()?;
+        self.save()?;
+
+        return Ok(());
     }
 }

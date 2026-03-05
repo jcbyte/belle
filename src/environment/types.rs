@@ -38,10 +38,6 @@ impl From<Option<SemanticVersion>> for VersionReq {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Environment {
     pub name: String,
-    // #[serde(
-    //     serialize_with = "serialise_optional_version",
-    //     deserialize_with = "deserialise_optional_version"
-    // )]
     pub packages: HashMap<String, VersionReq>,
     pub isabelle: VersionReq,
     pub lock: HashMap<String, SemanticVersion>,

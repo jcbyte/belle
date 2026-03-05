@@ -181,7 +181,9 @@ pub fn list_packages(all: bool) -> anyhow::Result<()> {
 }
 
 pub fn migrate_isabelle(version: Option<SemanticVersion>, unpin_existing: bool) -> anyhow::Result<()> {
-    // todo
+    let mut active_env = Environment::active()?.ok_or(anyhow::anyhow!("No environment is selected"))?;
+
+    active_env.migrate_isabelle(version.into(), unpin_existing)?;
 
     return Ok(());
 }
