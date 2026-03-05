@@ -6,7 +6,7 @@ use console::style;
 async fn main() {
     // Ensure configuration/state is initialised
     if let Err(e) = BelleConfig::init() {
-        // todo error handling
+        // todo 6.2 error handling
     }
 
     // Parse command-line arguments and dispatch to the appropriate action
@@ -14,19 +14,17 @@ async fn main() {
 
     // Execute the commands
     if let Err(e) = cli::run(args).await {
-        // todo error handling
+        // todo 6.2 error handling
         println!("{}", style(e).bold().red())
     }
 }
 
-// todo search theories
+// todo 3 fetch theories
+// todo 4 create ROOTS files
+// todo 4 integrate with isabelle
 
-// todo fetch theories
-// todo create ROOTS files
-// todo integrate with isabelle
-
-// todo CI
-// todo ensure consistent naming of packages
-// todo check all error handling cases are needed (should we just expect), ensure messages are correct (resolving, deserialising etc)
-// todo use references instead of cloning everywhere
-// todo testing
+// todo 6.1 ensure consistent naming of packages
+// todo 6.2 check all error handling cases are needed (should we just expect), ensure messages are correct (resolving, deserialising etc)
+// todo 6.3 use references instead of cloning everywhere
+// todo 7 testing
+// todo 7 CI

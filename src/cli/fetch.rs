@@ -6,8 +6,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use url::Url;
 
 use crate::{
-    cli::environment,
-    fetch::{self, BelleClient, RepoMetadata, get_local_package_meta},
+    fetch::{BelleClient, RepoMetadata, get_local_package_meta},
     registry::{Package, PackageIdentifier, RegistrablePackage},
 };
 

@@ -5,9 +5,8 @@ use console::style;
 use pubgrub::SemanticVersion;
 
 use crate::{
-    cli::package,
     config::BelleConfig,
-    registry::{self, AliasPackage, Package, PackageIdentifier, PackageSource, RegisteredPackage},
+    registry::{self, AliasPackage, Package, PackageIdentifier, PackageSource, RegisteredPackage, iter_packages},
     util::get_isabelle_name,
 };
 
@@ -241,4 +240,43 @@ pub fn print_package_meta(name: String, version: Option<SemanticVersion>) -> any
     };
 
     return Ok(());
+}
+
+fn highlight_match(text: &str, query: &str) -> String {
+    if let Some(start) = text.to_lowercase().find(&query.to_lowercase()) {
+        let end = start + query.len();
+
+        let prefix = &text[..start];
+        let matched = &text[start..end];
+        let suffix = &text[end..];
+
+        // Wrap the matched part in a different color/style
+        format!("{}{}{}", prefix, style(matched).cyan(), suffix)
+    } else {
+        text.to_string()
+    }
+}
+
+pub fn search_registry(search: String) {
+    let mut results = Vec::new();
+
+    for package in iter_packages() {
+        if package.to_lowercase().contains(&search.to_lowercase()) {
+            results.push(package);
+        }
+    }
+
+    if results.is_empty() {
+        println!("Found {} Results for '{}'.", style("0").bold(), style(search).cyan());
+
+        return;
+    }
+
+    // Print list of results
+    println!("Search results for '{}':", style(&search).cyan());
+
+    for package in &results {
+        println!("{} {}", style("-").dim(), highlight_match(package, &search));
+    }
+    println!("Found {} Results.", style(results.len()).bold());
 }

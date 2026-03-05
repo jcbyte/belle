@@ -28,9 +28,7 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
                     cli::registry::clean_metadata()?;
                 }
             }
-            CacheAction::Purge => {
-                todo!("purge");
-            }
+            CacheAction::Purge => todo!("3 purge"),
         },
         Commands::Inspect(args) => {
             if args.versions {
@@ -39,6 +37,7 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
                 cli::registry::print_package_meta(args.name, args.version)?;
             }
         }
+        Commands::Search(args) => registry::search_registry(args.query),
         Commands::Switch(args) | Commands::Env(EnvAction::Switch(args)) => environment::switch_env(args.name)?,
         Commands::Env(action) => match action {
             EnvAction::Create(args) => environment::create_env(args.name, args.new, args.isabelle)?,

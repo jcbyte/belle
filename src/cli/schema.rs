@@ -26,6 +26,9 @@ pub enum Commands {
     #[command(visible_alias = "show")]
     Inspect(InspectArgs),
 
+    /// Search for packages
+    Search(SearchArgs),
+
     /// Manage isolated environments
     #[command(subcommand)]
     Env(EnvAction),
@@ -127,6 +130,12 @@ pub struct InspectArgs {
     /// List all available versions for this package instead
     #[arg(short, long)]
     pub versions: bool,
+}
+
+#[derive(Args)]
+pub struct SearchArgs {
+    /// The search query for package name
+    pub query: String,
 }
 
 #[derive(Subcommand)]

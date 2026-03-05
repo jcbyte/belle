@@ -25,6 +25,18 @@ pub fn iter_package_files(root_path: &PathBuf, version: &SemanticVersion) -> imp
         .map(|file| file.path().to_path_buf());
 }
 
+/// Scan for all packages in registry
+pub fn iter_packages() -> impl Iterator<Item = String> {
+    let manifest_dir = BelleConfig::read_config(|c| c.get_manifest_dir());
+
+    WalkDir::new(manifest_dir)
+        .min_depth(1)
+        .max_depth(1)
+        .into_iter()
+        .filter_map(|(entry)| entry.ok())
+        .map(|entry| entry.file_name().to_string_lossy().to_string())
+}
+
 /// Scan for all versions for a specific package
 pub fn get_package_versions(name: &String) -> anyhow::Result<Vec<PackageIdentifier>> {
     let package_manifests = BelleConfig::read_config(|c| c.get_manifest_dir()).join(name);
