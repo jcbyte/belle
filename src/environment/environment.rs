@@ -10,7 +10,7 @@ use crate::{
 
 impl Environment {
     /// Create a new environment with the given name
-    pub fn new(name: String) -> anyhow::Result<Self> {
+    pub fn new(name: String, isabelle_version: VersionReq) -> anyhow::Result<Self> {
         let env_dir = Self::env_dir_for_name(&name);
 
         if env_dir.is_dir() {
@@ -19,7 +19,7 @@ impl Environment {
 
         let env = Environment {
             name,
-            isabelle: VersionReq::Any,
+            isabelle: isabelle_version,
             packages: HashMap::new(),
             lock: HashMap::new(),
         };

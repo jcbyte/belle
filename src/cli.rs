@@ -41,7 +41,7 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
         }
         Commands::Switch(args) | Commands::Env(EnvAction::Switch(args)) => environment::switch_env(args.name)?,
         Commands::Env(action) => match action {
-            EnvAction::Create(args) => environment::create_env(args.name, args.new)?,
+            EnvAction::Create(args) => environment::create_env(args.name, args.new, args.isabelle)?,
             EnvAction::List => environment::list_envs()?,
             EnvAction::Remove(args) => environment::remove_env(&args.name)?,
             EnvAction::Switch(_args) => unreachable!(),
@@ -50,7 +50,7 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
         },
         Commands::Add(args) => package::add_package(args.name, args.version)?,
         Commands::Remove(args) => package::remove_package(&args.name)?,
-        Commands::Upgrade => todo!("2 update packages"),
+        Commands::Migrate(args) => environment::migrate_isabelle(args.version, args.unpin)?,
         Commands::List(args) => environment::list_packages(args.all)?,
     }
 

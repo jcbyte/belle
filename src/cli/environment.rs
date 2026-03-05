@@ -1,6 +1,7 @@
 use std::fs;
 
 use console::style;
+use pubgrub::SemanticVersion;
 
 use crate::{
     config::BelleConfig,
@@ -9,13 +10,13 @@ use crate::{
     util::get_isabelle_name,
 };
 
-fn get_env_name(name: Option<&String>) -> anyhow::Result<String> {
+fn get_env_name(name: Option<&String>) -> anyhow::Result<(String, bool)> {
     let name = match name {
-        Some(n) => n.clone(),
+        Some(n) => (n.clone(), false),
         None => {
             let frozen_env = Environment::frozen()?
                 .ok_or_else(|| anyhow::anyhow!("No name given, and no belle file found in workspace"))?;
-            frozen_env.name.clone()
+            (frozen_env.name.clone(), true)
         }
     };
 
@@ -23,21 +24,25 @@ fn get_env_name(name: Option<&String>) -> anyhow::Result<String> {
 }
 
 pub fn switch_env(name: Option<String>) -> anyhow::Result<()> {
-    let name = get_env_name(name.as_ref())?;
+    let (name, _using_frozen) = get_env_name(name.as_ref())?;
 
     manager::switch_env(&name)?;
     println!("Switched to environment {}", style(name).cyan().bold());
     return Ok(());
 }
 
-pub fn create_env(name: Option<String>, new: bool) -> anyhow::Result<()> {
-    let env_name = get_env_name(name.as_ref())?;
+pub fn create_env(name: Option<String>, new: bool, isabelle: Option<SemanticVersion>) -> anyhow::Result<()> {
+    let (env_name, using_frozen) = get_env_name(name.as_ref())?;
 
-    let mut new_env = Environment::new(env_name.clone())?;
+    if using_frozen && !new && isabelle.is_some() {
+        anyhow::bail!("Isabelle version cannot be given when creating from an existing belle file");
+    }
+
+    let mut new_env = Environment::new(env_name.clone(), isabelle.into())?;
     println!("Created new environment: {}", style(env_name).cyan().bold());
 
-    // If name is none then it was created from a belle file, so we want to sync this into the environment
-    if new && name.is_none() {
+    // If created from a belle file, we want to sync this into the environment
+    if using_frozen && new {
         new_env.sync()?;
     }
 
@@ -171,6 +176,12 @@ pub fn list_packages(all: bool) -> anyhow::Result<()> {
             )
         }
     }
+
+    return Ok(());
+}
+
+pub fn migrate_isabelle(version: Option<SemanticVersion>, unpin_existing: bool) -> anyhow::Result<()> {
+    // todo
 
     return Ok(());
 }

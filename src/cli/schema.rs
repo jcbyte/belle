@@ -39,8 +39,8 @@ pub enum Commands {
     /// Remove package from current environment
     Remove(RemoveArgs),
 
-    /// Update all packages in the current environment
-    Upgrade,
+    /// Migrate to a different isabelle version
+    Migrate(MigrateArgs),
 
     /// List all packages in the current environment
     List(ListArgs),
@@ -111,7 +111,7 @@ pub enum CacheAction {
 #[derive(Args)]
 pub struct CacheCleanArgs {
     /// Also remove package/theory metadata (all sourced packages must be re-sourced)
-    #[arg(short, long)]
+    #[arg(long)]
     pub meta: bool,
 }
 
@@ -121,7 +121,7 @@ pub struct InspectArgs {
     pub name: String,
 
     /// Inspect a specific version (defaults to latest)
-    #[arg(conflicts_with = "versions")]
+    #[arg(short, long, conflicts_with = "versions")]
     pub version: Option<SemanticVersion>,
 
     /// List all available versions for this package instead
@@ -158,6 +158,10 @@ pub struct EnvCreateArgs {
     /// Ignore belle file and create fresh environment
     #[arg(short, long)]
     pub new: bool,
+
+    /// The Isabelle version to use in this environment // todo this
+    #[arg(short, long)]
+    pub isabelle: Option<SemanticVersion>,
 }
 
 #[derive(Args)]
@@ -185,6 +189,17 @@ pub struct AddArgs {
 pub struct RemoveArgs {
     /// The name of package to remove
     pub name: String,
+}
+
+#[derive(Args)]
+pub struct MigrateArgs {
+    /// Isabelle version to migrate to (defaults to unpinned, picking latest)
+    #[arg(short, long)]
+    pub version: Option<SemanticVersion>,
+
+    /// Unpin existing dependencies
+    #[arg(short, long)]
+    pub unpin: bool,
 }
 
 #[derive(Args)]
