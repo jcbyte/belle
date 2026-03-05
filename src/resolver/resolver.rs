@@ -1,46 +1,58 @@
 use anyhow::Context;
 use pubgrub::{Dependencies, DependencyProvider, PackageResolutionStatistics, Ranges, SemanticVersion, resolve};
 use rustc_hash::{FxBuildHasher, FxHashMap};
-use std::{cell::RefCell, cmp::Reverse, collections::HashMap};
+use std::{
+    cell::RefCell,
+    cmp::Reverse,
+    collections::{HashMap, HashSet},
+    usize,
+};
 
 use crate::{
     config::BelleConfig,
     environment::VersionReq,
     registry::{PackageIdentifier, RegisteredPackage, get_package_versions},
-    resolver::SolverError,
+    resolver::{ISABELLE_PACKAGE, SolverError},
 };
 
 type SemVS = Ranges<SemanticVersion>;
 
-pub static ISABELLE_PACKAGE: &str = "!Isabelle";
-
 pub struct BelleDependencyProvider {
     root_packages: HashMap<String, VersionReq>,
-    isabelle_versions: Vec<SemanticVersion>,
+
+    /// List of seen isabelle versions from packages
+    isabelle_versions: RefCell<HashSet<SemanticVersion>>,
+    given_isabelle: bool,
 
     /// Cache for package versions
-    package_versions: RefCell<HashMap<String, Vec<SemanticVersion>>>,
+    package_versions: RefCell<HashMap<String, HashSet<SemanticVersion>>>,
 }
 
 impl BelleDependencyProvider {
-    fn new(root_packages: HashMap<String, VersionReq>) -> Self {
-        // todo 2 get this from root packages
-        let isabelle_versions = vec![SemanticVersion::new(2025, 2, 0), SemanticVersion::new(2025, 1, 0)];
+    fn new(isabelle_version: VersionReq, root_packages: HashMap<String, VersionReq>) -> Self {
+        let isabelle_versions = match isabelle_version {
+            // If an isabelle version is given, only allow this to be the available version
+            // All theories will eventually reference an isabelle package
+            VersionReq::Given(version) => HashSet::from([version]),
+            VersionReq::Any => HashSet::new(),
+        };
 
         return Self {
             root_packages,
-            isabelle_versions,
+            isabelle_versions: RefCell::new(isabelle_versions),
+            // This flag will not add more packages into isabelle_versions if it is given, meaning the only allowed isabelle version is `isabelle_version`
+            given_isabelle: !isabelle_version.is_any(),
             package_versions: RefCell::new(HashMap::new()),
         };
     }
 
-    fn get_package_versions(&self, name: &String) -> anyhow::Result<Vec<SemanticVersion>> {
+    fn get_package_versions(&self, name: &String) -> anyhow::Result<HashSet<SemanticVersion>> {
         if let Some(versions) = self.package_versions.borrow().get(name) {
             return Ok(versions.clone());
         }
 
         let mut cache = self.package_versions.borrow_mut();
-        let fetched = get_package_versions(name)?.into_iter().map(|v| v.version).collect::<Vec<_>>();
+        let fetched: HashSet<SemanticVersion> = get_package_versions(name)?.into_iter().map(|v| v.version).collect();
         cache.insert(name.clone(), fetched.clone());
 
         return Ok(fetched);
@@ -55,8 +67,11 @@ impl DependencyProvider for BelleDependencyProvider {
 
         let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
         let versions = if package.eq(ISABELLE_PACKAGE) || isabelle_packages.contains(package) {
-            self.isabelle_versions.clone()
+            // If this is an isabelle package pick a version from the available isabelle versions
+            let isabelle_versions = self.isabelle_versions.borrow();
+            isabelle_versions.clone()
         } else {
+            // Else pick from the list of the packages versions
             self.get_package_versions(package)?
         };
 
@@ -73,23 +88,20 @@ impl DependencyProvider for BelleDependencyProvider {
         range: &SemVS,
         _conflicts_counts: &PackageResolutionStatistics,
     ) -> Self::Priority {
-        // Prioritize packages with fewer compatible versions
-
+        // Prioritise this package the most
         if package.eq(".") {
             return Reverse(0);
         }
 
+        // Process isabelle packages last to ensure all isabelle versions have been collected
         let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
-        if isabelle_packages.contains(package) {
-            return Reverse(10);
+        if package.eq(ISABELLE_PACKAGE) || isabelle_packages.contains(package) {
+            return Reverse(usize::MAX);
         }
 
-        if package.eq(ISABELLE_PACKAGE) {
-            return Reverse(10);
-        }
-
-        // ! fix unsafe behaviour
-        let versions = self.get_package_versions(package).unwrap();
+        // Prioritise packages with fewer compatible versions
+        // If versions cannot be got, an empty HashSet is provided => Reverse(0)
+        let versions = self.get_package_versions(package).unwrap_or_default();
         let valid_versions_count = versions.iter().filter(|v| range.contains(v)).count();
 
         // Invert to pick packages with fewest versions
@@ -155,6 +167,12 @@ impl DependencyProvider for BelleDependencyProvider {
                     .iter()
                     .fold(SemVS::empty(), |acc, version| acc.union(&SemVS::singleton(version)));
 
+                if !self.given_isabelle {
+                    // Add each seen version of isabelle into the global list for picking isabelle package versions later
+                    let mut global_isabelle_versions = self.isabelle_versions.borrow_mut();
+                    global_isabelle_versions.extend(manifest.isabelles);
+                }
+
                 for (name, version) in manifest.dependencies {
                     // If the dependency is an isabelle package then, we can accept any versions of isabelle that this package accepts
                     if isabelle_packages.contains(&name) {
@@ -182,8 +200,11 @@ impl DependencyProvider for BelleDependencyProvider {
 }
 
 impl BelleDependencyProvider {
-    pub fn resolve(packages: HashMap<String, VersionReq>) -> anyhow::Result<HashMap<String, SemanticVersion>> {
-        let resolver = BelleDependencyProvider::new(packages);
+    pub fn resolve(
+        isabelle: VersionReq,
+        packages: HashMap<String, VersionReq>,
+    ) -> anyhow::Result<HashMap<String, SemanticVersion>> {
+        let resolver = BelleDependencyProvider::new(isabelle, packages);
 
         let mut resolved_dependencies = resolve(&resolver, String::from("."), SemanticVersion::zero())?;
         resolved_dependencies.remove(".");

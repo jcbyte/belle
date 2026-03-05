@@ -159,7 +159,7 @@ pub struct EnvCreateArgs {
     #[arg(short, long)]
     pub new: bool,
 
-    /// The Isabelle version to use in this environment // todo this
+    /// The Isabelle version to use in this environment
     #[arg(short, long)]
     pub isabelle: Option<SemanticVersion>,
 }

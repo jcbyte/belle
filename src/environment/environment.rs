@@ -1,4 +1,4 @@
-use std::{clone, collections::HashMap, fs, path::PathBuf};
+use std::{collections::HashMap, fs, path::PathBuf};
 
 use anyhow::Context;
 
@@ -149,7 +149,7 @@ impl Environment {
     }
 
     fn resolve_lock(&mut self) -> anyhow::Result<()> {
-        let resolved_packages = BelleDependencyProvider::resolve(self.packages.clone())?;
+        let resolved_packages = BelleDependencyProvider::resolve(self.isabelle.clone(), self.packages.clone())?;
         self.lock = resolved_packages;
 
         return Ok(());
