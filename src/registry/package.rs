@@ -1,11 +1,22 @@
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    io::{self, Cursor, Read},
+    path::PathBuf,
+};
 
 use anyhow::Context;
+use zip::ZipArchive;
 
 use crate::{
     config::BelleConfig,
-    registry::{AliasPackage, Package, PackageIdentifier, RegisteredPackage},
+    fetch::BelleClient,
+    registry::{AliasPackage, Package, PackageIdentifier, PackageSource, RegisteredPackage},
 };
+
+#[cfg(windows)]
+use junction::create as symlink;
+#[cfg(unix)]
+use std::os::unix::fs::symlink;
 
 pub trait RegistrablePackage: Into<RegisteredPackage> {
     fn get_identifier(&self) -> PackageIdentifier;
@@ -42,6 +53,70 @@ impl RegistrablePackage for AliasPackage {
     fn get_identifier(&self) -> PackageIdentifier {
         // Just call your existing logic here
         PackageIdentifier::from(self)
+    }
+}
+
+impl Package {
+    pub async fn get_package(&self, client: &BelleClient) -> anyhow::Result<()> {
+        let package_location = PackageIdentifier::from(self).get_theory_location();
+
+        match &self.source {
+            PackageSource::Afp(..) | PackageSource::Remote { .. } => {
+                let bytes = match &self.source {
+                    PackageSource::Afp(repo) => client.get_afp_package(&self.name, repo).await?,
+                    PackageSource::Remote { url } => client.get_remote_package(url.clone()).await?,
+                    _ => unreachable!(),
+                };
+
+                let reader = Cursor::new(bytes);
+                let mut archive = ZipArchive::new(reader)?;
+
+                // Find the inner folder that has the `ROOT` file
+                let mut prefix = PathBuf::new();
+                for i in 0..archive.len() {
+                    let file = archive.by_index(i)?;
+
+                    if file.name().ends_with("ROOT") {
+                        if let Some(parent) = PathBuf::from(file.name()).parent() {
+                            prefix = parent.to_path_buf();
+                        }
+                        break;
+                    }
+                }
+
+                // Extract contents of the archive from the prefixed location
+                for i in 0..archive.len() {
+                    let mut file = archive.by_index(i)?;
+                    let filename = file.enclosed_name().ok_or(anyhow::anyhow!("Invalid file path in archive"))?;
+
+                    if let Ok(stripped_path) = filename.strip_prefix(&prefix) {
+                        let file_src = package_location.join(stripped_path);
+
+                        if file.is_dir() {
+                            fs::create_dir_all(&file_src)?;
+                        } else {
+                            if let Some(parent) = file_src.parent() {
+                                fs::create_dir_all(parent)?;
+                            };
+                            let mut out_file = fs::File::create(&file_src)?;
+                            std::io::copy(&mut file, &mut out_file)?;
+                        }
+                    }
+                }
+            }
+            // Create a symlink from packages directory to given directory
+            PackageSource::Local { path } => {
+                // Create a temporary symlink and overwrite to avoid `AlreadyExists` errors
+                let temp_link = package_location.with_added_extension("tmp");
+
+                symlink(path, &temp_link).context("Failed to create junction/symlink for active environment")?;
+                fs::rename(temp_link, package_location)
+                    .context("Failed to overwrite existing junction/symlink for the active environment")?;
+            }
+            PackageSource::Default => anyhow::bail!("Source is not given for this package"),
+        };
+
+        return Ok(());
     }
 }
 

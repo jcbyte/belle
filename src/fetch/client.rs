@@ -17,17 +17,4 @@ impl BelleClient {
 
         return Ok(Self { client });
     }
-
-    pub async fn get_package(&self, package: &Package) -> anyhow::Result<Option<bytes::Bytes>> {
-        // Route the package fetching to its respective source
-        let bytes = match &package.source {
-            PackageSource::Afp(repo) => self.get_afp_package(&package.name, repo).await?,
-            PackageSource::Remote { url } => self.get_remote_package(url.clone()).await?,
-            // Do not need to retrieve local packages as they can be used from there respective folders
-            PackageSource::Local { .. } => return Ok(None),
-            PackageSource::Default => bail!("Source is not given for this package"),
-        };
-
-        return Ok(Some(bytes));
-    }
 }
