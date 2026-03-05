@@ -1,6 +1,4 @@
-use anyhow::{Context, bail};
-
-use crate::registry::{Package, PackageSource};
+use anyhow::Context;
 
 pub struct BelleClient {
     pub client: reqwest::Client,

@@ -1,4 +1,4 @@
-use std::{fmt::format, fs, path::PathBuf};
+use std::{fs, path::PathBuf};
 
 use anyhow::{self, Context};
 

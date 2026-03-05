@@ -50,10 +50,9 @@ pub fn create_env(name: Option<String>, new: bool, isabelle: Option<SemanticVers
 }
 
 pub fn list_envs() -> anyhow::Result<()> {
-    let envs = manager::get_envs();
     let active_env = manager::get_active_env()?;
 
-    for env in envs {
+    for env in manager::iter_envs() {
         let env_line = if active_env.as_deref() == Some(env.as_str()) {
             format!(
                 "{} {:<9} {}",

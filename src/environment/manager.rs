@@ -32,7 +32,7 @@ pub fn get_active_env() -> anyhow::Result<Option<String>> {
     return Ok(active_env.map(|env| env.name.clone()));
 }
 
-pub fn get_envs() -> Vec<String> {
+pub fn iter_envs() -> impl Iterator<Item = String> {
     let env_dir = BelleConfig::read_config(|c| c.get_env_dir());
 
     return WalkDir::new(env_dir)
@@ -41,6 +41,5 @@ pub fn get_envs() -> Vec<String> {
         .into_iter()
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.file_type().is_dir())
-        .map(|env_dir| env_dir.file_name().to_string_lossy().to_string())
-        .collect();
+        .map(|env_dir| env_dir.file_name().to_string_lossy().to_string());
 }

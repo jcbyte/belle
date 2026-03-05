@@ -1,6 +1,6 @@
 use std::{
     fs,
-    io::{self, Cursor, Read},
+    io::{self, Cursor},
     path::PathBuf,
 };
 
@@ -99,7 +99,7 @@ impl Package {
                                 fs::create_dir_all(parent)?;
                             };
                             let mut out_file = fs::File::create(&file_src)?;
-                            std::io::copy(&mut file, &mut out_file)?;
+                            io::copy(&mut file, &mut out_file)?;
                         }
                     }
                 }

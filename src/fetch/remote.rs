@@ -4,7 +4,7 @@ use url::Url;
 
 use crate::{
     fetch::{BelleClient, PACKAGE_FILE},
-    registry::{AliasPackage, Package, PackageIdentifier, PackageSource},
+    registry::{AliasPackage, Package, PackageIdentifier},
 };
 
 impl BelleClient {

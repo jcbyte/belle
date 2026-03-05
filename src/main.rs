@@ -19,8 +19,6 @@ async fn main() {
     }
 }
 
-// todo 3 fetch theories
-
 // todo 4 create ROOTS files
 // todo 4 integrate with isabelle
 
