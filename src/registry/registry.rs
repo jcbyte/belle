@@ -1,4 +1,4 @@
-use std::{path::PathBuf, str::FromStr};
+use std::str::FromStr;
 
 use anyhow::Context;
 use pubgrub::SemanticVersion;
@@ -6,23 +6,26 @@ use walkdir::WalkDir;
 
 use crate::{config::BelleConfig, registry::PackageIdentifier};
 
-/// Scan for `$root/{name}/{version}` toml files or folders
-pub fn iter_package_files(root_path: &PathBuf, version: &SemanticVersion) -> impl Iterator<Item = PathBuf> {
-    let file_target = format!("{}.toml", version.to_string());
-    let dir_target = version.to_string();
+/// Scan for all installed packages
+pub fn iter_installed_packages() -> impl Iterator<Item = PackageIdentifier> {
+    let packages_dir = BelleConfig::read_config(|c| c.get_theory_dir());
 
-    return WalkDir::new(root_path)
+    return WalkDir::new(packages_dir)
         .min_depth(2)
         .max_depth(2)
         .into_iter()
         .filter_map(|entry| entry.ok())
-        .filter(move |entry| {
-            let name = entry.file_name().to_string_lossy().to_string();
+        // If name and version cant be extracted remove them from results
+        .filter_map(|entry| {
+            // Extract the last two components: [..., "name", "version"]
+            let mut p = entry.path().components().rev();
+            let version_str = p.next()?.as_os_str().to_string_lossy().to_string();
+            let name = p.next()?.as_os_str().to_string_lossy().to_string();
 
-            (entry.file_type().is_file() && name.eq(&file_target)) || //,
-            (entry.file_type().is_dir() && name.eq(&dir_target))
-        })
-        .map(|file| file.path().to_path_buf());
+            let version = SemanticVersion::from_str(&version_str).ok()?;
+
+            Some(PackageIdentifier { name, version })
+        });
 }
 
 /// Scan for all packages in registry
