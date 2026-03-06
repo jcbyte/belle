@@ -68,7 +68,7 @@ pub struct Package {
 }
 
 /// Package identifier for lookup and passing
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct PackageIdentifier {
     pub name: String,
     pub version: SemanticVersion,

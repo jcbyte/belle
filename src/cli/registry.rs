@@ -1,4 +1,4 @@
-use std::fs;
+use std::{collections::HashSet, fs};
 
 use anyhow::Context;
 use console::style;
@@ -6,7 +6,11 @@ use pubgrub::SemanticVersion;
 
 use crate::{
     config::BelleConfig,
-    registry::{self, AliasPackage, Package, PackageIdentifier, PackageSource, RegisteredPackage, iter_packages},
+    environment::{Environment, manager::iter_envs},
+    registry::{
+        self, AliasPackage, Package, PackageIdentifier, PackageSource, RegisteredPackage, iter_installed_packages,
+        iter_packages,
+    },
     util::get_isabelle_name,
 };
 
@@ -279,4 +283,27 @@ pub fn search_registry(search: String) {
         println!("{} {}", style("-").dim(), highlight_match(package, &search));
     }
     println!("Found {} Results.", style(results.len()).bold());
+}
+
+pub fn purge_packages() -> anyhow::Result<()> {
+    let mut used_packages: HashSet<PackageIdentifier> = HashSet::new();
+
+    for env_name in iter_envs() {
+        let env = Environment::get(env_name)?.expect("Environment listed, but could not be gotten");
+        for (name, version) in env.lock {
+            used_packages.insert(PackageIdentifier { name, version });
+        }
+    }
+
+    let mut removed = 0;
+    for installed_package in iter_installed_packages() {
+        if !used_packages.contains(&installed_package) {
+            installed_package.remove()?;
+            removed += 1;
+        }
+    }
+
+    println!("Removed {} PAckages.", style(removed).bold());
+
+    return Ok(());
 }

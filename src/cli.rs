@@ -28,7 +28,7 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
                     cli::registry::clean_metadata()?;
                 }
             }
-            CacheAction::Purge => todo!("3 purge"),
+            CacheAction::Purge => registry::purge_packages()?,
         },
         Commands::Inspect(args) => {
             if args.versions {

@@ -44,14 +44,12 @@ pub trait RegistrablePackage: Into<RegisteredPackage> {
 
 impl RegistrablePackage for Package {
     fn get_identifier(&self) -> PackageIdentifier {
-        // Just call your existing logic here
         PackageIdentifier::from(self)
     }
 }
 
 impl RegistrablePackage for AliasPackage {
     fn get_identifier(&self) -> PackageIdentifier {
-        // Just call your existing logic here
         PackageIdentifier::from(self)
     }
 }
@@ -185,5 +183,16 @@ impl PackageIdentifier {
     pub fn exists_locally(&self) -> bool {
         let theory_dir = self.get_theory_location();
         return theory_dir.is_dir();
+    }
+
+    /// Remove the package source files from disk
+    pub fn remove(&self) -> anyhow::Result<()> {
+        let theory_dir = self.get_theory_location();
+
+        if theory_dir.is_dir() {
+            fs::remove_dir_all(theory_dir)?;
+        }
+
+        return Ok(());
     }
 }

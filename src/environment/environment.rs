@@ -39,6 +39,16 @@ impl Environment {
         return Ok(Some(Self::load(env_file)?));
     }
 
+    pub fn get(name: String) -> anyhow::Result<Option<Self>> {
+        let env_file = Self::env_file_for_name(&name);
+
+        if !env_file.is_file() {
+            return Ok(None);
+        };
+
+        return Ok(Some(Self::load(env_file)?));
+    }
+
     /// Get the environment in the freeze file, if any
     pub fn frozen() -> anyhow::Result<Option<Self>> {
         let freeze_file = Self::get_freeze_file();
