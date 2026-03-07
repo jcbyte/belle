@@ -6,6 +6,7 @@ use std::{
 };
 
 use anyhow::Context;
+use pathdiff::diff_paths;
 use pubgrub::SemanticVersion;
 
 use crate::{
@@ -230,11 +231,21 @@ impl Environment {
             })
             .map(|p| p.get_theory_location());
 
+        let active_env_dir = BelleConfig::read_config(|c| c.get_active_env_link());
+
         let file = File::create(self.get_roots_file()).context("Failed to create roots file")?;
         let mut writer = BufWriter::new(file);
 
         for package_src in packages_src {
-            writeln!(writer, "{}", package_src.to_string_lossy().to_string())
+            let relative_path = diff_paths(&package_src, &active_env_dir).ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Failed creating relative path from '{}' to '{}'.",
+                    active_env_dir.display(),
+                    package_src.display()
+                )
+            })?;
+
+            writeln!(writer, "{}", relative_path.to_string_lossy().to_string())
                 .context("Failed to write to roots file")?;
         }
 

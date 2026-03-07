@@ -23,3 +23,4 @@ console = "0.16.2"
 dirs = "6.0.0"
 junction = "1.4.2"
 url = { version = "2.5.8", features = ["serde"] }
+pathdiff = "0.2.3"
