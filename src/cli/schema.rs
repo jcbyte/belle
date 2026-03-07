@@ -14,6 +14,12 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
+    /// Link belle to an Isabelle installation
+    Link(LinkArgs),
+
+    /// Unlink belle from an Isabelle installation
+    Unlink(UnlinkArgs),
+
     /// Add packages source (from AFP or externally)
     #[command(subcommand)]
     Source(SourceAction),
@@ -47,6 +53,18 @@ pub enum Commands {
 
     /// List all packages in the current environment
     List(ListArgs),
+}
+
+#[derive(Args)]
+pub struct LinkArgs {
+    /// Path to the Isabelle installation
+    pub path: PathBuf,
+}
+
+#[derive(Args)]
+pub struct UnlinkArgs {
+    /// Version of Isabelle to unlink
+    pub version: SemanticVersion,
 }
 
 #[derive(Subcommand)]

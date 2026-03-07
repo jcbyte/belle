@@ -5,6 +5,7 @@ use crate::cli::{
 
 mod environment;
 mod fetch;
+mod isabelle;
 mod package;
 mod registry;
 mod schema;
@@ -13,6 +14,8 @@ pub use schema::Cli;
 
 pub async fn run(args: Cli) -> anyhow::Result<()> {
     match args.command {
+        Commands::Link(args) => isabelle::link(args.path)?,
+        Commands::Unlink(args) => isabelle::unlink(args.version)?,
         Commands::Source(action) => match action {
             SourceAction::Afp(action) => match action {
                 SourceAfpAction::List(args) => fetch::list_afp_repositories(args.limit).await?,

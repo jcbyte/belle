@@ -71,12 +71,12 @@ impl Isabelle {
         return Ok(());
     }
 
-    pub fn add_component(&self) -> anyhow::Result<()> {
+    pub fn link(&self) -> anyhow::Result<()> {
         self.manage_component(true)?;
         return Ok(());
     }
 
-    pub fn exclude_component(&self) -> anyhow::Result<()> {
+    pub fn unlink(&self) -> anyhow::Result<()> {
         self.manage_component(false)?;
         return Ok(());
     }

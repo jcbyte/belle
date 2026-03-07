@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 
@@ -10,6 +10,7 @@ pub struct ConfigData {
     pub afp_group: String,
     #[serde(rename = "isabelle-packages")]
     pub isabelle_packages: Vec<String>,
+    // todo add isaebelle versions
 }
 
 impl Default for ConfigData {
