@@ -6,6 +6,8 @@ use pubgrub::SemanticVersion;
 use crate::{
     config::BelleConfig,
     environment::{Environment, PackageType, manager},
+    fetch::BelleClient,
+    registry::PackageIdentifier,
     resolver::ISABELLE_PACKAGE,
     util::get_isabelle_name,
 };
@@ -31,7 +33,7 @@ pub fn switch_env(name: Option<String>) -> anyhow::Result<()> {
     return Ok(());
 }
 
-pub fn create_env(name: Option<String>, new: bool, isabelle: Option<SemanticVersion>) -> anyhow::Result<()> {
+pub async fn create_env(name: Option<String>, new: bool, isabelle: Option<SemanticVersion>) -> anyhow::Result<()> {
     let (env_name, using_frozen) = get_env_name(name.as_ref())?;
 
     if using_frozen && !new && isabelle.is_some() {
@@ -44,7 +46,13 @@ pub fn create_env(name: Option<String>, new: bool, isabelle: Option<SemanticVers
     // If created from a belle file, we want to sync this into the environment
     if using_frozen && new {
         new_env.sync()?;
+        new_env.resolve_lock()?;
+
+        let client = BelleClient::new()?;
+        new_env.fetch_env_packages(&client).await?;
     }
+
+    new_env.save()?;
 
     return Ok(());
 }
@@ -89,9 +97,15 @@ pub fn freeze_env() -> anyhow::Result<()> {
     return Ok(());
 }
 
-pub fn sync_env() -> anyhow::Result<()> {
+pub async fn sync_env() -> anyhow::Result<()> {
     let mut active_env = Environment::active()?.ok_or(anyhow::anyhow!("No selected environment"))?;
+
     active_env.sync()?;
+
+    active_env.resolve_lock()?;
+    let client = BelleClient::new()?;
+    active_env.fetch_env_packages(&client).await?;
+    active_env.save()?;
 
     return Ok(());
 }
@@ -179,10 +193,15 @@ pub fn list_packages(all: bool) -> anyhow::Result<()> {
     return Ok(());
 }
 
-pub fn migrate_isabelle(version: Option<SemanticVersion>, unpin_existing: bool) -> anyhow::Result<()> {
+pub async fn migrate_isabelle(version: Option<SemanticVersion>, unpin_existing: bool) -> anyhow::Result<()> {
     let mut active_env = Environment::active()?.ok_or(anyhow::anyhow!("No environment is selected"))?;
 
     active_env.migrate_isabelle(version.into(), unpin_existing)?;
+
+    active_env.resolve_lock()?;
+    let client = BelleClient::new()?;
+    active_env.fetch_env_packages(&client).await?;
+    active_env.save()?;
 
     return Ok(());
 }

@@ -5,6 +5,8 @@ use anyhow::Context;
 use crate::{
     config::BelleConfig,
     environment::{Environment, PackageListing, PackageType, types::VersionReq},
+    fetch::BelleClient,
+    registry::PackageIdentifier,
     resolver::BelleDependencyProvider,
 };
 
@@ -23,7 +25,7 @@ impl Environment {
             packages: HashMap::new(),
             lock: HashMap::new(),
         };
-        env.save()?;
+
         return Ok(env);
     }
 
@@ -80,6 +82,18 @@ impl Environment {
         return Self::join_env_file(self.get_env_dir());
     }
 
+    // If this fails it will not reach `save`, hence the environment will be saved in a stable state
+    // todo this needs to be performed in this order but called by CLI?
+    // async fn finalise_upgrade(&self) -> anyhow::Result<()> {
+    //     // If this fails it will not reach `save`, hence the environment will be saved in a stable state
+    //     self.resolve_lock()?;
+    //     self.fetch_env_packages(client)?;
+
+    //     self.save()?;
+
+    //     return Ok(());
+    // }
+
     fn load(env_file: PathBuf) -> anyhow::Result<Self> {
         let parsed_env = if env_file.is_file() {
             let content = fs::read_to_string(&env_file)
@@ -93,7 +107,7 @@ impl Environment {
         return Ok(parsed_env);
     }
 
-    fn save(&self) -> anyhow::Result<()> {
+    pub fn save(&self) -> anyhow::Result<()> {
         let env_file = self.get_env_file();
 
         // Recursively create parent directory and parents so that we can write to the file
@@ -131,7 +145,6 @@ impl Environment {
         // Set the active packages to the ones from freeze file and save it back
         self.packages = frozen_env.packages;
         self.lock = frozen_env.lock;
-        self.save()?;
 
         return Ok(());
     }
@@ -141,24 +154,18 @@ impl Environment {
             anyhow::bail!("Package '{}' is already installed in this environment", &name);
         }
 
-        // If this fails it will not reach `save`, hence the environment will be saved in a stable state
         self.packages.insert(name, version);
-        self.resolve_lock()?;
-        self.save()?;
 
         return Ok(());
     }
 
     pub fn remove_package(&mut self, name: &String) -> anyhow::Result<()> {
-        // If this fails it will not reach `save`, hence the environment will be saved in a stable state
         self.packages.remove(name);
-        self.resolve_lock()?;
-        self.save()?;
 
         return Ok(());
     }
 
-    fn resolve_lock(&mut self) -> anyhow::Result<()> {
+    pub fn resolve_lock(&mut self) -> anyhow::Result<()> {
         let resolved_packages = BelleDependencyProvider::resolve(self.isabelle.clone(), self.packages.clone())?;
         self.lock = resolved_packages;
 
@@ -203,8 +210,36 @@ impl Environment {
                 .collect()
         }
 
-        self.resolve_lock()?;
-        self.save()?;
+        return Ok(());
+    }
+
+    fn get_unfetched_env_packages(&self) -> Vec<PackageIdentifier> {
+        let unfetched: Vec<PackageIdentifier> = self
+            .lock
+            .iter()
+            .map(|(name, version)| PackageIdentifier {
+                name: name.clone(),
+                version: version.clone(),
+            })
+            .filter(|p| p.exists_locally())
+            .collect();
+
+        return unfetched;
+    }
+
+    pub async fn fetch_env_packages(&self, client: &BelleClient) -> anyhow::Result<()> {
+        let unfetched = self.get_unfetched_env_packages();
+
+        for package in unfetched {
+            let package_meta = package.get_resolved_package_manifest()?.ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Package '{}' from environment cannot be found in local registry",
+                    package
+                )
+            })?;
+
+            package_meta.get_package(client).await?;
+        }
 
         return Ok(());
     }

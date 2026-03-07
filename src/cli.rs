@@ -40,16 +40,16 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
         Commands::Search(args) => registry::search_registry(args.query),
         Commands::Switch(args) | Commands::Env(EnvAction::Switch(args)) => environment::switch_env(args.name)?,
         Commands::Env(action) => match action {
-            EnvAction::Create(args) => environment::create_env(args.name, args.new, args.isabelle)?,
+            EnvAction::Create(args) => environment::create_env(args.name, args.new, args.isabelle).await?,
             EnvAction::List => environment::list_envs()?,
             EnvAction::Remove(args) => environment::remove_env(&args.name)?,
             EnvAction::Switch(_args) => unreachable!(),
             EnvAction::Freeze => environment::freeze_env()?,
-            EnvAction::Sync => environment::sync_env()?,
+            EnvAction::Sync => environment::sync_env().await?,
         },
-        Commands::Add(args) => package::add_package(args.name, args.version)?,
-        Commands::Remove(args) => package::remove_package(&args.name)?,
-        Commands::Migrate(args) => environment::migrate_isabelle(args.version, args.unpin)?,
+        Commands::Add(args) => package::add_package(args.name, args.version).await?,
+        Commands::Remove(args) => package::remove_package(&args.name).await?,
+        Commands::Migrate(args) => environment::migrate_isabelle(args.version, args.unpin).await?,
         Commands::List(args) => environment::list_packages(args.all)?,
     }
 
