@@ -7,6 +7,7 @@ use pubgrub::SemanticVersion;
 use crate::{
     environment::{Environment, manager},
     fetch::BelleClient,
+    registry::PackageIdentifier,
 };
 
 /// Apply any changes made to environment files, with logging
@@ -22,7 +23,15 @@ pub async fn finalise_env(env: &mut Environment) -> anyhow::Result<()> {
 
     // Fetch all packages we currently do not have
     let client = BelleClient::new()?;
-    let missing_packages = env.get_missing_packages();
+    let missing_packages: Vec<PackageIdentifier> = env
+        .iter_user_packages()
+        .map(|(name, version)| PackageIdentifier {
+            name: name.clone(),
+            version: version.clone(),
+        })
+        // Filter to only retrieve missing packages
+        .filter(|p| !p.exists_locally())
+        .collect();
 
     if missing_packages.len() > 0 {
         let pb = ProgressBar::new(missing_packages.len() as u64);

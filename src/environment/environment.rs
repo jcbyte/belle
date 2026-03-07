@@ -1,6 +1,7 @@
 use std::{collections::HashMap, fs, path::PathBuf};
 
 use anyhow::Context;
+use pubgrub::SemanticVersion;
 
 use crate::{
     config::BelleConfig,
@@ -200,20 +201,14 @@ impl Environment {
         return Ok(());
     }
 
-    pub fn get_missing_packages(&self) -> Vec<PackageIdentifier> {
+    /// Get packages installed by the user, filtering isabelle's built in ones.
+    pub fn iter_user_packages(&self) -> impl Iterator<Item = (&String, &SemanticVersion)> {
         let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
 
         return self
             .lock
             .iter()
             // Remove isabelle packages
-            .filter(|(name, _version)| !name.eq(&ISABELLE_PACKAGE) && !isabelle_packages.contains(name))
-            .map(|(name, version)| PackageIdentifier {
-                name: name.clone(),
-                version: version.clone(),
-            })
-            // Filter to only retrieve missing packages
-            .filter(|p| !p.exists_locally())
-            .collect();
+            .filter(move |(name, _version)| !name.eq(&ISABELLE_PACKAGE) && !isabelle_packages.contains(name));
     }
 }
