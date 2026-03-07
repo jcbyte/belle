@@ -15,7 +15,9 @@ async fn main() {
     // Execute the commands
     if let Err(e) = cli::run(args).await {
         // todo 6.2 error handling
-        println!("{}", style(e).bold().red())
+        for cause in e.chain() {
+            println!("- {}", style(cause).bold().red())
+        }
     }
 }
 

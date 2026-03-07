@@ -47,10 +47,10 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
             EnvAction::Freeze => environment::freeze_env()?,
             EnvAction::Sync => environment::sync_env().await?,
         },
+        Commands::Migrate(args) => environment::migrate_isabelle(args.version, args.unpin).await?,
         Commands::Add(args) => package::add_package(args.name, args.version).await?,
         Commands::Remove(args) => package::remove_package(&args.name).await?,
-        Commands::Migrate(args) => environment::migrate_isabelle(args.version, args.unpin).await?,
-        Commands::List(args) => environment::list_packages(args.all)?,
+        Commands::List(args) => package::list_packages(args.all)?,
     }
 
     return Ok(());

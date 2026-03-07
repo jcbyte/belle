@@ -113,8 +113,6 @@ impl DependencyProvider for BelleDependencyProvider {
         package: &String,
         version: &SemanticVersion,
     ) -> Result<Dependencies<String, SemVS, Self::M>, SolverError> {
-        println!("deps {}", package);
-
         // If the package name is "." this is our root package so its dependencies are as given
         if package.eq(".") {
             let deps: HashMap<String, Ranges<SemanticVersion>, rustc_hash::FxBuildHasher> = self

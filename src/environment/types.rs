@@ -4,7 +4,6 @@ use pubgrub::SemanticVersion;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(untagged)]
 pub enum VersionReq {
     Given(SemanticVersion),
     #[serde(rename = "*")]

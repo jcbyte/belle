@@ -128,7 +128,7 @@ pub struct InspectArgs {
     pub version: Option<SemanticVersion>,
 
     /// List all available versions for this package instead
-    #[arg(short, long)]
+    #[arg(long)]
     pub versions: bool,
 }
 

@@ -16,3 +16,5 @@ impl BelleClient {
         return Ok(Self { client });
     }
 }
+
+// todo should client be globally accessible

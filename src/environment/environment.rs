@@ -5,9 +5,8 @@ use anyhow::Context;
 use crate::{
     config::BelleConfig,
     environment::{Environment, PackageListing, PackageType, types::VersionReq},
-    fetch::BelleClient,
     registry::PackageIdentifier,
-    resolver::BelleDependencyProvider,
+    resolver::{BelleDependencyProvider, ISABELLE_PACKAGE},
 };
 
 impl Environment {
@@ -81,18 +80,6 @@ impl Environment {
     fn get_env_file(&self) -> PathBuf {
         return Self::join_env_file(self.get_env_dir());
     }
-
-    // If this fails it will not reach `save`, hence the environment will be saved in a stable state
-    // todo this needs to be performed in this order but called by CLI?
-    // async fn finalise_upgrade(&self) -> anyhow::Result<()> {
-    //     // If this fails it will not reach `save`, hence the environment will be saved in a stable state
-    //     self.resolve_lock()?;
-    //     self.fetch_env_packages(client)?;
-
-    //     self.save()?;
-
-    //     return Ok(());
-    // }
 
     fn load(env_file: PathBuf) -> anyhow::Result<Self> {
         let parsed_env = if env_file.is_file() {
@@ -213,34 +200,20 @@ impl Environment {
         return Ok(());
     }
 
-    fn get_unfetched_env_packages(&self) -> Vec<PackageIdentifier> {
-        let unfetched: Vec<PackageIdentifier> = self
+    pub fn get_missing_packages(&self) -> Vec<PackageIdentifier> {
+        let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
+
+        return self
             .lock
             .iter()
+            // Remove isabelle packages
+            .filter(|(name, _version)| !name.eq(&ISABELLE_PACKAGE) && !isabelle_packages.contains(name))
             .map(|(name, version)| PackageIdentifier {
                 name: name.clone(),
                 version: version.clone(),
             })
-            .filter(|p| p.exists_locally())
+            // Filter to only retrieve missing packages
+            .filter(|p| !p.exists_locally())
             .collect();
-
-        return unfetched;
-    }
-
-    pub async fn fetch_env_packages(&self, client: &BelleClient) -> anyhow::Result<()> {
-        let unfetched = self.get_unfetched_env_packages();
-
-        for package in unfetched {
-            let package_meta = package.get_resolved_package_manifest()?.ok_or_else(|| {
-                anyhow::anyhow!(
-                    "Package '{}' from environment cannot be found in local registry",
-                    package
-                )
-            })?;
-
-            package_meta.get_package(client).await?;
-        }
-
-        return Ok(());
     }
 }
