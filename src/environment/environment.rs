@@ -245,8 +245,8 @@ impl Environment {
                 )
             })?;
 
-            writeln!(writer, "{}", relative_path.to_string_lossy().to_string())
-                .context("Failed to write to roots file")?;
+            let formatted_path = relative_path.to_string_lossy().to_string().replace("\\", "/");
+            writeln!(writer, "{}", formatted_path).context("Failed to write to roots file")?;
         }
 
         writer.flush().context("Failed to flush stream to roots file")?;

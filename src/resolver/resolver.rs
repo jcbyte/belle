@@ -41,6 +41,7 @@ impl BelleDependencyProvider {
             root_packages,
             isabelle_versions: RefCell::new(isabelle_versions),
             // This flag will not add more packages into isabelle_versions if it is given, meaning the only allowed isabelle version is `isabelle_version`
+            // todo use registered isabelle's for versions
             given_isabelle: !isabelle_version.is_any(),
             package_versions: RefCell::new(HashMap::new()),
         };
