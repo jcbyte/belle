@@ -1,9 +1,16 @@
-use belle::{cli, config::BelleConfig};
+use std::path::PathBuf;
+
+use belle::{cli, config::BelleConfig, isabelle::Isabelle};
 use clap::Parser;
 use console::style;
 
 #[tokio::main]
 async fn main() {
+    let a = Isabelle::locate(PathBuf::from("C:/Users/joelc/Desktop/Isabelle2025-2"));
+    println!("{:?}", a);
+
+    return;
+
     // Ensure configuration/state is initialised
     if let Err(e) = BelleConfig::init() {
         // todo 6.2 error handling

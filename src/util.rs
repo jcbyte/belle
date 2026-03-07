@@ -11,7 +11,12 @@ pub fn get_isabelle_version(name: &String) -> SemanticVersion {
     // Use each number separated with a dash as its SemVer version:
     // > 2019   -> 2019.0.0
     // > 2025-2 -> 2025.2.0
-    let name_parts: Vec<u32> = name.split('-').filter_map(|s| s.parse::<u32>().ok()).collect();
+
+    // Filter all non-numeric and non-"-" characters
+    let sanitized: String = name.chars().filter(|c| c.is_ascii_digit() || *c == '-').collect();
+
+    // Split by each "-" removing any unparsable strings (e.g. empty)
+    let name_parts: Vec<u32> = sanitized.split('-').filter_map(|s| s.parse::<u32>().ok()).collect();
 
     let major = name_parts.get(0).unwrap_or(&0);
     let minor = name_parts.get(1).unwrap_or(&0);
@@ -80,6 +85,18 @@ mod tests {
         assert_eq!(
             get_isabelle_version(&String::from("afp-4-3")),
             SemanticVersion::new(4, 3, 0)
+        );
+        assert_eq!(
+            get_isabelle_version(&String::from("Isabelle2025-2")),
+            SemanticVersion::new(2025, 2, 0)
+        );
+        assert_eq!(
+            get_isabelle_version(&String::from("TextHere10-1-1\n")),
+            SemanticVersion::new(10, 1, 1)
+        );
+        assert_eq!(
+            get_isabelle_version(&String::from("TextHere20-2AndBetween2-9\n")),
+            SemanticVersion::new(20, 22, 9)
         );
     }
 
