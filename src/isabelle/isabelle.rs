@@ -1,8 +1,4 @@
-use std::{
-    env,
-    path::PathBuf,
-    process::{Command, Output},
-};
+use std::{env, path::PathBuf, process::Command};
 
 use anyhow::Context;
 

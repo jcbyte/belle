@@ -1,5 +1,6 @@
 use std::{collections::HashMap, path::PathBuf};
 
+use pubgrub::SemanticVersion;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -8,9 +9,9 @@ pub struct ConfigData {
     pub home: PathBuf,
     #[serde(rename = "afp-group")]
     pub afp_group: String,
+    pub isabelles: HashMap<SemanticVersion, PathBuf>,
     #[serde(rename = "isabelle-packages")]
     pub isabelle_packages: Vec<String>,
-    // todo add isaebelle versions
 }
 
 impl Default for ConfigData {
@@ -23,6 +24,7 @@ impl Default for ConfigData {
         return Self {
             home: home_dir,
             afp_group: String::from("isa-afp"),
+            isabelles: HashMap::new(),
             isabelle_packages: vec![
                 String::from("Pure"),
                 String::from("HOL"),
