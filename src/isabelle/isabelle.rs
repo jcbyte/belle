@@ -51,7 +51,7 @@ impl Isabelle {
 
     pub fn get_isabelle_path(&self, path: PathBuf) -> anyhow::Result<String> {
         // todo unix-ify a variant
-        let path = self.exec_isabelle(&format!("cygpath -u {}", path.to_string_lossy().to_string()))?;
+        let path = self.exec_isabelle(&format!("cygpath -u \"{}\"", path.to_string_lossy().to_string()))?;
 
         return Ok(path.trim().to_string());
     }
