@@ -21,7 +21,6 @@ async fn main() {
     }
 }
 
-// todo 4 create ROOTS files
 // todo 4 integrate with isabelle
 
 // todo 6.1 ensure consistent naming of packages

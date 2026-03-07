@@ -66,6 +66,9 @@ pub async fn finalise_env(env: &mut Environment) -> anyhow::Result<()> {
     // Hence environment will not be saved in a broken state.
     env.save()?;
 
+    // Update the ROOTS file to match new environment
+    env.create_roots_file()?;
+
     return Ok(());
 }
 
@@ -105,8 +108,9 @@ pub async fn create_env(name: Option<String>, new: bool, isabelle: Option<Semant
         new_env.sync()?;
         finalise_env(&mut new_env).await?;
     } else {
-        // Else just save it
+        // Else just save the environment and generate a blank ROOTS file
         new_env.save()?;
+        new_env.create_roots_file()?;
     }
 
     println!("Created new environment: {}.", style(env_name).cyan().bold());

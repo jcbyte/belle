@@ -132,7 +132,7 @@ impl PackageIdentifier {
     }
 
     /// Get theory location
-    fn get_theory_location(&self) -> PathBuf {
+    pub fn get_theory_location(&self) -> PathBuf {
         // Theories are is located within `$theory_dir/{name}/{version}.toml`
         let theories_dir = BelleConfig::read_config(|c| c.get_theory_dir());
         let theory_dir = theories_dir.join(self.name.clone()).join(self.version.to_string());

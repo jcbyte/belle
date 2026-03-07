@@ -1,4 +1,9 @@
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{
+    collections::HashMap,
+    fs::{self, File},
+    io::{BufWriter, Write},
+    path::PathBuf,
+};
 
 use anyhow::Context;
 use pubgrub::SemanticVersion;
@@ -80,6 +85,10 @@ impl Environment {
 
     fn get_env_file(&self) -> PathBuf {
         return Self::join_env_file(self.get_env_dir());
+    }
+
+    fn get_roots_file(&self) -> PathBuf {
+        return self.get_env_dir().join("ROOTS");
     }
 
     fn load(env_file: PathBuf) -> anyhow::Result<Self> {
@@ -210,5 +219,26 @@ impl Environment {
             .iter()
             // Remove isabelle packages
             .filter(move |(name, _version)| !name.eq(&ISABELLE_PACKAGE) && !isabelle_packages.contains(name));
+    }
+
+    pub fn create_roots_file(&self) -> anyhow::Result<()> {
+        let packages_src = self
+            .iter_user_packages()
+            .map(|(name, version)| PackageIdentifier {
+                name: name.clone(),
+                version: version.clone(),
+            })
+            .map(|p| p.get_theory_location());
+
+        let file = File::create(self.get_roots_file()).context("Failed to create roots file")?;
+        let mut writer = BufWriter::new(file);
+
+        for package_src in packages_src {
+            writeln!(writer, "{}", package_src.to_string_lossy().to_string())
+                .context("Failed to write to roots file")?;
+        }
+
+        writer.flush().context("Failed to flush stream to roots file")?;
+        return Ok(());
     }
 }
