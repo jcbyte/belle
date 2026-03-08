@@ -21,9 +21,7 @@ pub struct BelleDependencyProvider {
     root_packages: HashMap<String, VersionReq>,
 
     /// List of seen isabelle versions from packages
-    isabelle_versions: RefCell<HashSet<SemanticVersion>>,
-    given_isabelle: bool,
-
+    isabelle_versions: HashSet<SemanticVersion>,
     /// Cache for package versions
     package_versions: RefCell<HashMap<String, HashSet<SemanticVersion>>>,
 }
@@ -34,15 +32,13 @@ impl BelleDependencyProvider {
             // If an isabelle version is given, only allow this to be the available version
             // All theories will eventually reference an isabelle package
             VersionReq::Given(version) => HashSet::from([version]),
-            VersionReq::Any => HashSet::new(),
+            // If any version is given, use all registered versions
+            VersionReq::Any => BelleConfig::read_config(|c| c.isabelles.keys().cloned().collect()),
         };
 
         return Self {
             root_packages,
-            isabelle_versions: RefCell::new(isabelle_versions),
-            // This flag will not add more packages into isabelle_versions if it is given, meaning the only allowed isabelle version is `isabelle_version`
-            // todo use registered isabelle's for versions
-            given_isabelle: !isabelle_version.is_any(),
+            isabelle_versions: isabelle_versions,
             package_versions: RefCell::new(HashMap::new()),
         };
     }
@@ -69,8 +65,7 @@ impl DependencyProvider for BelleDependencyProvider {
         let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
         let versions = if package.eq(ISABELLE_PACKAGE) || isabelle_packages.contains(package) {
             // If this is an isabelle package pick a version from the available isabelle versions
-            let isabelle_versions = self.isabelle_versions.borrow();
-            isabelle_versions.clone()
+            self.isabelle_versions.clone()
         } else {
             // Else pick from the list of the packages versions
             self.get_package_versions(package)?
@@ -94,7 +89,7 @@ impl DependencyProvider for BelleDependencyProvider {
             return Reverse(0);
         }
 
-        // Process isabelle packages last to ensure all isabelle versions have been collected
+        // Process isabelle packages last
         let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
         if package.eq(ISABELLE_PACKAGE) || isabelle_packages.contains(package) {
             return Reverse(usize::MAX);
@@ -165,12 +160,6 @@ impl DependencyProvider for BelleDependencyProvider {
                     .isabelles
                     .iter()
                     .fold(SemVS::empty(), |acc, version| acc.union(&SemVS::singleton(version)));
-
-                if !self.given_isabelle {
-                    // Add each seen version of isabelle into the global list for picking isabelle package versions later
-                    let mut global_isabelle_versions = self.isabelle_versions.borrow_mut();
-                    global_isabelle_versions.extend(manifest.isabelles);
-                }
 
                 for (name, version) in manifest.dependencies {
                     // If the dependency is an isabelle package then, we can accept any versions of isabelle that this package accepts
