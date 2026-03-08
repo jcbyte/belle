@@ -6,22 +6,24 @@ use pubgrub::SemanticVersion;
 
 use crate::{
     environment::{Environment, VersionReq, manager},
-    fetch::BelleClient,
     registry::PackageIdentifier,
     resolver::ISABELLE_PACKAGE,
     util::get_isabelle_name,
 };
 
 /// Apply any changes made to environment files, with logging
-pub async fn finalise_env(env: &mut Environment) -> anyhow::Result<()> {
-    let pb = ProgressBar::new_spinner();
-    pb.enable_steady_tick(Duration::from_millis(100));
-    pb.set_message(format!("Resolving dependency list"));
+pub async fn finalise_env(env: &mut Environment, include_resolve: bool) -> anyhow::Result<()> {
+    // Don't resolve if we want to skip it
+    if include_resolve {
+        let pb = ProgressBar::new_spinner();
+        pb.enable_steady_tick(Duration::from_millis(100));
+        pb.set_message(format!("Resolving dependency list"));
 
-    // Resolve lockfile dependencies
-    env.resolve_lock()?;
+        // Resolve lockfile dependencies
+        env.resolve_lock()?;
 
-    pb.finish_and_clear();
+        pb.finish_and_clear();
+    }
 
     // Fetch all packages we currently do not have
     let missing_packages: Vec<PackageIdentifier> = env
@@ -107,7 +109,8 @@ pub async fn create_env(name: Option<String>, new: bool, isabelle: Option<Semant
     if using_frozen && new {
         // If created from a belle file, we want to sync this into the environment
         new_env.sync()?;
-        finalise_env(&mut new_env).await?;
+        // Don't resolve as we want to keep the lockfile identical
+        finalise_env(&mut new_env, false).await?;
     } else {
         // Else just save the environment and generate a blank ROOTS file
         new_env.save()?;
@@ -164,8 +167,8 @@ pub async fn sync_env() -> anyhow::Result<()> {
     let mut active_env = Environment::active()?.ok_or(anyhow::anyhow!("No selected environment"))?;
 
     active_env.sync()?;
-    // todo This will also resolve the lockfile again, do we want that?
-    finalise_env(&mut active_env).await?;
+    // Don't resolve as we want to keep the lockfile identical
+    finalise_env(&mut active_env, false).await?;
 
     println!("Synced environment from belle file.");
     return Ok(());
@@ -175,7 +178,7 @@ pub async fn migrate_isabelle(version: Option<SemanticVersion>, unpin_existing: 
     let mut active_env = Environment::active()?.ok_or(anyhow::anyhow!("No environment is selected"))?;
 
     active_env.migrate_isabelle(version.into(), unpin_existing)?;
-    finalise_env(&mut active_env).await?;
+    finalise_env(&mut active_env, true).await?;
 
     let (isabelle_version, given) = match active_env.isabelle {
         VersionReq::Given(version) => (version, true),

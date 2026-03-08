@@ -13,7 +13,7 @@ pub async fn add_package(name: String, version: Option<SemanticVersion>) -> anyh
     let mut active_env = Environment::active()?.ok_or(anyhow::anyhow!("No environment is selected"))?;
 
     active_env.add_package(name.clone(), version.into())?;
-    finalise_env(&mut active_env).await?;
+    finalise_env(&mut active_env, true).await?;
 
     println!("Added package {}.", style(name).cyan());
     return Ok(());
@@ -23,7 +23,7 @@ pub async fn remove_package(name: &String) -> anyhow::Result<()> {
     let mut active_env = Environment::active()?.ok_or(anyhow::anyhow!("No environment is selected"))?;
 
     active_env.remove_package(name)?;
-    finalise_env(&mut active_env).await?;
+    finalise_env(&mut active_env, true).await?;
 
     println!("Removed package {}.", style(name).cyan());
     return Ok(());
