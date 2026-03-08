@@ -5,9 +5,11 @@ use indicatif::{ProgressBar, ProgressStyle};
 use pubgrub::SemanticVersion;
 
 use crate::{
-    environment::{Environment, manager},
+    environment::{Environment, VersionReq, manager},
     fetch::BelleClient,
     registry::PackageIdentifier,
+    resolver::ISABELLE_PACKAGE,
+    util::get_isabelle_name,
 };
 
 /// Apply any changes made to environment files, with logging
@@ -176,7 +178,30 @@ pub async fn migrate_isabelle(version: Option<SemanticVersion>, unpin_existing: 
     active_env.migrate_isabelle(version.into(), unpin_existing)?;
     finalise_env(&mut active_env).await?;
 
-    // todo display this properly (name and version) and get version if its not given
-    println!("Migrated Isabelle to {:?}.", style(version).cyan());
+    let (isabelle_version, given) = match active_env.isabelle {
+        VersionReq::Given(version) => (version, true),
+        VersionReq::Any => {
+            let version = active_env
+                .lock
+                .get(ISABELLE_PACKAGE)
+                .ok_or(anyhow::anyhow!("No Isabelle version is given for the environment"))?;
+            (version.clone(), false)
+        }
+    };
+
+    let mut formatted_version = style(isabelle_version);
+    formatted_version = if given {
+        formatted_version.green()
+    } else {
+        formatted_version.dim()
+    };
+
+    println!(
+        "Migrated Isabelle to {} {}{}{}.",
+        style(get_isabelle_name(&isabelle_version)).cyan().bold(),
+        style("[").dim(),
+        formatted_version,
+        style("]").dim()
+    );
     return Ok(());
 }

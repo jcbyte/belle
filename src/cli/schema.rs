@@ -221,7 +221,6 @@ pub struct RemoveArgs {
 #[derive(Args)]
 pub struct MigrateArgs {
     /// Isabelle version to migrate to (defaults to unpinned, picking latest)
-    #[arg(short, long)]
     pub version: Option<SemanticVersion>,
 
     /// Unpin existing dependencies
