@@ -9,13 +9,16 @@ mod isabelle;
 mod package;
 mod registry;
 mod schema;
+mod types;
 
+use pubgrub::SemanticVersion;
 pub use schema::Cli;
+use types::IsabelleVersion;
 
 pub async fn run(args: Cli) -> anyhow::Result<()> {
     match args.command {
         Commands::Link(args) => isabelle::link(args.path)?,
-        Commands::Unlink(args) => isabelle::unlink(args.version)?,
+        Commands::Unlink(args) => isabelle::unlink(args.version.into())?,
         Commands::Source(action) => match action {
             SourceAction::Afp(action) => match action {
                 SourceAfpAction::List(args) => fetch::list_afp_repositories(args.limit).await?,
@@ -43,14 +46,18 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
         Commands::Search(args) => registry::search_registry(args.query),
         Commands::Switch(args) | Commands::Env(EnvAction::Switch(args)) => environment::switch_env(args.name)?,
         Commands::Env(action) => match action {
-            EnvAction::Create(args) => environment::create_env(args.name, args.new, args.isabelle).await?,
+            EnvAction::Create(args) => {
+                environment::create_env(args.name, args.new, args.isabelle.map(SemanticVersion::from)).await?
+            }
             EnvAction::List => environment::list_envs()?,
             EnvAction::Remove(args) => environment::remove_env(&args.name)?,
             EnvAction::Switch(_args) => unreachable!(),
             EnvAction::Freeze => environment::freeze_env()?,
             EnvAction::Sync => environment::sync_env().await?,
         },
-        Commands::Migrate(args) => environment::migrate_isabelle(args.version, args.unpin).await?,
+        Commands::Migrate(args) => {
+            environment::migrate_isabelle(args.version.map(SemanticVersion::from), args.unpin).await?
+        }
         Commands::Add(args) => package::add_package(args.name, args.version).await?,
         Commands::Remove(args) => package::remove_package(&args.name).await?,
         Commands::List(args) => package::list_packages(args.all)?,

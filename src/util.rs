@@ -7,7 +7,7 @@ pub fn date_to_version(date: &Date) -> SemanticVersion {
 }
 
 /// Convert an Isabelle version (e.g. 2025, 2025-1) into a SemVer (e.g. 2025.0.0, 2025.1.0)
-pub fn get_isabelle_version(name: &String) -> SemanticVersion {
+pub fn get_isabelle_version(name: &str) -> SemanticVersion {
     // Use each number separated with a dash as its SemVer version:
     // > 2019   -> 2019.0.0
     // > 2025-2 -> 2025.2.0

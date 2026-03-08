@@ -21,7 +21,6 @@ async fn main() {
     }
 }
 
-// todo can i allow isabelle version or name for cli
 // todo save packages as PackageIdentifiers+Isabelles with custom serialiser
 
 // todo 6.1 ensure consistent naming of packages

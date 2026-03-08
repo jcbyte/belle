@@ -4,6 +4,8 @@ use clap::{Args, Parser, Subcommand};
 use pubgrub::SemanticVersion;
 use url::Url;
 
+use crate::cli::IsabelleVersion;
+
 #[derive(Parser)]
 #[command(name = "belle")]
 #[command(version, about, long_about = None)]
@@ -64,7 +66,7 @@ pub struct LinkArgs {
 #[derive(Args)]
 pub struct UnlinkArgs {
     /// Version of Isabelle to unlink
-    pub version: SemanticVersion,
+    pub version: IsabelleVersion,
 }
 
 #[derive(Subcommand)]
@@ -188,7 +190,7 @@ pub struct EnvCreateArgs {
 
     /// The Isabelle version to use in this environment
     #[arg(short, long)]
-    pub isabelle: Option<SemanticVersion>,
+    pub isabelle: Option<IsabelleVersion>,
 }
 
 #[derive(Args)]
@@ -221,7 +223,7 @@ pub struct RemoveArgs {
 #[derive(Args)]
 pub struct MigrateArgs {
     /// Isabelle version to migrate to (defaults to unpinned, picking latest)
-    pub version: Option<SemanticVersion>,
+    pub version: Option<IsabelleVersion>,
 
     /// Unpin existing dependencies
     #[arg(short, long)]
