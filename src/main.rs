@@ -23,11 +23,13 @@ async fn main() {
 
 // todo can i allow isabelle version or name for cli
 // todo save packages as PackageIdentifiers+Isabelles with custom serialiser
-// todo unix-ify junctions/symlinks + isabelle integrations
 
 // todo 6.1 ensure consistent naming of packages
 // todo 6.2 check all error handling cases are needed (should we just expect), ensure messages are correct (resolving, deserialising etc), use thiserror
 // todo 6.3 use references instead of cloning everywhere
+// todo 6.4 consistent CLI output
 
-// todo 7 testing
-// todo 7 CI
+// todo 7 unix-ify junctions/symlinks + isabelle integrations
+
+// todo 8 unit testing
+// todo 9 integration testing
