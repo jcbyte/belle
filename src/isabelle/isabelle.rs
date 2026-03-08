@@ -13,7 +13,6 @@ impl Isabelle {
     }
 
     fn exec_isabelle_from_path(isabelle_root: &PathBuf, cmd: &str) -> anyhow::Result<String> {
-        // todo unix-ify a variant
         let bash = isabelle_root.join("contrib").join("cygwin").join("bin").join("bash.exe");
         let isabelle_bin = isabelle_root.join("bin");
 
@@ -50,7 +49,6 @@ impl Isabelle {
     }
 
     pub fn get_isabelle_path(&self, path: PathBuf) -> anyhow::Result<String> {
-        // todo unix-ify a variant
         let path = self.exec_isabelle(&format!("cygpath -u \"{}\"", path.to_string_lossy().to_string()))?;
 
         return Ok(path.trim().to_string());

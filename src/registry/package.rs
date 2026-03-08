@@ -55,11 +55,13 @@ impl RegistrablePackage for AliasPackage {
 }
 
 impl Package {
-    pub async fn get_package(&self, client: &BelleClient) -> anyhow::Result<()> {
+    pub async fn get_package(&self) -> anyhow::Result<()> {
         let package_location = PackageIdentifier::from(self).get_theory_location();
 
         match &self.source {
             PackageSource::Afp(..) | PackageSource::Remote { .. } => {
+                let client = BelleClient::get()?;
+
                 let bytes = match &self.source {
                     PackageSource::Afp(repo) => client.get_afp_package(&self.name, repo).await?,
                     PackageSource::Remote { url } => client.get_remote_package(url.clone()).await?,

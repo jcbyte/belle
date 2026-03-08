@@ -12,13 +12,12 @@ use crate::{
 
 /// List AFP repositories and print them in a simple table
 pub async fn list_afp_repositories(limit: usize) -> anyhow::Result<()> {
-    let client = BelleClient::new()?;
-
     let pb = ProgressBar::new_spinner();
     pb.enable_steady_tick(Duration::from_millis(100));
     pb.set_message(format!("Fetching repository list"));
 
     // Get repositories
+    let client = BelleClient::get()?;
     let mut afp_repos = client.get_afp_repos(limit).await?;
     afp_repos.reverse();
 
@@ -43,9 +42,8 @@ pub async fn list_afp_repositories(limit: usize) -> anyhow::Result<()> {
 /// Fetch metadata for a specific repository (or the latest if not specified)
 /// Register packages which do not yet exist locally
 pub async fn fetch_afp_meta(repo_name: Option<String>) -> anyhow::Result<()> {
-    let client = BelleClient::new()?;
-
     // Get the repo structure
+    let client = BelleClient::get()?;
     let repo = match repo_name {
         Some(name) => {
             // If a name is passed we need to get its id
@@ -180,12 +178,11 @@ pub async fn fetch_afp_meta(repo_name: Option<String>) -> anyhow::Result<()> {
 }
 
 pub async fn source_remote_repo(url: Url, branch: &str) -> anyhow::Result<()> {
-    let client = BelleClient::new()?;
-
     let pb = ProgressBar::new_spinner();
     pb.enable_steady_tick(Duration::from_millis(100));
     pb.set_message(format!("Fetching package manifest"));
 
+    let client = BelleClient::get()?;
     let (package, aliases) = client.get_github_package_meta(url, branch).await?;
     let package_identifier = PackageIdentifier::from(&package);
 

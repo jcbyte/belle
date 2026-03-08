@@ -24,7 +24,6 @@ pub async fn finalise_env(env: &mut Environment) -> anyhow::Result<()> {
     pb.finish_and_clear();
 
     // Fetch all packages we currently do not have
-    let client = BelleClient::new()?;
     let missing_packages: Vec<PackageIdentifier> = env
         .iter_user_packages()
         .map(|(name, version)| PackageIdentifier {
@@ -53,7 +52,7 @@ pub async fn finalise_env(env: &mut Environment) -> anyhow::Result<()> {
                 )
             })?;
 
-            package_meta.get_package(&client).await?;
+            package_meta.get_package().await?;
 
             pb.inc(1);
         }
