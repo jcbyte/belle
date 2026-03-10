@@ -11,7 +11,7 @@ pub struct RootFileSession {
 
 impl RootFileSession {
     pub fn iter_all(&self) -> impl Iterator<Item = &String> {
-        return iter::once(&self.parent).chain(self.sessions.iter());
+        iter::once(&self.parent).chain(self.sessions.iter())
     }
 }
 
@@ -62,7 +62,7 @@ fn strip_comments(input: &str) -> String {
             i += c.len_utf8();
         }
     }
-    return result;
+    result
 }
 
 /// Parse an identifier: either quoted string or unquoted alphanumeric
@@ -92,7 +92,7 @@ fn parse_identifier(input: &str) -> Option<(&str, &str)> {
         }
     }
 
-    return None;
+    None
 }
 
 pub fn parse_root(root: &str) -> anyhow::Result<Vec<RootFileSession>> {
@@ -116,7 +116,7 @@ pub fn parse_root(root: &str) -> anyhow::Result<Vec<RootFileSession>> {
         // Remove the description part of the session in case it contains "sessions"
         let rests: Vec<&str> = rest.split("description").collect();
         let session_body_rest = if let Some(after_desc) = rests.get(1) {
-            let (_description, removed_desc_rest) = parse_identifier(*after_desc)
+            let (_description, removed_desc_rest) = parse_identifier(after_desc)
                 .context("The session provides a description but it could not be parsed")?;
             let mut parts = rests.into_iter();
             let first = parts.next().unwrap_or("");
@@ -148,5 +148,5 @@ pub fn parse_root(root: &str) -> anyhow::Result<Vec<RootFileSession>> {
         });
     }
 
-    return Ok(sessions);
+    Ok(sessions)
 }

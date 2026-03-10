@@ -5,25 +5,25 @@ use crate::config::types::ConfigData;
 impl ConfigData {
     /// Get folder for manifest
     pub fn get_manifest_dir(&self) -> PathBuf {
-        return self.home.join("manifest");
+        self.home.join("manifest")
     }
 
     /// Get folder for theories
     pub fn get_theory_dir(&self) -> PathBuf {
-        return self.home.join("theory");
+        self.home.join("theory")
     }
 
     fn get_root_env_dir(&self) -> PathBuf {
-        return self.home.join("env");
+        self.home.join("env")
     }
 
     /// Get folder for environments
     pub fn get_env_dir(&self) -> PathBuf {
-        return self.get_root_env_dir().join("envs");
+        self.get_root_env_dir().join("envs")
     }
 
     /// Get folder for environments
     pub fn get_active_env_link(&self) -> PathBuf {
-        return self.get_root_env_dir().join("active");
+        self.get_root_env_dir().join("active")
     }
 }

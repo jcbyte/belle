@@ -17,7 +17,7 @@ impl BelleClient {
             .build()
             .context("Failed to create reqwest Client")?;
 
-        return Ok(Self { client });
+        Ok(Self { client })
     }
 
     /// Get the reqwest client
@@ -29,6 +29,6 @@ impl BelleClient {
         let client = Self::new()?;
         let _ = CONFIG_INSTANCE.set(client);
 
-        return Ok(CONFIG_INSTANCE.get().expect("Client was just created"));
+        Ok(CONFIG_INSTANCE.get().expect("Client was just created"))
     }
 }

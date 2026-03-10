@@ -63,5 +63,5 @@ pub async fn run(args: Cli) -> anyhow::Result<()> {
         Commands::List(args) => package::list_packages(args.all)?,
     }
 
-    return Ok(());
+    Ok(())
 }

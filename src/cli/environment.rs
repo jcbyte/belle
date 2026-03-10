@@ -17,7 +17,7 @@ pub async fn finalise_env(env: &mut Environment, include_resolve: bool) -> anyho
     if include_resolve {
         let pb = ProgressBar::new_spinner();
         pb.enable_steady_tick(Duration::from_millis(100));
-        pb.set_message(format!("Resolving dependency list"));
+        pb.set_message("Resolving dependency list".to_string());
 
         // Resolve lockfile dependencies
         env.resolve_lock()?;
@@ -30,13 +30,13 @@ pub async fn finalise_env(env: &mut Environment, include_resolve: bool) -> anyho
         .iter_user_packages()
         .map(|(name, version)| PackageIdentifier {
             name: name.clone(),
-            version: version.clone(),
+            version: *version,
         })
         // Filter to only retrieve missing packages
         .filter(|p| !p.exists_locally())
         .collect();
 
-    if missing_packages.len() > 0 {
+    if !missing_packages.is_empty() {
         let pb = ProgressBar::new(missing_packages.len() as u64);
         pb.set_style(
             ProgressStyle::default_bar()
@@ -72,7 +72,7 @@ pub async fn finalise_env(env: &mut Environment, include_resolve: bool) -> anyho
     // Update the ROOTS file to match new environment
     env.create_roots_file()?;
 
-    return Ok(());
+    Ok(())
 }
 
 fn get_env_name(name: Option<&String>) -> anyhow::Result<(String, bool)> {
@@ -85,7 +85,7 @@ fn get_env_name(name: Option<&String>) -> anyhow::Result<(String, bool)> {
         }
     };
 
-    return Ok(name);
+    Ok(name)
 }
 
 pub fn switch_env(name: Option<String>) -> anyhow::Result<()> {
@@ -94,7 +94,7 @@ pub fn switch_env(name: Option<String>) -> anyhow::Result<()> {
     manager::switch_env(&name)?;
 
     println!("Switched to environment {}.", style(name).cyan().bold());
-    return Ok(());
+    Ok(())
 }
 
 pub async fn create_env(name: Option<String>, new: bool, isabelle: Option<SemanticVersion>) -> anyhow::Result<()> {
@@ -119,7 +119,7 @@ pub async fn create_env(name: Option<String>, new: bool, isabelle: Option<Semant
 
     println!("Created new environment: {}.", style(env_name).cyan().bold());
 
-    return Ok(());
+    Ok(())
 }
 
 pub fn list_envs() -> anyhow::Result<()> {
@@ -139,7 +139,7 @@ pub fn list_envs() -> anyhow::Result<()> {
         println!("{}", env_line);
     }
 
-    return Ok(());
+    Ok(())
 }
 
 pub fn remove_env(name: &String) -> anyhow::Result<()> {
@@ -152,7 +152,7 @@ pub fn remove_env(name: &String) -> anyhow::Result<()> {
     fs::remove_dir_all(env_dir)?;
 
     println!("Removed environment: {}.", style(name).cyan().bold());
-    return Ok(());
+    Ok(())
 }
 
 pub fn freeze_env() -> anyhow::Result<()> {
@@ -160,7 +160,7 @@ pub fn freeze_env() -> anyhow::Result<()> {
     active_env.freeze()?;
 
     println!("Frozen environments to belle file.");
-    return Ok(());
+    Ok(())
 }
 
 pub async fn sync_env() -> anyhow::Result<()> {
@@ -171,7 +171,7 @@ pub async fn sync_env() -> anyhow::Result<()> {
     finalise_env(&mut active_env, false).await?;
 
     println!("Synced environment from belle file.");
-    return Ok(());
+    Ok(())
 }
 
 pub async fn migrate_isabelle(version: Option<SemanticVersion>, unpin_existing: bool) -> anyhow::Result<()> {
@@ -187,7 +187,7 @@ pub async fn migrate_isabelle(version: Option<SemanticVersion>, unpin_existing: 
                 .lock
                 .get(ISABELLE_PACKAGE)
                 .ok_or(anyhow::anyhow!("No Isabelle version is given for the environment"))?;
-            (version.clone(), false)
+            (*version, false)
         }
     };
 
@@ -205,5 +205,5 @@ pub async fn migrate_isabelle(version: Option<SemanticVersion>, unpin_existing: 
         formatted_version,
         style("]").dim()
     );
-    return Ok(());
+    Ok(())
 }

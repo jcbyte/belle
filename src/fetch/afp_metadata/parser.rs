@@ -31,7 +31,7 @@ impl RepoMetadata {
             })
             .collect();
 
-        return Ok(authors);
+        Ok(authors)
     }
 
     /// Convert from raw received data to our licence metadata interpretation
@@ -44,13 +44,13 @@ impl RepoMetadata {
             .map(|(licence_id, licence)| (licence_id, licence.name))
             .collect();
 
-        return Ok(licences);
+        Ok(licences)
     }
 
     /// Convert from raw received data to our theory metadata interpretation
     pub(super) fn parse_theory(toml_content: &String) -> anyhow::Result<TheoryMetadata> {
         let theory_raw: AFPTheoryMeta =
-            toml::from_str(&toml_content).context("Failed to parse TOML for theory metadata")?;
+            toml::from_str(toml_content).context("Failed to parse TOML for theory metadata")?;
 
         // Add dois, and pubs into extra if they exist
         let mut extra_table = theory_raw.extra;
@@ -73,6 +73,6 @@ impl RepoMetadata {
             extra: extra_table,
         };
 
-        return Ok(theory);
+        Ok(theory)
     }
 }

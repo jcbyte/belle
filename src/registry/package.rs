@@ -38,7 +38,7 @@ pub trait RegistrablePackage: Into<RegisteredPackage> {
         fs::write(manifest_file, manifest_toml_string)
             .with_context(|| format!("Could not write {} TOML manifest to disk", identifier))?;
 
-        return Ok(());
+        Ok(())
     }
 }
 
@@ -116,7 +116,7 @@ impl Package {
             PackageSource::Default => anyhow::bail!("Source is not given for this package"),
         };
 
-        return Ok(());
+        Ok(())
     }
 }
 
@@ -125,27 +125,27 @@ impl PackageIdentifier {
     fn get_manifest_path(&self) -> PathBuf {
         // Manifest file is located within `$manifest_dir/{name}/{version}.toml`
         let manifest_dir = BelleConfig::read_config(|c| c.get_manifest_dir());
-        let manifest_file = manifest_dir
+        
+
+        manifest_dir
             .join(self.name.clone())
             .join(self.version.to_string())
-            .with_added_extension("toml");
-
-        return manifest_file;
+            .with_added_extension("toml")
     }
 
     /// Get theory location
     pub fn get_theory_location(&self) -> PathBuf {
         // Theories are is located within `$theory_dir/{name}/{version}.toml`
         let theories_dir = BelleConfig::read_config(|c| c.get_theory_dir());
-        let theory_dir = theories_dir.join(self.name.clone()).join(self.version.to_string());
+        
 
-        return theory_dir;
+        theories_dir.join(self.name.clone()).join(self.version.to_string())
     }
 
     /// Check that package exists in our metadata store on disk
     pub fn package_exists(&self) -> bool {
         let manifest_file = self.get_manifest_path();
-        return manifest_file.is_file();
+        manifest_file.is_file()
     }
 
     /// Retrieve a packages manifest data, it may return an alias or the value (to automatically resolve this use `get_resolved_package_manifest`)
@@ -163,7 +163,7 @@ impl PackageIdentifier {
         let package: RegisteredPackage = toml::from_str(&manifest_toml_string)
             .with_context(|| format!("Failed to parse TOML for {} manifest file", self))?;
 
-        return Ok(Some(package));
+        Ok(Some(package))
     }
 
     /// Retrieve a packages manifest resolving all aliases data
@@ -178,13 +178,13 @@ impl PackageIdentifier {
             };
         }
 
-        return Ok(None);
+        Ok(None)
     }
 
     /// Get if this package has been downloaded already
     pub fn exists_locally(&self) -> bool {
         let theory_dir = self.get_theory_location();
-        return theory_dir.is_dir();
+        theory_dir.is_dir()
     }
 
     /// Remove the package source files from disk
@@ -195,6 +195,6 @@ impl PackageIdentifier {
             fs::remove_dir_all(theory_dir)?;
         }
 
-        return Ok(());
+        Ok(())
     }
 }

@@ -9,7 +9,7 @@ pub fn link(path: PathBuf) -> anyhow::Result<()> {
     let isabelle = Isabelle::locate(path)?;
 
     isabelle.link()?;
-    BelleConfig::write_config(|c| c.isabelles.insert(isabelle.version.clone(), isabelle.path.clone()));
+    BelleConfig::write_config(|c| c.isabelles.insert(isabelle.version, isabelle.path.clone()));
 
     println!(
         "Linked {} {} {}{}{}",
@@ -19,7 +19,7 @@ pub fn link(path: PathBuf) -> anyhow::Result<()> {
         style(isabelle.version).green(),
         style("]").dim()
     );
-    return Ok(());
+    Ok(())
 }
 
 pub fn unlink(version: SemanticVersion) -> anyhow::Result<()> {
@@ -43,5 +43,5 @@ pub fn unlink(version: SemanticVersion) -> anyhow::Result<()> {
         style("]").dim()
     );
 
-    return Ok(());
+    Ok(())
 }

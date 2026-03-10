@@ -24,22 +24,22 @@ pub fn switch_env(name: &String) -> anyhow::Result<()> {
     fs::rename(temp_link, active_env_link)
         .context("Failed to overwrite existing junction/symlink for the active environment")?;
 
-    return Ok(());
+    Ok(())
 }
 
 pub fn get_active_env() -> anyhow::Result<Option<String>> {
     let active_env = Environment::active()?;
-    return Ok(active_env.map(|env| env.name.clone()));
+    Ok(active_env.map(|env| env.name.clone()))
 }
 
 pub fn iter_envs() -> impl Iterator<Item = String> {
     let env_dir = BelleConfig::read_config(|c| c.get_env_dir());
 
-    return WalkDir::new(env_dir)
+    WalkDir::new(env_dir)
         .min_depth(1)
         .max_depth(1)
         .into_iter()
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.file_type().is_dir())
-        .map(|env_dir| env_dir.file_name().to_string_lossy().to_string());
+        .map(|env_dir| env_dir.file_name().to_string_lossy().to_string())
 }

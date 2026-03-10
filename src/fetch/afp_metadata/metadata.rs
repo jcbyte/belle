@@ -52,7 +52,7 @@ impl RepoMetadata {
                 // Create licences from "licenses.toml"
                 let content = read_content()?;
                 licences = RepoMetadata::parse_licences(&content)?;
-            } else if name.parent().map_or(false, |p| p.ends_with("entries")) {
+            } else if name.parent().is_some_and(|p| p.ends_with("entries")) {
                 // Each TOML file in the `entries/` subfolder represents a theory
                 let Some(thy_name) = name.file_stem().map(|tn| tn.to_string_lossy().to_string()) else {
                     continue;
@@ -65,25 +65,25 @@ impl RepoMetadata {
             }
         }
 
-        return Ok(RepoMetadata {
+        Ok(RepoMetadata {
             repo: repo.clone(),
             authors,
             licences,
             theories,
             seen_aliases: RefCell::new(HashMap::new()),
-        });
+        })
     }
 
     /// Get all theories within the repo metadata
     pub fn all_theories(&self) -> Vec<PackageIdentifier> {
-        return self
+        self
             .theories
             .iter()
             .map(|(theory, meta)| PackageIdentifier {
                 name: theory.clone(),
                 version: date_to_version(&meta.date),
             })
-            .collect();
+            .collect()
     }
 
     /// Create package metadata by collecting keys and fetching theory ROOT file for dependencies
@@ -120,10 +120,10 @@ impl RepoMetadata {
             .iter()
             .map(|s| AliasPackage {
                 name: s.to_string(),
-                version: version.clone(),
+                version,
                 alias: PackageIdentifier {
                     name: thy_name.to_string(),
-                    version: version.clone(),
+                    version,
                 },
             })
             .collect();
@@ -139,7 +139,7 @@ impl RepoMetadata {
             .iter()
             .cloned()
             .map(|dependency| {
-                if isabelle_packages.contains(&dependency) {
+                if isabelle_packages.contains(dependency) {
                     // Isabelle packages will depend on the isabelle version so this version does not matter
                     return (dependency.to_string(), SemanticVersion::one());
                 }
@@ -153,7 +153,7 @@ impl RepoMetadata {
                     }
                 };
 
-                return (dependency.to_string(), dep_version);
+                (dependency.to_string(), dep_version)
             })
             .collect();
 
@@ -212,16 +212,16 @@ impl RepoMetadata {
             licence: licence.clone(),
             topics: meta.topics.clone(),
             note: meta.note.clone(),
-            authors: authors,
-            contributors: contributors,
+            authors,
+            contributors,
             provides: provides_packages,
             dependencies,
-            isabelles: HashSet::from([self.repo.get_version().clone()]),
+            isabelles: HashSet::from([*self.repo.get_version()]),
             source: PackageSource::Afp(self.repo.clone()),
             extra: meta.extra.clone(),
         };
 
-        return Ok((package, fully_resolved, alias_packages));
+        Ok((package, fully_resolved, alias_packages))
     }
 
     pub fn resolve_package_meta(&self, package: &mut Package) -> anyhow::Result<()> {
@@ -242,7 +242,7 @@ impl RepoMetadata {
                     // If there was no seen alias check the registry for the alias
                     } else {
                         // Go though each version in case there are multiple connected to different packages
-                        for package in get_package_versions(&dep_name)? {
+                        for package in get_package_versions(dep_name)? {
                             // If the alias points to a package in the repo then this is the correct package
                             if let Some(meta) = self.theories.get(&package.name) {
                                 found_meta = Some(meta);
@@ -261,13 +261,13 @@ impl RepoMetadata {
                         )),
                     }
                 } else {
-                    Ok(dep_version.clone())
+                    Ok(*dep_version)
                 };
                 Ok((dep_name.clone(), version?))
             })
             .collect::<anyhow::Result<HashMap<String, SemanticVersion>>>()?;
 
         package.dependencies = deps;
-        return Ok(());
+        Ok(())
     }
 }

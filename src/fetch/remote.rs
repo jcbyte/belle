@@ -55,12 +55,12 @@ impl BelleClient {
             .iter()
             .map(|provided| AliasPackage {
                 name: provided.clone(),
-                version: package.version.clone(),
+                version: package.version,
                 alias: PackageIdentifier::from(&package),
             })
             .collect();
 
-        return Ok((package, aliases));
+        Ok((package, aliases))
     }
 
     pub async fn get_remote_package(&self, url: Url) -> anyhow::Result<bytes::Bytes> {
@@ -74,6 +74,6 @@ impl BelleClient {
             .await
             .context("Failed to read archive bytes")?;
 
-        return Ok(bytes);
+        Ok(bytes)
     }
 }

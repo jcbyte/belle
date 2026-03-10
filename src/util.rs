@@ -3,7 +3,7 @@ use toml::value::Date;
 
 /// Convert a toml Date into a SemVer following: year.month.day
 pub fn date_to_version(date: &Date) -> SemanticVersion {
-    return SemanticVersion::new(date.year.into(), date.month.into(), date.day.into());
+    SemanticVersion::new(date.year.into(), date.month.into(), date.day.into())
 }
 
 /// Convert an Isabelle version (e.g. 2025, 2025-1) into a SemVer (e.g. 2025.0.0, 2025.1.0)
@@ -18,7 +18,7 @@ pub fn get_isabelle_version(name: &str) -> SemanticVersion {
     // Split by each "-" removing any unparsable strings (e.g. empty)
     let name_parts: Vec<u32> = sanitized.split('-').filter_map(|s| s.parse::<u32>().ok()).collect();
 
-    let major = name_parts.get(0).unwrap_or(&0);
+    let major = name_parts.first().unwrap_or(&0);
     let minor = name_parts.get(1).unwrap_or(&0);
     let patch = name_parts.get(2).unwrap_or(&0);
 
@@ -38,7 +38,7 @@ pub fn get_isabelle_name(version: &SemanticVersion) -> String {
         return String::from("0");
     }
 
-    return name;
+    name
 }
 
 #[cfg(test)]

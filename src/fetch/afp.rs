@@ -62,7 +62,7 @@ impl BelleClient {
             page += 1;
         }
 
-        return Ok(afp_repos);
+        Ok(afp_repos)
     }
 
     /// Get a singular repo (id) from its name, or `None` is it does not exist
@@ -123,7 +123,7 @@ impl BelleClient {
             .await
             .with_context(|| format!("Failed to read metadata archive bytes for '{}' repo", repo.name))?;
 
-        return Ok(bytes);
+        Ok(bytes)
     }
 
     /// Retrieve the ROOT file for a given theory
@@ -145,7 +145,7 @@ impl BelleClient {
             .await
             .with_context(|| format!("Failed to read ROOT file from '{}' in '{}' repo", thy, repo.name))?;
 
-        return Ok(file_content);
+        Ok(file_content)
     }
 
     pub async fn get_afp_package(&self, name: &str, repo: &AFPRepo) -> anyhow::Result<bytes::Bytes> {
@@ -165,6 +165,6 @@ impl BelleClient {
             .await
             .with_context(|| format!("Failed to read archive bytes for '{}' from '{}' repo", name, repo.name))?;
 
-        return Ok(bytes);
+        Ok(bytes)
     }
 }

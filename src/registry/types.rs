@@ -76,10 +76,10 @@ pub struct PackageIdentifier {
 
 impl From<&Package> for PackageIdentifier {
     fn from(package: &Package) -> Self {
-        return Self {
+        Self {
             name: package.name.clone(),
-            version: package.version.clone(),
-        };
+            version: package.version,
+        }
     }
 }
 
@@ -99,21 +99,21 @@ pub struct AliasPackage {
 
 impl From<&AliasPackage> for PackageIdentifier {
     fn from(alias: &AliasPackage) -> Self {
-        return Self {
+        Self {
             name: alias.name.clone(),
-            version: alias.version.clone(),
-        };
+            version: alias.version,
+        }
     }
 }
 
 impl From<Package> for RegisteredPackage {
     fn from(package: Package) -> Self {
-        return Self::Package(package);
+        Self::Package(package)
     }
 }
 
 impl From<AliasPackage> for RegisteredPackage {
     fn from(alias: AliasPackage) -> Self {
-        return Self::Alias(alias);
+        Self::Alias(alias)
     }
 }

@@ -5,7 +5,6 @@ use std::{
     cell::RefCell,
     cmp::Reverse,
     collections::{HashMap, HashSet},
-    usize,
 };
 
 use crate::{
@@ -36,11 +35,11 @@ impl BelleDependencyProvider {
             VersionReq::Any => BelleConfig::read_config(|c| c.isabelles.keys().cloned().collect()),
         };
 
-        return Self {
+        Self {
             root_packages,
-            isabelle_versions: isabelle_versions,
+            isabelle_versions,
             package_versions: RefCell::new(HashMap::new()),
-        };
+        }
     }
 
     fn get_package_versions(&self, name: &String) -> anyhow::Result<HashSet<SemanticVersion>> {
@@ -52,7 +51,7 @@ impl BelleDependencyProvider {
         let fetched: HashSet<SemanticVersion> = get_package_versions(name)?.into_iter().map(|v| v.version).collect();
         cache.insert(name.clone(), fetched.clone());
 
-        return Ok(fetched);
+        Ok(fetched)
     }
 }
 
@@ -72,9 +71,9 @@ impl DependencyProvider for BelleDependencyProvider {
         };
 
         // Return the highest version of the package that satisfies the range
-        let top_valid_version = versions.iter().map(|v| v).filter(|v| range.contains(v)).max().cloned();
+        let top_valid_version = versions.iter().filter(|v| range.contains(v)).max().cloned();
 
-        return Ok(top_valid_version);
+        Ok(top_valid_version)
     }
 
     type Priority = Reverse<usize>;
@@ -101,7 +100,7 @@ impl DependencyProvider for BelleDependencyProvider {
         let valid_versions_count = versions.iter().filter(|v| range.contains(v)).count();
 
         // Invert to pick packages with fewest versions
-        return Reverse(valid_versions_count);
+        Reverse(valid_versions_count)
     }
 
     fn get_dependencies(
@@ -140,15 +139,14 @@ impl DependencyProvider for BelleDependencyProvider {
 
         let package = PackageIdentifier {
             name: package.clone(),
-            version: version.clone(),
+            version: *version,
         };
 
         let manifest = package
             .get_package_manifest()?
             .with_context(|| format!("Package '{}' does not exist", package))?;
 
-        let mut deps: HashMap<String, SemVS, rustc_hash::FxBuildHasher> =
-            HashMap::with_hasher(FxBuildHasher::default());
+        let mut deps: HashMap<String, SemVS, rustc_hash::FxBuildHasher> = HashMap::with_hasher(FxBuildHasher);
 
         match manifest {
             RegisteredPackage::Alias(alias) => {
@@ -177,7 +175,7 @@ impl DependencyProvider for BelleDependencyProvider {
             }
         }
 
-        return Ok(Dependencies::Available(deps));
+        Ok(Dependencies::Available(deps))
     }
 
     type Err = SolverError;
@@ -197,6 +195,6 @@ impl BelleDependencyProvider {
         let mut resolved_dependencies = resolve(&resolver, String::from("."), SemanticVersion::zero())?;
         resolved_dependencies.remove(".");
 
-        return Ok(resolved_dependencies.into_iter().collect());
+        Ok(resolved_dependencies.into_iter().collect())
     }
 }

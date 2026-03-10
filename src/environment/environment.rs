@@ -32,7 +32,7 @@ impl Environment {
             lock: HashMap::new(),
         };
 
-        return Ok(env);
+        Ok(env)
     }
 
     /// Get the active environment, if any
@@ -44,7 +44,7 @@ impl Environment {
             return Ok(None);
         };
 
-        return Ok(Some(Self::load(env_file)?));
+        Ok(Some(Self::load(env_file)?))
     }
 
     pub fn get(name: String) -> anyhow::Result<Option<Self>> {
@@ -54,7 +54,7 @@ impl Environment {
             return Ok(None);
         };
 
-        return Ok(Some(Self::load(env_file)?));
+        Ok(Some(Self::load(env_file)?))
     }
 
     /// Get the environment in the freeze file, if any
@@ -65,31 +65,31 @@ impl Environment {
             return Ok(None);
         }
 
-        return Ok(Some(Self::load(freeze_file)?));
+        Ok(Some(Self::load(freeze_file)?))
     }
 
     pub(crate) fn env_dir_for_name(name: &String) -> PathBuf {
-        return BelleConfig::read_config(|c| c.get_env_dir()).join(name);
+        BelleConfig::read_config(|c| c.get_env_dir()).join(name)
     }
 
     pub(crate) fn join_env_file(env_dir: PathBuf) -> PathBuf {
-        return env_dir.join("env.toml");
+        env_dir.join("env.toml")
     }
 
     pub(crate) fn env_file_for_name(name: &String) -> PathBuf {
-        return Self::join_env_file(Self::env_dir_for_name(name));
+        Self::join_env_file(Self::env_dir_for_name(name))
     }
 
     fn get_env_dir(&self) -> PathBuf {
-        return Self::env_dir_for_name(&self.name);
+        Self::env_dir_for_name(&self.name)
     }
 
     fn get_env_file(&self) -> PathBuf {
-        return Self::join_env_file(self.get_env_dir());
+        Self::join_env_file(self.get_env_dir())
     }
 
     fn get_roots_file(&self) -> PathBuf {
-        return self.get_env_dir().join("ROOTS");
+        self.get_env_dir().join("ROOTS")
     }
 
     fn load(env_file: PathBuf) -> anyhow::Result<Self> {
@@ -102,7 +102,7 @@ impl Environment {
             anyhow::bail!("Environment file '{}' does not exist", env_file.display());
         };
 
-        return Ok(parsed_env);
+        Ok(parsed_env)
     }
 
     pub fn save(&self) -> anyhow::Result<()> {
@@ -118,11 +118,11 @@ impl Environment {
             toml::to_string(self).with_context(|| format!("Failed to parse TOML for environment '{}'", &self.name))?;
         fs::write(env_file, content).with_context(|| format!("Failed to save environment '{}'", &self.name))?;
 
-        return Ok(());
+        Ok(())
     }
 
     fn get_freeze_file() -> PathBuf {
-        return PathBuf::from(".").join("belle.toml");
+        PathBuf::from(".").join("belle.toml")
     }
 
     pub fn freeze(&self) -> anyhow::Result<()> {
@@ -133,7 +133,7 @@ impl Environment {
         fs::write(freeze_file, content)
             .with_context(|| format!("Failed to write to freeze file for '{}'", &self.name))?;
 
-        return Ok(());
+        Ok(())
     }
 
     /// Sync the contents of the freeze file into this environment
@@ -144,7 +144,7 @@ impl Environment {
         self.packages = frozen_env.packages;
         self.lock = frozen_env.lock;
 
-        return Ok(());
+        Ok(())
     }
 
     pub fn add_package(&mut self, name: String, version: VersionReq) -> anyhow::Result<()> {
@@ -154,47 +154,47 @@ impl Environment {
 
         self.packages.insert(name, version);
 
-        return Ok(());
+        Ok(())
     }
 
     pub fn remove_package(&mut self, name: &String) -> anyhow::Result<()> {
         self.packages.remove(name);
 
-        return Ok(());
+        Ok(())
     }
 
     pub fn resolve_lock(&mut self) -> anyhow::Result<()> {
         let resolved_packages = BelleDependencyProvider::resolve(self.isabelle.clone(), self.packages.clone())?;
         self.lock = resolved_packages;
 
-        return Ok(());
+        Ok(())
     }
 
     pub fn get_packages(&self) -> anyhow::Result<Vec<PackageListing>> {
-        let packages = self
+        
+
+        self
             .lock
             .iter()
             .map(|(name, version)| match self.packages.get(name) {
                 None => {
-                    return Ok(PackageListing {
+                    Ok(PackageListing {
                         name: name.clone(),
-                        version: version.clone(),
+                        version: *version,
                         kind: PackageType::Transitive,
-                    });
+                    })
                 }
                 Some(direct_version) => {
-                    return Ok(PackageListing {
+                    Ok(PackageListing {
                         name: name.clone(),
-                        version: version.clone(),
+                        version: *version,
                         kind: PackageType::Direct {
                             given_version: !direct_version.is_any(),
                         },
-                    });
+                    })
                 }
             })
-            .collect();
-
-        return packages;
+            .collect()
     }
 
     pub fn migrate_isabelle(&mut self, version: VersionReq, unpin_existing: bool) -> anyhow::Result<()> {
@@ -202,24 +202,22 @@ impl Environment {
 
         if unpin_existing {
             self.packages = self
-                .packages
-                .iter()
-                .map(|(name, _version)| (name.clone(), VersionReq::Any))
+                .packages.keys().map(|name| (name.clone(), VersionReq::Any))
                 .collect()
         }
 
-        return Ok(());
+        Ok(())
     }
 
     /// Get packages installed by the user, filtering isabelle's built in ones.
     pub fn iter_user_packages(&self) -> impl Iterator<Item = (&String, &SemanticVersion)> {
         let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
 
-        return self
+        self
             .lock
             .iter()
             // Remove isabelle packages
-            .filter(move |(name, _version)| !name.eq(&ISABELLE_PACKAGE) && !isabelle_packages.contains(name));
+            .filter(move |(name, _version)| !name.eq(&ISABELLE_PACKAGE) && !isabelle_packages.contains(name))
     }
 
     pub fn create_roots_file(&self) -> anyhow::Result<()> {
@@ -227,7 +225,7 @@ impl Environment {
             .iter_user_packages()
             .map(|(name, version)| PackageIdentifier {
                 name: name.clone(),
-                version: version.clone(),
+                version: *version,
             })
             .map(|p| p.get_theory_location());
 
@@ -250,6 +248,6 @@ impl Environment {
         }
 
         writer.flush().context("Failed to flush stream to roots file")?;
-        return Ok(());
+        Ok(())
     }
 }

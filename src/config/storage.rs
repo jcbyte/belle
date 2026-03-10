@@ -40,14 +40,14 @@ impl BelleConfig {
         // Save the config back to disk to place defaults on disk
         config.save()?;
 
-        return Ok(config);
+        Ok(config)
     }
 
     /// Save config back to disk
     fn save(&self) -> anyhow::Result<()> {
         let content = toml::to_string(&self.data)?;
         fs::write(&self.config_file, content)?;
-        return Ok(());
+        Ok(())
     }
 
     /// Initialise the config (should be called once)
@@ -57,13 +57,13 @@ impl BelleConfig {
             .set(RwLock::new(mgr))
             .map_err(|_| anyhow::anyhow!("Init failed"))?;
 
-        return Ok(());
+        Ok(())
     }
 
     // Global accessors
     pub fn read_config<R>(f: impl FnOnce(&ConfigData) -> R) -> R {
         let lock = CONFIG_INSTANCE.get().expect("Not init").read().unwrap();
-        return f(&lock.data);
+        f(&lock.data)
     }
 
     pub fn write_config<R>(f: impl FnOnce(&mut ConfigData) -> R) -> R {
@@ -71,6 +71,6 @@ impl BelleConfig {
         let res = f(&mut lock.data);
         // Auto-save on write
         let _ = lock.save();
-        return res;
+        res
     }
 }

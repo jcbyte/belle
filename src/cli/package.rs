@@ -16,7 +16,7 @@ pub async fn add_package(name: String, version: Option<SemanticVersion>) -> anyh
     finalise_env(&mut active_env, true).await?;
 
     println!("Added package {}.", style(name).cyan());
-    return Ok(());
+    Ok(())
 }
 
 pub async fn remove_package(name: &String) -> anyhow::Result<()> {
@@ -26,7 +26,7 @@ pub async fn remove_package(name: &String) -> anyhow::Result<()> {
     finalise_env(&mut active_env, true).await?;
 
     println!("Removed package {}.", style(name).cyan());
-    return Ok(());
+    Ok(())
 }
 
 pub fn list_packages(all: bool) -> anyhow::Result<()> {
@@ -109,5 +109,5 @@ pub fn list_packages(all: bool) -> anyhow::Result<()> {
         }
     }
 
-    return Ok(());
+    Ok(())
 }

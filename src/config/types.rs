@@ -21,7 +21,7 @@ impl Default for ConfigData {
         let data_dir = dirs::data_dir().expect("Could not get users data folder");
         let home_dir = data_dir.join("belle");
 
-        return Self {
+        Self {
             home: home_dir,
             afp_group: String::from("isa-afp"),
             isabelles: HashMap::new(),
@@ -64,6 +64,6 @@ impl Default for ConfigData {
                 String::from("HOL-Lattice"),
                 String::from("HOL-SPARK-Examples"),
             ],
-        };
+        }
     }
 }

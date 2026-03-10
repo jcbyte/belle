@@ -14,7 +14,7 @@ use crate::{
 pub async fn list_afp_repositories(limit: usize) -> anyhow::Result<()> {
     let pb = ProgressBar::new_spinner();
     pb.enable_steady_tick(Duration::from_millis(100));
-    pb.set_message(format!("Fetching repository list"));
+    pb.set_message("Fetching repository list".to_string());
 
     // Get repositories
     let client = BelleClient::get()?;
@@ -36,7 +36,7 @@ pub async fn list_afp_repositories(limit: usize) -> anyhow::Result<()> {
     }
     println!("Found {} AFP repositories.", style(afp_repos.len()).bold());
 
-    return Ok(());
+    Ok(())
 }
 
 /// Fetch metadata for a specific repository (or the latest if not specified)
@@ -54,7 +54,7 @@ pub async fn fetch_afp_meta(repo_name: Option<String>) -> anyhow::Result<()> {
         None => {
             // Get the most recent repo if none specified
             let latest_repo_collection = client.get_afp_repos(1).await?;
-            let latest_repo = latest_repo_collection.first().map(|repo| repo.clone());
+            let latest_repo = latest_repo_collection.first().cloned();
             latest_repo.context("Failed to fetch latest repo name")?
         }
     };
@@ -70,7 +70,7 @@ pub async fn fetch_afp_meta(repo_name: Option<String>) -> anyhow::Result<()> {
     ));
 
     // Get the metadata from the repo, and then create our metadata struct from this
-    let repo_metadata = RepoMetadata::get(&repo, &client).await?;
+    let repo_metadata = RepoMetadata::get(&repo, client).await?;
     let repo_theories = repo_metadata.all_theories();
 
     pb.finish_with_message(format!(
@@ -100,14 +100,14 @@ pub async fn fetch_afp_meta(repo_name: Option<String>) -> anyhow::Result<()> {
             let mut theory_meta = theory
                 .get_resolved_package_manifest()?
                 .expect("Package exists, but its manifest could not be found");
-            if theory_meta.isabelles.insert(repo.get_version().clone()) {
+            if theory_meta.isabelles.insert(*repo.get_version()) {
                 // Only re-register if this modified to avoid unnecessary IO
                 theory_meta.register()?;
             }
         } else {
             // Create the package metadata and register it
             // Creating metadata will require network, so this could take some time
-            let package_meta = repo_metadata.create_package_meta(&theory.name, &client).await;
+            let package_meta = repo_metadata.create_package_meta(&theory.name, client).await;
             match package_meta {
                 Ok((package, fully_resolved, aliases)) => {
                     if fully_resolved {
@@ -174,13 +174,13 @@ pub async fn fetch_afp_meta(repo_name: Option<String>) -> anyhow::Result<()> {
         .red()
     );
 
-    return Ok(());
+    Ok(())
 }
 
 pub async fn source_remote_repo(url: Url, branch: &str) -> anyhow::Result<()> {
     let pb = ProgressBar::new_spinner();
     pb.enable_steady_tick(Duration::from_millis(100));
-    pb.set_message(format!("Fetching package manifest"));
+    pb.set_message("Fetching package manifest".to_string());
 
     let client = BelleClient::get()?;
     let (package, aliases) = client.get_github_package_meta(url, branch).await?;
@@ -194,7 +194,7 @@ pub async fn source_remote_repo(url: Url, branch: &str) -> anyhow::Result<()> {
     pb.finish_and_clear();
     println!("Sourced: {}", style(package_identifier).cyan());
 
-    return Ok(());
+    Ok(())
 }
 
 pub fn source_local_package(path: PathBuf) -> anyhow::Result<()> {
@@ -208,5 +208,5 @@ pub fn source_local_package(path: PathBuf) -> anyhow::Result<()> {
 
     println!("Sourced: {}", style(package_identifier).cyan());
 
-    return Ok(());
+    Ok(())
 }

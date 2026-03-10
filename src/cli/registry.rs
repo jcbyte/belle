@@ -25,7 +25,7 @@ pub fn clean_theories() -> anyhow::Result<()> {
     fs::remove_dir_all(thy_dir).context("Failed to remove theory cache")?;
     println!("Cleaned {} theories from cache.", style("all").bold());
 
-    return Ok(());
+    Ok(())
 }
 
 /// Remove all metadata from disk
@@ -40,7 +40,7 @@ pub fn clean_metadata() -> anyhow::Result<()> {
     fs::remove_dir_all(manifest_dir).context("Failed to remove manifest cache")?;
     println!("Cleaned metadata for {} theories.", style("all").bold());
 
-    return Ok(());
+    Ok(())
 }
 
 /// List versions of a package in our local metadata
@@ -69,7 +69,7 @@ pub fn list_versions(name: String) -> anyhow::Result<()> {
         );
     }
 
-    return Ok(());
+    Ok(())
 }
 
 /// Prints nicely formatted metadata for a package to the console
@@ -119,8 +119,8 @@ fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
             style("]").dim()
         ),
         PackageSource::Remote { url } => format!("Remote: {}", url),
-        PackageSource::Local { path } => format!("Local: {}", path.to_string_lossy().to_string()),
-        _ => format!(""),
+        PackageSource::Local { path } => format!("Local: {}", path.to_string_lossy()),
+        _ => String::new(),
     };
     println!("{:<10} {}", style("Source:").bold(), source_str);
 
@@ -167,7 +167,7 @@ fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
             if isabelle_packages.contains(name) {
                 isabelle_dependencies.push(name.clone());
             } else {
-                dependencies.push((name.clone(), ver.clone()));
+                dependencies.push((name.clone(), *ver));
             }
         }
 
@@ -236,14 +236,14 @@ pub fn print_package_meta(name: String, version: Option<SemanticVersion>) -> any
                 let resolved_package = alias
                     .alias
                     .get_resolved_package_manifest()?
-                    .expect(format!("Resolved alias '{}' cannot be found", alias.name).as_str());
+                    .unwrap_or_else(|| panic!("Resolved alias '{}' cannot be found", alias.name));
                 print_meta(&resolved_package, Some(&alias));
             }
         },
         None => anyhow::bail!("Package '{}' does not exist", package),
     };
 
-    return Ok(());
+    Ok(())
 }
 
 fn highlight_match(text: &str, query: &str) -> String {
@@ -305,5 +305,5 @@ pub fn purge_packages() -> anyhow::Result<()> {
 
     println!("Removed {} PAckages.", style(removed).bold());
 
-    return Ok(());
+    Ok(())
 }

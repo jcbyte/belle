@@ -9,7 +9,7 @@ impl Isabelle {
         let res = Self::exec_isabelle_from_path(&path, "isabelle version")?;
         let version = get_isabelle_version(&res);
 
-        return Ok(Self { version, path });
+        Ok(Self { version, path })
     }
 
     fn exec_isabelle_from_path(isabelle_root: &PathBuf, cmd: &str) -> anyhow::Result<String> {
@@ -24,7 +24,7 @@ impl Isabelle {
                 "PATH",
                 format!(
                     "{};{}",
-                    isabelle_bin.to_string_lossy().to_string(),
+                    isabelle_bin.to_string_lossy(),
                     env::var("PATH").unwrap_or_default()
                 ),
             )
@@ -41,17 +41,17 @@ impl Isabelle {
         let res_str = String::from_utf8(res.stdout)
             .with_context(|| format!("Isabelle command output for '{}' was not valid UTF-8.", cmd))?;
 
-        return Ok(res_str);
+        Ok(res_str)
     }
 
     fn exec_isabelle(&self, cmd: &str) -> anyhow::Result<String> {
-        return Self::exec_isabelle_from_path(&self.path, cmd);
+        Self::exec_isabelle_from_path(&self.path, cmd)
     }
 
     pub fn get_isabelle_path(&self, path: PathBuf) -> anyhow::Result<String> {
-        let path = self.exec_isabelle(&format!("cygpath -u \"{}\"", path.to_string_lossy().to_string()))?;
+        let path = self.exec_isabelle(&format!("cygpath -u \"{}\"", path.to_string_lossy()))?;
 
-        return Ok(path.trim().to_string());
+        Ok(path.trim().to_string())
     }
 
     fn manage_component(&self, add: bool) -> anyhow::Result<()> {
@@ -62,16 +62,16 @@ impl Isabelle {
         let flag = if add { "-u" } else { "-x" };
         self.exec_isabelle(&format!("isabelle components {} {}", flag, isabelle_path))?;
 
-        return Ok(());
+        Ok(())
     }
 
     pub fn link(&self) -> anyhow::Result<()> {
         self.manage_component(true)?;
-        return Ok(());
+        Ok(())
     }
 
     pub fn unlink(&self) -> anyhow::Result<()> {
         self.manage_component(false)?;
-        return Ok(());
+        Ok(())
     }
 }

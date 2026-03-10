@@ -21,7 +21,7 @@ pub fn get_local_package_meta(path: PathBuf) -> anyhow::Result<(Package, Vec<Ali
     package.source = crate::registry::PackageSource::Local {
         path: path
             .canonicalize()
-            .with_context(|| format!("Failed to canonicalise path '{}'", path.to_string_lossy().to_string()))?,
+            .with_context(|| format!("Failed to canonicalise path '{}'", path.to_string_lossy()))?,
     };
 
     let aliases: Vec<AliasPackage> = package
@@ -29,10 +29,10 @@ pub fn get_local_package_meta(path: PathBuf) -> anyhow::Result<(Package, Vec<Ali
         .iter()
         .map(|provided| AliasPackage {
             name: provided.clone(),
-            version: package.version.clone(),
+            version: package.version,
             alias: PackageIdentifier::from(&package),
         })
         .collect();
 
-    return Ok((package, aliases));
+    Ok((package, aliases))
 }

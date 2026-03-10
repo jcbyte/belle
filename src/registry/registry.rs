@@ -10,7 +10,7 @@ use crate::{config::BelleConfig, registry::PackageIdentifier};
 pub fn iter_installed_packages() -> impl Iterator<Item = PackageIdentifier> {
     let packages_dir = BelleConfig::read_config(|c| c.get_theory_dir());
 
-    return WalkDir::new(packages_dir)
+    WalkDir::new(packages_dir)
         .min_depth(2)
         .max_depth(2)
         .into_iter()
@@ -25,7 +25,7 @@ pub fn iter_installed_packages() -> impl Iterator<Item = PackageIdentifier> {
             let version = SemanticVersion::from_str(&version_str).ok()?;
 
             Some(PackageIdentifier { name, version })
-        });
+        })
 }
 
 /// Scan for all packages in registry
@@ -60,5 +60,5 @@ pub fn get_package_versions(name: &String) -> anyhow::Result<Vec<PackageIdentifi
         })
         .collect();
 
-    return Ok(versions?);
+    versions
 }

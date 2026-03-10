@@ -17,7 +17,7 @@ impl FromStr for IsabelleVersion {
         }
 
         // If that cannot be parsed assume version is written as name, so parse that way
-        return Ok(IsabelleVersion(get_isabelle_version(s)));
+        Ok(IsabelleVersion(get_isabelle_version(s)))
     }
 }
 
