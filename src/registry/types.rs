@@ -12,6 +12,7 @@ use crate::fetch::AFPRepo;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "_type")]
+#[allow(clippy::large_enum_variant)] // As majority of packages are the larger variant
 pub enum RegisteredPackage {
     Package(Package),
     Alias(AliasPackage),
