@@ -69,11 +69,12 @@ fn strip_comments(input: &str) -> String {
 fn parse_identifier(input: &str) -> Option<(&str, &str)> {
     let input = input.trim_start();
 
-    if input.starts_with('"') {
+    // todo test this still works as intended
+    if let Some(stripped) = input.strip_prefix('"') {
         // Parse quoted identifier
-        if let Some(end_quote) = input[1..].find('"') {
-            let id = &input[1..end_quote + 1];
-            let rest = &input[end_quote + 2..];
+        if let Some(end_quote) = stripped.find('"') {
+            let id = &stripped[0..end_quote + 1];
+            let rest = &stripped[end_quote + 2..];
             return Some((id, rest));
         }
     } else {

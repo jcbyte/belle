@@ -1,4 +1,4 @@
-mod environment;
+mod core;
 pub mod manager;
 mod types;
 

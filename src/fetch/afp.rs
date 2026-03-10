@@ -130,9 +130,8 @@ impl BelleClient {
     pub async fn get_afp_thy_root(&self, repo: &AFPRepo, thy: &String) -> anyhow::Result<String> {
         // Retrieve the raw string of the ROOT file at `/thys/$thy/ROOT` for the given theory and repo
         let root_file_url = format!(
-            "https://foss.heptapod.net/api/v4/projects/{}/repository/files/{}/raw",
-            repo.id,
-            format!("thys%2F{}%2FROOT", thy)
+            "https://foss.heptapod.net/api/v4/projects/{}/repository/files/thys%2F{}%2FROOT/raw",
+            repo.id, thy
         );
 
         let file_content = self
@@ -150,9 +149,8 @@ impl BelleClient {
 
     pub async fn get_afp_package(&self, name: &str, repo: &AFPRepo) -> anyhow::Result<bytes::Bytes> {
         let package_archive_url = format!(
-            "https://foss.heptapod.net/api/v4/projects/{}/repository/archive.zip?path={}",
-            repo.id,
-            format!("thys%2F{}", name)
+            "https://foss.heptapod.net/api/v4/projects/{}/repository/archive.zip?path=thys%2F{}",
+            repo.id, name
         );
 
         let bytes = self

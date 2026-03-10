@@ -1,4 +1,8 @@
-use std::{env, path::PathBuf, process::Command};
+use std::{
+    env,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 use anyhow::Context;
 
@@ -12,7 +16,7 @@ impl Isabelle {
         Ok(Self { version, path })
     }
 
-    fn exec_isabelle_from_path(isabelle_root: &PathBuf, cmd: &str) -> anyhow::Result<String> {
+    fn exec_isabelle_from_path(isabelle_root: &Path, cmd: &str) -> anyhow::Result<String> {
         let bash = isabelle_root.join("contrib").join("cygwin").join("bin").join("bash.exe");
         let isabelle_bin = isabelle_root.join("bin");
 
