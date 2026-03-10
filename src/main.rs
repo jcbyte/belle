@@ -1,12 +1,21 @@
+use anyhow::Error;
 use belle::{cli, config::BelleConfig};
 use clap::Parser;
 use console::style;
+
+fn display_errors(e: Error) {
+    // todo 6.2 error handling
+    for cause in e.chain() {
+        println!("- {}", style(cause).bold().red())
+    }
+}
 
 #[tokio::main]
 async fn main() {
     // Ensure configuration/state is initialised
     if let Err(e) = BelleConfig::init() {
-        // todo 6.2 error handling
+        display_errors(e);
+        return;
     }
 
     // Parse command-line arguments and dispatch to the appropriate action
@@ -14,10 +23,8 @@ async fn main() {
 
     // Execute the commands
     if let Err(e) = cli::run(args).await {
-        // todo 6.2 error handling
-        for cause in e.chain() {
-            println!("- {}", style(cause).bold().red())
-        }
+        display_errors(e);
+        return;
     }
 }
 
