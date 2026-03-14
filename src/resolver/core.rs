@@ -34,6 +34,7 @@ impl BelleDependencyProvider {
             // If any version is given, use all registered versions
             VersionReq::Any => BelleConfig::read_config(|c| c.isabelles.keys().cloned().collect()),
         };
+        // todo if a version is given, it will skip looking at versions we have in config, is this expected behaviour?
 
         Self {
             root_packages,

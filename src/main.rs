@@ -28,7 +28,7 @@ async fn main() {
     }
 }
 
-// todo save packages as PackageIdentifiers+Isabelles with custom serialiser
+// todo save packages as PackageIdentifiers+Isabelles with custom serialiser (Make internal PackageMap which uses HashMap<&str, Version>)
 
 // todo 6.1 ensure consistent naming of packages
 // todo 6.2 check all error handling cases are needed (should we just expect), ensure messages are correct (resolving, deserialising etc), use thiserror
@@ -36,6 +36,7 @@ async fn main() {
 // todo 6.4 consistent CLI output
 
 // todo 7 unix-ify junctions/symlinks + isabelle integrations
+// todo readme
 
 // todo 8 unit testing
 // todo 9 integration testing
