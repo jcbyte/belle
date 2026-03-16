@@ -11,6 +11,7 @@ use crate::{
     config::BelleConfig,
     fetch::BelleClient,
     registry::{AliasPackage, Package, PackageIdentifier, PackageSource, RegisteredPackage},
+    util::create_parent_dirs,
 };
 
 #[cfg(windows)]
@@ -30,11 +31,9 @@ pub trait RegistrablePackage: Into<RegisteredPackage> {
         let manifest_file = identifier.get_manifest_path();
         let manifest_toml_string = toml::to_string(&registerable_package)
             .with_context(|| format!("Could not create {} TOML manifest", identifier))?;
-        // Recursively create parent directory and parents so that we can write to the file
-        if let Some(parent) = manifest_file.parent() {
-            fs::create_dir_all(parent)
-                .with_context(|| format!("Could not create {} manifest directories on disk", identifier))?;
-        }
+
+        create_parent_dirs(&manifest_file)
+            .with_context(|| format!("Could not create {} manifest directories on disk", identifier))?;
         fs::write(manifest_file, manifest_toml_string)
             .with_context(|| format!("Could not write {} TOML manifest to disk", identifier))?;
 
@@ -95,9 +94,7 @@ impl Package {
                         if file.is_dir() {
                             fs::create_dir_all(&file_src)?;
                         } else {
-                            if let Some(parent) = file_src.parent() {
-                                fs::create_dir_all(parent)?;
-                            };
+                            create_parent_dirs(&file_src)?;
                             let mut out_file = fs::File::create(&file_src)?;
                             io::copy(&mut file, &mut out_file)?;
                         }
@@ -125,7 +122,6 @@ impl PackageIdentifier {
     fn get_manifest_path(&self) -> PathBuf {
         // Manifest file is located within `$manifest_dir/{name}/{version}.toml`
         let manifest_dir = BelleConfig::read_config(|c| c.get_manifest_dir());
-        
 
         manifest_dir
             .join(self.name.clone())
@@ -137,7 +133,6 @@ impl PackageIdentifier {
     pub fn get_theory_location(&self) -> PathBuf {
         // Theories are is located within `$theory_dir/{name}/{version}.toml`
         let theories_dir = BelleConfig::read_config(|c| c.get_theory_dir());
-        
 
         theories_dir.join(self.name.clone()).join(self.version.to_string())
     }

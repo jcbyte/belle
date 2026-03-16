@@ -5,7 +5,10 @@ use std::{
     sync::{OnceLock, RwLock},
 };
 
-use crate::config::types::{ConfigData, default_home_dir};
+use crate::{
+    config::types::{ConfigData, default_home_dir},
+    util::create_parent_dirs,
+};
 
 #[derive(Debug)]
 pub struct BelleConfig {
@@ -45,10 +48,8 @@ impl BelleConfig {
         };
 
         // Save the config back to disk to place defaults on disk
-        if let Some(parent) = config_path.parent() {
-            fs::create_dir_all(parent)
-                .with_context(|| format!("Could not create directories to contain config file on disk"))?;
-        }
+        create_parent_dirs(&config_path)
+            .with_context(|| format!("Could not create directories to contain config file on disk"))?;
         config.save()?;
 
         Ok(config)

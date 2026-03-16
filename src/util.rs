@@ -1,3 +1,5 @@
+use std::{fs, path::Path};
+
 use pubgrub::SemanticVersion;
 use toml::value::Date;
 
@@ -39,6 +41,15 @@ pub fn get_isabelle_name(version: &SemanticVersion) -> String {
     }
 
     name
+}
+
+/// Create all parent directories for a given file
+pub fn create_parent_dirs(file_path: &Path) -> anyhow::Result<()> {
+    if let Some(parent) = file_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

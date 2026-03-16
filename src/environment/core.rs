@@ -13,6 +13,7 @@ use crate::{
     environment::{Environment, PackageListing, PackageType, types::VersionReq},
     registry::PackageIdentifier,
     resolver::{BelleDependencyProvider, ISABELLE_PACKAGE},
+    util::create_parent_dirs,
 };
 
 impl Environment {
@@ -107,12 +108,8 @@ impl Environment {
     pub fn save(&self) -> anyhow::Result<()> {
         let env_file = self.get_env_file();
 
-        // Recursively create parent directory and parents so that we can write to the file
-        if let Some(parent) = env_file.parent() {
-            fs::create_dir_all(parent)
-                .with_context(|| format!("Could not create {} environment directories on disk", &self.name))?;
-        }
-
+        create_parent_dirs(&env_file)
+            .with_context(|| format!("Could not create {} environment directories on disk", &self.name))?;
         let content =
             toml::to_string(self).with_context(|| format!("Failed to parse TOML for environment '{}'", &self.name))?;
         fs::write(env_file, content).with_context(|| format!("Failed to save environment '{}'", &self.name))?;

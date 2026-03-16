@@ -4,7 +4,7 @@ use clap::Parser;
 use console::style;
 
 fn display_errors(e: Error) {
-    // todo 6.2 error handling
+    // todo 7.2 error handling
     for cause in e.chain() {
         println!("- {}", style(cause).bold().red())
     }
@@ -28,10 +28,10 @@ async fn main() {
     }
 }
 
-// todo 6.1 ensure consistent naming of packages
-// todo 6.2 check all error handling cases are needed (should we just expect), ensure messages are correct (resolving, deserialising etc), use thiserror
-// todo 6.3 use references instead of cloning everywhere
-// todo 6.4 consistent CLI output
+// todo 7.1 ensure consistent naming of packages
+// todo 7.2 check all error handling cases are needed (should we just expect), ensure messages are correct (resolving, deserialising etc), use thiserror
+// todo 7.3 use references instead of cloning everywhere
+// todo 7.4 consistent CLI output
 
 // todo readme
 
