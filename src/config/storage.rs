@@ -19,10 +19,15 @@ static CONFIG_INSTANCE: OnceLock<RwLock<BelleConfig>> = OnceLock::new();
 impl BelleConfig {
     /// Load config from disk, or use default
     fn load() -> anyhow::Result<Self> {
-        // Load config file from location at environment variable `BELLE_CONFIG` or check the executables location if that is not set
-        let config_path = env::var("BELLE_CONFIG")
-            .map(|path| PathBuf::from(path))
-            .unwrap_or_else(|_| default_home_dir().join("config.toml"));
+        let config_path = if cfg!(debug_assertions) {
+            // Use a local version of the config if we are running in dev
+            PathBuf::from("belle_config.toml")
+        } else {
+            // Load config file from location at environment variable `BELLE_CONFIG` or use the home directory if that is not set
+            env::var("BELLE_CONFIG")
+                .map(|path| PathBuf::from(path))
+                .unwrap_or_else(|_| default_home_dir().join("config.toml"))
+        };
 
         let parsed_config = if config_path.is_file() {
             let content = fs::read_to_string(&config_path)
