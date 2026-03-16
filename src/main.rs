@@ -33,7 +33,6 @@ async fn main() {
 // todo 6.3 use references instead of cloning everywhere
 // todo 6.4 consistent CLI output
 
-// todo 7 unix-ify junctions/symlinks + isabelle integrations
 // todo readme
 
 // todo 8 unit testing

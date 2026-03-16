@@ -17,26 +17,52 @@ impl Isabelle {
     }
 
     fn exec_isabelle_from_path(isabelle_root: &Path, cmd: &str) -> anyhow::Result<String> {
-        let bash = isabelle_root.join("contrib").join("cygwin").join("bin").join("bash.exe");
         let isabelle_bin = isabelle_root.join("bin");
 
-        // Create a command using defaults from `Cygwin-Terminal.bat`
-        let mut command = Command::new(bash);
-        command
-            .env("HOME", env::var("USERPROFILE").unwrap_or_default())
-            .env(
-                "PATH",
-                format!(
-                    "{};{}",
-                    isabelle_bin.to_string_lossy(),
-                    env::var("PATH").unwrap_or_default()
-                ),
-            )
-            .env("LANG", "en_US.UTF-8")
-            .env("CHERE_INVOKING", "true")
-            .arg("--login")
-            .arg("-c")
-            .arg(cmd);
+        let mut command = {
+            #[cfg(windows)]
+            {
+                let bash = isabelle_root.join("contrib").join("cygwin").join("bin").join("bash.exe");
+
+                // Create a command using defaults from `Cygwin-Terminal.bat`
+                let mut command = Command::new(bash);
+                command
+                    .env("HOME", env::var("USERPROFILE").unwrap_or_default())
+                    .env(
+                        "PATH",
+                        format!(
+                            "{};{}",
+                            isabelle_bin.to_string_lossy(),
+                            env::var("PATH").unwrap_or_default()
+                        ),
+                    )
+                    .env("LANG", "en_US.UTF-8")
+                    .env("CHERE_INVOKING", "true")
+                    .arg("--login")
+                    .arg("-c")
+                    .arg(cmd);
+
+                command
+            }
+            #[cfg(unix)]
+            {
+                // Create a command using the shell, with access to the Isabelle executable
+                let mut command = Command::new("sh");
+                command
+                    .env(
+                        "PATH",
+                        format!(
+                            "{}:{}",
+                            isabelle_bin.to_string_lossy(),
+                            env::var("PATH").unwrap_or_default()
+                        ),
+                    )
+                    .arg("-c")
+                    .arg(cmd);
+
+                command
+            }
+        };
 
         let res = command
             .output()
@@ -53,7 +79,10 @@ impl Isabelle {
     }
 
     pub fn get_isabelle_path(&self, path: PathBuf) -> anyhow::Result<String> {
+        #[cfg(windows)]
         let path = self.exec_isabelle(&format!("cygpath -u \"{}\"", path.to_string_lossy()))?;
+        #[cfg(unix)]
+        let path = path.to_string_lossy().to_string();
 
         Ok(path.trim().to_string())
     }
