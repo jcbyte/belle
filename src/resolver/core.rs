@@ -26,21 +26,32 @@ pub struct BelleDependencyProvider {
 }
 
 impl BelleDependencyProvider {
-    fn new(isabelle_version: VersionReq, root_packages: HashMap<String, VersionReq>) -> Self {
+    fn new(isabelle_version: VersionReq, root_packages: HashMap<String, VersionReq>) -> anyhow::Result<Self> {
+        let linked_versions: HashSet<SemanticVersion> =
+            BelleConfig::read_config(|c| c.isabelles.keys().cloned().collect());
+
         let isabelle_versions = match isabelle_version {
             // If an isabelle version is given, only allow this to be the available version
             // All theories will eventually reference an isabelle package
-            VersionReq::Given(version) => HashSet::from([version]),
-            // If any version is given, use all registered versions
-            VersionReq::Any => BelleConfig::read_config(|c| c.isabelles.keys().cloned().collect()),
-        };
-        // todo if a version is given, it will skip looking at versions we have in config, is this expected behaviour?
+            VersionReq::Given(version) => {
+                // If the given version of isabelle is not linked then throw
+                if !linked_versions.contains(&version) {
+                    return Err(anyhow::anyhow!(
+                        "An isabelle version is specified, but that version is not linked. Consider migrating."
+                    ));
+                }
 
-        Self {
+                HashSet::from([version])
+            }
+            // If any version is given, use all registered versions
+            VersionReq::Any => linked_versions,
+        };
+
+        Ok(Self {
             root_packages,
             isabelle_versions,
             package_versions: RefCell::new(HashMap::new()),
-        }
+        })
     }
 
     fn get_package_versions(&self, name: &String) -> anyhow::Result<HashSet<SemanticVersion>> {
@@ -188,7 +199,7 @@ impl BelleDependencyProvider {
         isabelle: VersionReq,
         packages: HashMap<String, VersionReq>,
     ) -> anyhow::Result<HashMap<String, SemanticVersion>> {
-        let resolver = BelleDependencyProvider::new(isabelle, packages);
+        let resolver = BelleDependencyProvider::new(isabelle, packages)?;
 
         let mut resolved_dependencies = resolve(&resolver, String::from("."), SemanticVersion::zero())?;
         resolved_dependencies.remove(".");
