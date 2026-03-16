@@ -6,7 +6,6 @@ use std::{
 };
 
 use anyhow::Context;
-use dunce;
 use pubgrub::SemanticVersion;
 
 use crate::{
@@ -245,7 +244,7 @@ impl Environment {
             let linked_isabelles = BelleConfig::read_config(|c| c.isabelles.clone());
             let isabelle = linked_isabelles.get(env_isabelle).ok_or(anyhow::anyhow!(
                 "Could not find linked Isabelle matching version {}",
-                env_isabelle.to_string()
+                env_isabelle
             ))?;
 
             // Convert written paths
@@ -253,8 +252,8 @@ impl Environment {
                 isabelle,
                 &format!(
                     "cygpath -f \"{}\" > \"{}\"",
-                    written_roots_file.to_string_lossy().to_string(),
-                    self.get_roots_file().to_string_lossy().to_string()
+                    written_roots_file.to_string_lossy(),
+                    self.get_roots_file().to_string_lossy()
                 ),
             )?;
 
