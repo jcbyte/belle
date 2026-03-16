@@ -28,8 +28,6 @@ async fn main() {
     }
 }
 
-// todo save packages as PackageIdentifiers+Isabelles with custom serialiser (Make internal PackageMap which uses HashMap<&str, Version>)
-
 // todo 6.1 ensure consistent naming of packages
 // todo 6.2 check all error handling cases are needed (should we just expect), ensure messages are correct (resolving, deserialising etc), use thiserror
 // todo 6.3 use references instead of cloning everywhere

@@ -216,7 +216,7 @@ fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
 /// Display metadata for a specific package on the console, if a version is not given then the latest will be shown
 pub fn print_package_meta(name: String, version: Option<SemanticVersion>) -> anyhow::Result<()> {
     let package = match version {
-        Some(v) => PackageIdentifier { name, version: v },
+        Some(v) => PackageIdentifier::new(name, v),
         None => {
             let versions = registry::get_package_versions(&name)?;
             versions
@@ -291,7 +291,7 @@ pub fn purge_packages() -> anyhow::Result<()> {
     for env_name in iter_envs() {
         let env = Environment::get(env_name)?.expect("Environment listed, but could not be gotten");
         for (name, version) in env.lock {
-            used_packages.insert(PackageIdentifier { name, version });
+            used_packages.insert(PackageIdentifier::new(name, version));
         }
     }
 

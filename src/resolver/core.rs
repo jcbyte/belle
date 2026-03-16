@@ -138,10 +138,7 @@ impl DependencyProvider for BelleDependencyProvider {
             return Ok(Dependencies::Available(HashMap::default()));
         }
 
-        let package = PackageIdentifier {
-            name: package.clone(),
-            version: *version,
-        };
+        let package = PackageIdentifier::new(package, *version);
 
         let manifest = package
             .get_package_manifest()?

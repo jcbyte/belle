@@ -171,28 +171,21 @@ impl Environment {
     }
 
     pub fn get_packages(&self) -> anyhow::Result<Vec<PackageListing>> {
-        
-
-        self
-            .lock
+        self.lock
             .iter()
             .map(|(name, version)| match self.packages.get(name) {
-                None => {
-                    Ok(PackageListing {
-                        name: name.clone(),
-                        version: *version,
-                        kind: PackageType::Transitive,
-                    })
-                }
-                Some(direct_version) => {
-                    Ok(PackageListing {
-                        name: name.clone(),
-                        version: *version,
-                        kind: PackageType::Direct {
-                            given_version: !direct_version.is_any(),
-                        },
-                    })
-                }
+                None => Ok(PackageListing {
+                    name: name.clone(),
+                    version: *version,
+                    kind: PackageType::Transitive,
+                }),
+                Some(direct_version) => Ok(PackageListing {
+                    name: name.clone(),
+                    version: *version,
+                    kind: PackageType::Direct {
+                        given_version: !direct_version.is_any(),
+                    },
+                }),
             })
             .collect()
     }
@@ -201,9 +194,7 @@ impl Environment {
         self.isabelle = version;
 
         if unpin_existing {
-            self.packages = self
-                .packages.keys().map(|name| (name.clone(), VersionReq::Any))
-                .collect()
+            self.packages = self.packages.keys().map(|name| (name.clone(), VersionReq::Any)).collect()
         }
 
         Ok(())
@@ -213,8 +204,7 @@ impl Environment {
     pub fn iter_user_packages(&self) -> impl Iterator<Item = (&String, &SemanticVersion)> {
         let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
 
-        self
-            .lock
+        self.lock
             .iter()
             // Remove isabelle packages
             .filter(move |(name, _version)| !name.eq(&ISABELLE_PACKAGE) && !isabelle_packages.contains(name))
@@ -223,10 +213,7 @@ impl Environment {
     pub fn create_roots_file(&self) -> anyhow::Result<()> {
         let packages_src = self
             .iter_user_packages()
-            .map(|(name, version)| PackageIdentifier {
-                name: name.clone(),
-                version: *version,
-            })
+            .map(|(name, version)| PackageIdentifier::new(name, *version))
             .map(|p| p.get_theory_location());
 
         let active_env_dir = BelleConfig::read_config(|c| c.get_active_env_link());

@@ -24,7 +24,7 @@ pub fn iter_installed_packages() -> impl Iterator<Item = PackageIdentifier> {
 
             let version = SemanticVersion::from_str(&version_str).ok()?;
 
-            Some(PackageIdentifier { name, version })
+            Some(PackageIdentifier::new(name, version))
         })
 }
 
@@ -52,10 +52,7 @@ pub fn get_package_versions(name: &String) -> anyhow::Result<Vec<PackageIdentifi
         .filter_map(|entry| entry.path().file_stem().map(|filename| filename.to_string_lossy().to_string()))
         .map(|version_str| {
             SemanticVersion::from_str(&version_str)
-                .map(|version| PackageIdentifier {
-                    name: name.clone(),
-                    version,
-                })
+                .map(|version| PackageIdentifier::new(name, version))
                 .with_context(|| format!("Could not parse version '{}' for package {}", version_str, name))
         })
         .collect();

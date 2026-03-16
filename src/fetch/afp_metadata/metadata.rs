@@ -76,13 +76,9 @@ impl RepoMetadata {
 
     /// Get all theories within the repo metadata
     pub fn all_theories(&self) -> Vec<PackageIdentifier> {
-        self
-            .theories
+        self.theories
             .iter()
-            .map(|(theory, meta)| PackageIdentifier {
-                name: theory.clone(),
-                version: date_to_version(&meta.date),
-            })
+            .map(|(theory, meta)| PackageIdentifier::new(theory, date_to_version(&meta.date)))
             .collect()
     }
 
@@ -121,10 +117,7 @@ impl RepoMetadata {
             .map(|s| AliasPackage {
                 name: s.to_string(),
                 version,
-                alias: PackageIdentifier {
-                    name: thy_name.to_string(),
-                    version,
-                },
+                alias: PackageIdentifier::new(thy_name, version),
             })
             .collect();
 

@@ -28,10 +28,7 @@ pub async fn finalise_env(env: &mut Environment, include_resolve: bool) -> anyho
     // Fetch all packages we currently do not have
     let missing_packages: Vec<PackageIdentifier> = env
         .iter_user_packages()
-        .map(|(name, version)| PackageIdentifier {
-            name: name.clone(),
-            version: *version,
-        })
+        .map(|(name, version)| PackageIdentifier::new(name, *version))
         // Filter to only retrieve missing packages
         .filter(|p| !p.exists_locally())
         .collect();
