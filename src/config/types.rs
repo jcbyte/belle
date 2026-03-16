@@ -14,15 +14,19 @@ pub struct ConfigData {
     pub isabelle_packages: Vec<String>,
 }
 
+pub fn default_home_dir() -> PathBuf {
+    // Default root directory under the user's application data
+    let data_dir = dirs::data_dir().expect("Could not get users data folder");
+    let home_dir = data_dir.join("belle");
+
+    return home_dir;
+}
+
 impl Default for ConfigData {
     /// Defaults for config
     fn default() -> Self {
-        // Default root directory under the user's application data
-        let data_dir = dirs::data_dir().expect("Could not get users data folder");
-        let home_dir = data_dir.join("belle");
-
         Self {
-            home: home_dir,
+            home: default_home_dir(),
             afp_group: String::from("isa-afp"),
             isabelles: HashMap::new(),
             isabelle_packages: vec![
