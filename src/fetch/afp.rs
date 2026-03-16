@@ -23,7 +23,7 @@ impl BelleClient {
         loop {
             // Retrieve repos/projects within the specified group
             let afp_repo_list_url = format!(
-                "https://foss.heptapod.net/api/v4/groups/{}/projects?order_by=last_activity_at&sort=desc&per_page={}&page={}",
+                "https://foss.heptapod.net/api/v4/groups/{}/projects?order_by=created_at&sort=desc&per_page={}&page={}",
                 afp_group, per_page, page
             );
 
