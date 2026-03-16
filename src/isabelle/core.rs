@@ -10,13 +10,13 @@ use crate::{config::BelleConfig, isabelle::types::Isabelle, util::get_isabelle_v
 
 impl Isabelle {
     pub fn locate(path: PathBuf) -> anyhow::Result<Self> {
-        let res = Self::exec_isabelle_from_path(&path, "isabelle version")?;
+        let res = Self::exec_with_isabelle_from_path(&path, "isabelle version")?;
         let version = get_isabelle_version(&res);
 
         Ok(Self { version, path })
     }
 
-    fn exec_isabelle_from_path(isabelle_root: &Path, cmd: &str) -> anyhow::Result<String> {
+    pub fn exec_with_isabelle_from_path(isabelle_root: &Path, cmd: &str) -> anyhow::Result<String> {
         let isabelle_bin = isabelle_root.join("bin");
 
         let mut command = {
@@ -74,13 +74,13 @@ impl Isabelle {
         Ok(res_str)
     }
 
-    fn exec_isabelle(&self, cmd: &str) -> anyhow::Result<String> {
-        Self::exec_isabelle_from_path(&self.path, cmd)
+    fn exec_with_isabelle(&self, cmd: &str) -> anyhow::Result<String> {
+        Self::exec_with_isabelle_from_path(&self.path, cmd)
     }
 
     pub fn get_isabelle_path(&self, path: PathBuf) -> anyhow::Result<String> {
         #[cfg(windows)]
-        let path = self.exec_isabelle(&format!("cygpath -u \"{}\"", path.to_string_lossy()))?;
+        let path = self.exec_with_isabelle(&format!("cygpath -u \"{}\"", path.to_string_lossy()))?;
         #[cfg(unix)]
         let path = path.to_string_lossy().to_string();
 
@@ -93,7 +93,7 @@ impl Isabelle {
 
         // Add or remove the active environment directory as a component to isabelle
         let flag = if add { "-u" } else { "-x" };
-        self.exec_isabelle(&format!("isabelle components {} {}", flag, isabelle_path))?;
+        self.exec_with_isabelle(&format!("isabelle components {} {}", flag, isabelle_path))?;
 
         Ok(())
     }

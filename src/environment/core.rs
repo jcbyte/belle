@@ -6,7 +6,7 @@ use std::{
 };
 
 use anyhow::Context;
-use pathdiff::diff_paths;
+use dunce;
 use pubgrub::SemanticVersion;
 
 use crate::{
@@ -216,26 +216,16 @@ impl Environment {
             .map(|(name, version)| PackageIdentifier::new(name, *version))
             .map(|p| p.get_theory_location());
 
-        let active_env_dir = BelleConfig::read_config(|c| c.get_active_env_link());
+        let written_roots_file = self.get_roots_file();
+        // On windows place these paths in a temporary file, to convert later
+        #[cfg(windows)]
+        let written_roots_file = written_roots_file.with_added_extension("tmp");
 
-        let file = File::create(self.get_roots_file()).context("Failed to create roots file")?;
-        let mut writer = BufWriter::new(file);
+        let roots_file_ob = File::create(&written_roots_file).context("Failed to create roots file")?;
+        let mut writer = BufWriter::new(roots_file_ob);
 
         for package_src in packages_src {
-            // let relative_path = diff_paths(&package_src, &active_env_dir).ok_or_else(|| {
-            //     anyhow::anyhow!(
-            //         "Failed creating relative path from '{}' to '{}'.",
-            //         active_env_dir.display(),
-            //         package_src.display()
-            //     )
-            // })?;
-
-            // let formatted_path = relative_path.to_string_lossy().to_string().replace("\\", "/");
-            // writeln!(writer, "{}", formatted_path).context("Failed to write to roots file")?;
-
-            // todo figure out full paths in windows
-            let package_root_str = package_src
-                .canonicalize()
+            let package_root_str = dunce::canonicalize(package_src)
                 .context("Failed to canonicalise package root")?
                 .to_string_lossy()
                 .to_string();
@@ -243,6 +233,35 @@ impl Environment {
         }
 
         writer.flush().context("Failed to flush stream to roots file")?;
+
+        #[cfg(windows)]
+        {
+            // On windows convert our temporary list of paths into cygwin ones
+            use crate::isabelle::Isabelle;
+            let env_isabelle = self.lock.get(ISABELLE_PACKAGE).ok_or(anyhow::anyhow!(
+                "The Isabelle version for this environment is not defined"
+            ))?;
+
+            let linked_isabelles = BelleConfig::read_config(|c| c.isabelles.clone());
+            let isabelle = linked_isabelles.get(env_isabelle).ok_or(anyhow::anyhow!(
+                "Could not find linked Isabelle matching version {}",
+                env_isabelle.to_string()
+            ))?;
+
+            // Convert written paths
+            Isabelle::exec_with_isabelle_from_path(
+                isabelle,
+                &format!(
+                    "cygpath -f \"{}\" > \"{}\"",
+                    written_roots_file.to_string_lossy().to_string(),
+                    self.get_roots_file().to_string_lossy().to_string()
+                ),
+            )?;
+
+            // Remove the temporary ROOT file
+            fs::remove_file(written_roots_file)?;
+        }
+
         Ok(())
     }
 }
