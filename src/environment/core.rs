@@ -222,16 +222,24 @@ impl Environment {
         let mut writer = BufWriter::new(file);
 
         for package_src in packages_src {
-            let relative_path = diff_paths(&package_src, &active_env_dir).ok_or_else(|| {
-                anyhow::anyhow!(
-                    "Failed creating relative path from '{}' to '{}'.",
-                    active_env_dir.display(),
-                    package_src.display()
-                )
-            })?;
+            // let relative_path = diff_paths(&package_src, &active_env_dir).ok_or_else(|| {
+            //     anyhow::anyhow!(
+            //         "Failed creating relative path from '{}' to '{}'.",
+            //         active_env_dir.display(),
+            //         package_src.display()
+            //     )
+            // })?;
 
-            let formatted_path = relative_path.to_string_lossy().to_string().replace("\\", "/");
-            writeln!(writer, "{}", formatted_path).context("Failed to write to roots file")?;
+            // let formatted_path = relative_path.to_string_lossy().to_string().replace("\\", "/");
+            // writeln!(writer, "{}", formatted_path).context("Failed to write to roots file")?;
+
+            // todo figure out full paths in windows
+            let package_root_str = package_src
+                .canonicalize()
+                .context("Failed to canonicalise package root")?
+                .to_string_lossy()
+                .to_string();
+            writeln!(writer, "{}", package_root_str).context("Failed to write to roots file")?;
         }
 
         writer.flush().context("Failed to flush stream to roots file")?;
