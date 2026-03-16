@@ -21,6 +21,7 @@ impl BelleConfig {
     fn load() -> anyhow::Result<Self> {
         // Load config file from location at environment variable `BELLE_CONFIG` or check the executables location if that is not set
         let config_path = env::var("BELLE_CONFIG").unwrap_or(String::from("./belle_config.toml"));
+        // todo should this be placed in a standard location instead of relative to command
         let config_file = PathBuf::from(&config_path);
 
         let parsed_config = if config_file.is_file() {

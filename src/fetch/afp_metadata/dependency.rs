@@ -69,12 +69,11 @@ fn strip_comments(input: &str) -> String {
 fn parse_identifier(input: &str) -> Option<(&str, &str)> {
     let input = input.trim_start();
 
-    // todo test this still works as intended
     if let Some(stripped) = input.strip_prefix('"') {
         // Parse quoted identifier
         if let Some(end_quote) = stripped.find('"') {
-            let id = &stripped[0..end_quote + 1];
-            let rest = &stripped[end_quote + 2..];
+            let id = &stripped[0..end_quote];
+            let rest = &stripped[(end_quote + 1)..];
             return Some((id, rest));
         }
     } else {
@@ -119,6 +118,7 @@ pub fn parse_root(root: &str) -> anyhow::Result<Vec<RootFileSession>> {
         let session_body_rest = if let Some(after_desc) = rests.get(1) {
             let (_description, removed_desc_rest) = parse_identifier(after_desc)
                 .context("The session provides a description but it could not be parsed")?;
+            // Rebuild the rest of ROOT file excluding the description block
             let mut parts = rests.into_iter();
             let first = parts.next().unwrap_or("");
             let _second = parts.next();
