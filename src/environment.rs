@@ -1,4 +1,5 @@
 mod core;
+pub mod error;
 pub mod manager;
 mod types;
 
