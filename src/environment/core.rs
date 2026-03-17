@@ -10,7 +10,8 @@ use pubgrub::SemanticVersion;
 
 use crate::{
     config::BelleConfig,
-    environment::{Environment, PackageListing, PackageType, types::VersionReq},
+    environment::{Environment, PackageListing, PackageType, error::EnvironmentError, types::VersionReq},
+    error::{AppError, IoContext, IoError, IoPathContext, ParseContext},
     registry::PackageIdentifier,
     resolver::{BelleDependencyProvider, ISABELLE_PACKAGE},
     util::create_parent_dirs,
@@ -18,11 +19,11 @@ use crate::{
 
 impl Environment {
     /// Create a new environment with the given name
-    pub fn new(name: String, isabelle_version: VersionReq) -> anyhow::Result<Self> {
+    pub fn new(name: String, isabelle_version: VersionReq) -> Result<Self, EnvironmentError> {
         let env_dir = Self::env_dir_for_name(&name);
 
         if env_dir.is_dir() {
-            anyhow::bail!("Environment '{}' already exists", &name);
+            return Err(EnvironmentError::AlreadyExists { name });
         }
 
         let env = Environment {
@@ -36,7 +37,7 @@ impl Environment {
     }
 
     /// Get the active environment, if any
-    pub fn active() -> anyhow::Result<Option<Self>> {
+    pub fn active() -> Result<Option<Self>, AppError> {
         let active_env = BelleConfig::read_config(|c| c.get_active_env_link());
         let env_file = Self::join_env_file(active_env);
 
@@ -47,7 +48,7 @@ impl Environment {
         Ok(Some(Self::load(env_file)?))
     }
 
-    pub fn get(name: String) -> anyhow::Result<Option<Self>> {
+    pub fn get(name: String) -> Result<Option<Self>, AppError> {
         let env_file = Self::env_file_for_name(&name);
 
         if !env_file.is_file() {
@@ -58,7 +59,7 @@ impl Environment {
     }
 
     /// Get the environment in the freeze file, if any
-    pub fn frozen() -> anyhow::Result<Option<Self>> {
+    pub fn frozen() -> Result<Option<Self>, AppError> {
         let freeze_file = Self::get_freeze_file();
 
         if !freeze_file.is_file() {
@@ -68,15 +69,15 @@ impl Environment {
         Ok(Some(Self::load(freeze_file)?))
     }
 
-    pub(crate) fn env_dir_for_name(name: &String) -> PathBuf {
+    pub fn env_dir_for_name(name: &String) -> PathBuf {
         BelleConfig::read_config(|c| c.get_env_dir()).join(name)
     }
 
-    pub(crate) fn join_env_file(env_dir: PathBuf) -> PathBuf {
+    pub fn join_env_file(env_dir: PathBuf) -> PathBuf {
         env_dir.join("env.toml")
     }
 
-    pub(crate) fn env_file_for_name(name: &String) -> PathBuf {
+    pub fn env_file_for_name(name: &String) -> PathBuf {
         Self::join_env_file(Self::env_dir_for_name(name))
     }
 
@@ -92,27 +93,23 @@ impl Environment {
         self.get_env_dir().join("ROOTS")
     }
 
-    fn load(env_file: PathBuf) -> anyhow::Result<Self> {
-        let parsed_env = if env_file.is_file() {
-            let content = fs::read_to_string(&env_file)
-                .with_context(|| format!("Failed to read environment file at '{}'", env_file.display()))?;
-            toml::from_str(&content)
-                .with_context(|| format!("Failed to parse TOML environment file at '{}'", env_file.display()))?
-        } else {
-            anyhow::bail!("Environment file '{}' does not exist", env_file.display());
-        };
+    fn load(env_file: PathBuf) -> Result<Self, AppError> {
+        if !env_file.is_file() {
+            return Err(EnvironmentError::FileDoesNotExist { path: env_file }.into());
+        }
+
+        let content = fs::read_to_string(&env_file).report_read("environment file", &env_file)?;
+        let parsed_env = toml::from_str(&content).report_file("environment file", &env_file)?;
 
         Ok(parsed_env)
     }
 
-    pub fn save(&self) -> anyhow::Result<()> {
+    pub fn save(&self) -> Result<(), AppError> {
         let env_file = self.get_env_file();
 
-        create_parent_dirs(&env_file)
-            .with_context(|| format!("Could not create {} environment directories on disk", &self.name))?;
-        let content =
-            toml::to_string(self).with_context(|| format!("Failed to parse TOML for environment '{}'", &self.name))?;
-        fs::write(env_file, content).with_context(|| format!("Failed to save environment '{}'", &self.name))?;
+        create_parent_dirs(&env_file).report_save(format!("{} environment directories", self.name), &env_file)?;
+        let content = toml::to_string(self).report_file("environment", &env_file)?;
+        fs::write(&env_file, content).report_save(format!("{} environment directories", self.name), &env_file)?;
 
         Ok(())
     }
@@ -121,20 +118,20 @@ impl Environment {
         PathBuf::from(".").join("belle.toml")
     }
 
-    pub fn freeze(&self) -> anyhow::Result<()> {
+    pub fn freeze(&self) -> Result<(), AppError> {
         let freeze_file = Self::get_freeze_file();
 
-        let content =
-            toml::to_string(self).with_context(|| format!("Failed to parse TOML for environment '{}'", &self.name))?;
-        fs::write(freeze_file, content)
-            .with_context(|| format!("Failed to write to freeze file for '{}'", &self.name))?;
+        let content = toml::to_string(self).report_file("environment", &freeze_file)?;
+        fs::write(&freeze_file, content).report_save("environment lockfile", &freeze_file)?;
 
         Ok(())
     }
 
     /// Sync the contents of the freeze file into this environment
-    pub fn sync(&mut self) -> anyhow::Result<()> {
-        let frozen_env = Self::frozen()?.ok_or(anyhow::anyhow!("No belle file found in workspace"))?;
+    pub fn sync(&mut self) -> Result<(), AppError> {
+        let frozen_env = Self::frozen()?.ok_or(EnvironmentError::NoLockFile {
+            path: Self::get_freeze_file(),
+        })?;
 
         // Set the active packages to the ones from freeze file and save it back
         self.packages = frozen_env.packages;
@@ -143,57 +140,58 @@ impl Environment {
         Ok(())
     }
 
-    pub fn add_package(&mut self, name: String, version: VersionReq) -> anyhow::Result<()> {
+    pub fn add_package(&mut self, name: String, version: VersionReq) -> Result<(), EnvironmentError> {
         if self.packages.contains_key(&name) {
-            anyhow::bail!("Package '{}' is already installed in this environment", &name);
+            Err(EnvironmentError::PackageAlreadyExists { package: name.clone() })?;
         }
 
         self.packages.insert(name, version);
-
         Ok(())
     }
 
-    pub fn remove_package(&mut self, name: &String) -> anyhow::Result<()> {
-        self.packages.remove(name);
+    pub fn remove_package(&mut self, name: &String) -> Result<(), EnvironmentError> {
+        if !self.packages.contains_key(name) {
+            Err(EnvironmentError::PackageDoesNotExist { package: name.clone() })?;
+        }
 
+        self.packages.remove(name);
         Ok(())
     }
 
     pub fn resolve_lock(&mut self) -> anyhow::Result<()> {
+        // todo produce correct errors
         let resolved_packages = BelleDependencyProvider::resolve(self.isabelle.clone(), self.packages.clone())?;
         self.lock = resolved_packages;
 
         Ok(())
     }
 
-    pub fn get_packages(&self) -> anyhow::Result<Vec<PackageListing>> {
+    pub fn get_packages(&self) -> Vec<PackageListing> {
         self.lock
             .iter()
             .map(|(name, version)| match self.packages.get(name) {
-                None => Ok(PackageListing {
+                None => PackageListing {
                     name: name.clone(),
                     version: *version,
                     kind: PackageType::Transitive,
-                }),
-                Some(direct_version) => Ok(PackageListing {
+                },
+                Some(direct_version) => PackageListing {
                     name: name.clone(),
                     version: *version,
                     kind: PackageType::Direct {
                         given_version: !direct_version.is_any(),
                     },
-                }),
+                },
             })
             .collect()
     }
 
-    pub fn migrate_isabelle(&mut self, version: VersionReq, unpin_existing: bool) -> anyhow::Result<()> {
+    pub fn migrate_isabelle(&mut self, version: VersionReq, unpin_existing: bool) {
         self.isabelle = version;
 
         if unpin_existing {
-            self.packages = self.packages.keys().map(|name| (name.clone(), VersionReq::Any)).collect()
+            self.packages = self.packages.keys().map(|name| (name.clone(), VersionReq::Any)).collect();
         }
-
-        Ok(())
     }
 
     /// Get packages installed by the user, filtering isabelle's built in ones.
@@ -217,21 +215,20 @@ impl Environment {
         #[cfg(windows)]
         let written_roots_file = written_roots_file.with_added_extension("tmp");
 
-        let roots_file_ob = File::create(&written_roots_file).context("Failed to create roots file")?;
+        let roots_file_ob = File::create(&written_roots_file).report_save("root file", &written_roots_file)?;
         let mut writer = BufWriter::new(roots_file_ob);
 
         for package_src in packages_src {
-            let package_root_str = dunce::canonicalize(package_src)
-                .context("Failed to canonicalise package root")?
-                .to_string_lossy()
-                .to_string();
-            writeln!(writer, "{}", package_root_str).context("Failed to write to roots file")?;
+            let package_root_normal = dunce::canonicalize(&package_src).report_read("package root", &package_src)?;
+            let package_root_str = package_root_normal.to_str().report_path(&package_root_normal)?;
+            writeln!(writer, "{}", package_root_str).report_save("root file", &written_roots_file)?;
         }
 
-        writer.flush().context("Failed to flush stream to roots file")?;
+        writer.flush().report_save("root file", &written_roots_file)?;
 
         #[cfg(windows)]
         {
+            // todo isabelle errors
             // On windows convert our temporary list of paths into cygwin ones
             use crate::isabelle::Isabelle;
             let env_isabelle = self.lock.get(ISABELLE_PACKAGE).ok_or(anyhow::anyhow!(
@@ -249,13 +246,13 @@ impl Environment {
                 isabelle,
                 &format!(
                     "cygpath -f \"{}\" > \"{}\"",
-                    written_roots_file.to_string_lossy(),
-                    self.get_roots_file().to_string_lossy()
+                    written_roots_file.display(),
+                    self.get_roots_file().display()
                 ),
             )?;
 
             // Remove the temporary ROOT file
-            fs::remove_file(written_roots_file)?;
+            fs::remove_file(&written_roots_file).report_delete("temporary root file", &written_roots_file)?;
         }
 
         Ok(())

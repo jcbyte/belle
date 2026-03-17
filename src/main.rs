@@ -1,5 +1,8 @@
 use anyhow::Error;
-use belle::{cli, config::BelleConfig};
+use belle::{
+    cli,
+    config::{self, BelleConfig},
+};
 use clap::Parser;
 use console::style;
 
@@ -28,9 +31,10 @@ async fn main() {
     }
 }
 
-// todo 7.1 ensure consistent naming of packages
-// todo 7.2 check all error handling cases are needed (should we just expect), ensure messages are correct (resolving, deserialising etc), use thiserror
+// todo 7.2 check all error handling cases are needed (should we just expect), ensure messages are correct (resolving, deserialising etc), use thiserror + anyhow/eyre
 // todo 7.3 use references instead of cloning everywhere
+
+// todo 7.1 ensure consistent naming of packages
 // todo 7.4 consistent CLI output
 
 // todo readme

@@ -174,7 +174,7 @@ pub async fn sync_env() -> anyhow::Result<()> {
 pub async fn migrate_isabelle(version: Option<SemanticVersion>, unpin_existing: bool) -> anyhow::Result<()> {
     let mut active_env = Environment::active()?.ok_or(anyhow::anyhow!("No environment is selected"))?;
 
-    active_env.migrate_isabelle(version.into(), unpin_existing)?;
+    active_env.migrate_isabelle(version.into(), unpin_existing);
     finalise_env(&mut active_env, true).await?;
 
     let (isabelle_version, given) = match active_env.isabelle {

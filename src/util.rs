@@ -3,6 +3,8 @@ use std::{fs, path::Path};
 use pubgrub::SemanticVersion;
 use toml::value::Date;
 
+use crate::error::{IoContext, IoError};
+
 /// Convert a toml Date into a SemVer following: year.month.day
 pub fn date_to_version(date: &Date) -> SemanticVersion {
     SemanticVersion::new(date.year.into(), date.month.into(), date.day.into())
@@ -44,7 +46,7 @@ pub fn get_isabelle_name(version: &SemanticVersion) -> String {
 }
 
 /// Create all parent directories for a given file
-pub fn create_parent_dirs(file_path: &Path) -> anyhow::Result<()> {
+pub fn create_parent_dirs(file_path: &Path) -> Result<(), std::io::Error> {
     if let Some(parent) = file_path.parent() {
         fs::create_dir_all(parent)?;
     }
