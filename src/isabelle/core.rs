@@ -4,19 +4,25 @@ use std::{
     process::Command,
 };
 
-use anyhow::Context;
-
-use crate::{config::BelleConfig, isabelle::types::Isabelle, util::get_isabelle_version};
+use crate::{
+    config::BelleConfig,
+    error::AppError,
+    isabelle::{
+        error::{IsabelleCommandFailedContext, IsabelleError, IsabelleInvalidOutputContext},
+        types::Isabelle,
+    },
+    util::get_isabelle_version,
+};
 
 impl Isabelle {
-    pub fn locate(path: PathBuf) -> anyhow::Result<Self> {
+    pub fn locate(path: PathBuf) -> Result<Self, IsabelleError> {
         let res = Self::exec_with_isabelle_from_path(&path, "isabelle version")?;
         let version = get_isabelle_version(&res);
 
         Ok(Self { version, path })
     }
 
-    pub fn exec_with_isabelle_from_path(isabelle_root: &Path, cmd: &str) -> anyhow::Result<String> {
+    pub fn exec_with_isabelle_from_path(isabelle_root: &Path, cmd: &str) -> Result<String, IsabelleError> {
         let isabelle_bin = isabelle_root.join("bin");
 
         let mut command = {
@@ -64,30 +70,26 @@ impl Isabelle {
             }
         };
 
-        let res = command
-            .output()
-            .with_context(|| format!("Failed to execute Isabelle command '{}'.", cmd))?;
-
-        let res_str = String::from_utf8(res.stdout)
-            .with_context(|| format!("Isabelle command output for '{}' was not valid UTF-8.", cmd))?;
+        let res = command.output().report_failed_command(cmd)?;
+        let res_str = String::from_utf8(res.stdout).report_invalid_output(cmd)?;
 
         Ok(res_str)
     }
 
-    fn exec_with_isabelle(&self, cmd: &str) -> anyhow::Result<String> {
+    fn exec_with_isabelle(&self, cmd: &str) -> Result<String, IsabelleError> {
         Self::exec_with_isabelle_from_path(&self.path, cmd)
     }
 
-    pub fn get_isabelle_path(&self, path: PathBuf) -> anyhow::Result<String> {
+    pub fn get_isabelle_path(&self, path: PathBuf) -> Result<String, AppError> {
         #[cfg(windows)]
-        let path = self.exec_with_isabelle(&format!("cygpath -u \"{}\"", path.to_string_lossy()))?;
+        let path = self.exec_with_isabelle(&format!("cygpath -u \"{}\"", path.display()))?;
         #[cfg(unix)]
-        let path = path.to_string_lossy().to_string();
+        let path = path.to_str().report_path(&path)?.to_string();
 
         Ok(path.trim().to_string())
     }
 
-    fn manage_component(&self, add: bool) -> anyhow::Result<()> {
+    fn manage_component(&self, add: bool) -> Result<(), AppError> {
         let active_env_dir = BelleConfig::read_config(|c| c.get_active_env_link());
         let isabelle_path = self.get_isabelle_path(active_env_dir)?;
 
@@ -98,12 +100,12 @@ impl Isabelle {
         Ok(())
     }
 
-    pub fn link(&self) -> anyhow::Result<()> {
+    pub fn link(&self) -> Result<(), AppError> {
         self.manage_component(true)?;
         Ok(())
     }
 
-    pub fn unlink(&self) -> anyhow::Result<()> {
+    pub fn unlink(&self) -> Result<(), AppError> {
         self.manage_component(false)?;
         Ok(())
     }

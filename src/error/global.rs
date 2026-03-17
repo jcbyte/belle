@@ -3,7 +3,7 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum IoError {
-    #[error("Could not save {item_type} at '{path}': {source}")]
+    #[error("Could not save {item_type} at '{path}'.")]
     Save {
         item_type: String,
         path: PathBuf,
@@ -11,7 +11,7 @@ pub enum IoError {
         source: std::io::Error,
     },
 
-    #[error("Could not remove {item_type} at '{path}': {source}")]
+    #[error("Could not remove {item_type} at '{path}'.")]
     Delete {
         item_type: &'static str,
         path: PathBuf,
@@ -19,7 +19,7 @@ pub enum IoError {
         source: std::io::Error,
     },
 
-    #[error("Could not read {item_type} at '{path}': {source}")]
+    #[error("Could not read {item_type} at '{path}'.")]
     Read {
         item_type: &'static str,
         path: PathBuf,

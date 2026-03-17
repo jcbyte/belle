@@ -5,13 +5,12 @@ use std::{
     path::PathBuf,
 };
 
-use anyhow::Context;
 use pubgrub::SemanticVersion;
 
 use crate::{
     config::BelleConfig,
     environment::{Environment, PackageListing, PackageType, error::EnvironmentError, types::VersionReq},
-    error::{AppError, IoContext, IoError, IoPathContext, ParseContext},
+    error::{AppError, IoContext, IoPathContext, ParseContext},
     registry::PackageIdentifier,
     resolver::{BelleDependencyProvider, ISABELLE_PACKAGE},
     util::create_parent_dirs,
@@ -204,7 +203,7 @@ impl Environment {
             .filter(move |(name, _version)| !name.eq(&ISABELLE_PACKAGE) && !isabelle_packages.contains(name))
     }
 
-    pub fn create_roots_file(&self) -> anyhow::Result<()> {
+    pub fn create_roots_file(&self) -> Result<(), AppError> {
         let packages_src = self
             .iter_user_packages()
             .map(|(name, version)| PackageIdentifier::new(name, *version))
@@ -228,18 +227,12 @@ impl Environment {
 
         #[cfg(windows)]
         {
-            // todo isabelle errors
             // On windows convert our temporary list of paths into cygwin ones
-            use crate::isabelle::Isabelle;
-            let env_isabelle = self.lock.get(ISABELLE_PACKAGE).ok_or(anyhow::anyhow!(
-                "The Isabelle version for this environment is not defined"
-            ))?;
+            use crate::isabelle::{Isabelle, error::IsabelleVersionLinkedContext};
+            let env_isabelle = self.lock.get(ISABELLE_PACKAGE).ok_or(EnvironmentError::NoIsabelleVersion)?;
 
             let linked_isabelles = BelleConfig::read_config(|c| c.isabelles.clone());
-            let isabelle = linked_isabelles.get(env_isabelle).ok_or(anyhow::anyhow!(
-                "Could not find linked Isabelle matching version {}",
-                env_isabelle
-            ))?;
+            let isabelle = linked_isabelles.get(env_isabelle).report_not_linked(env_isabelle)?;
 
             // Convert written paths
             Isabelle::exec_with_isabelle_from_path(

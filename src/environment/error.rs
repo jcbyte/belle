@@ -21,4 +21,7 @@ pub enum EnvironmentError {
 
     #[error("Package {package} does not exists in environment.")]
     PackageDoesNotExist { package: String },
+
+    #[error("The Isabelle version for this environment is not defined.")]
+    NoIsabelleVersion,
 }

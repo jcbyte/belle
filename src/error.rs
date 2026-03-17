@@ -2,9 +2,9 @@ use thiserror::Error;
 
 mod global;
 
-pub use global::{IoContext, IoError, IoPathContext, ParseContext, ParseError};
+pub use global::*;
 
-use crate::environment::error::EnvironmentError;
+use crate::{environment::error::EnvironmentError, isabelle::error::IsabelleError};
 
 #[derive(Error, Debug)]
 pub enum AppError {
@@ -16,4 +16,7 @@ pub enum AppError {
 
     #[error(transparent)]
     Environment(#[from] EnvironmentError),
+
+    #[error(transparent)]
+    Isabelle(#[from] IsabelleError),
 }
