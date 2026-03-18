@@ -116,7 +116,7 @@ impl Package {
                     .report_save("active environment symlink", &package_location)?;
             }
             PackageSource::Default => Err(RegistryError::NoSource {
-                package: PackageIdentifier::from(self).to_string(),
+                package_id: self.into(),
             })?,
         };
 

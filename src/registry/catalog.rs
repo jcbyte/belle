@@ -40,7 +40,7 @@ pub fn iter_packages() -> impl Iterator<Item = String> {
 }
 
 /// Scan for all versions for a specific package
-pub fn get_package_versions(name: &String) -> Vec<PackageIdentifier> {
+pub fn get_package_versions(name: &str) -> Vec<PackageIdentifier> {
     let package_manifests = BelleConfig::read_config(|c| c.get_manifest_dir()).join(name);
 
     WalkDir::new(package_manifests)

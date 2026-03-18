@@ -223,18 +223,18 @@ pub fn print_package_meta(name: String, version: Option<SemanticVersion>) -> Res
                 .iter()
                 .max_by_key(|package_id| package_id.version)
                 .cloned()
-                .report_package_nonexistent(name)?
+                .report_no_package_versions(name)?
         }
     };
 
-    let package_meta = package.get_package_manifest()?.report_package_nonexistent(package.name)?;
+    let package_meta = package.get_package_manifest()?.report_package_nonexistent(package)?;
     match package_meta {
         RegisteredPackage::Package(meta) => print_meta(&meta, None),
         RegisteredPackage::Alias(alias) => {
             let resolved_package = alias
                 .alias
                 .get_resolved_package_manifest()?
-                .report_package_nonexistent(&alias.alias.name)?;
+                .report_package_nonexistent(alias.alias.clone())?;
             print_meta(&resolved_package, Some(&alias));
         }
     };

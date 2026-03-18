@@ -43,7 +43,7 @@ pub async fn finalise_env(env: &mut Environment, include_resolve: bool) -> Resul
 
             let package_meta = package
                 .get_resolved_package_manifest()?
-                .report_package_nonexistent(&package.name)?;
+                .report_package_nonexistent(package.clone())?;
 
             package_meta.get_package().await?;
 
