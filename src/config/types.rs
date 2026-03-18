@@ -17,9 +17,7 @@ pub struct ConfigData {
 pub fn default_home_dir() -> PathBuf {
     // Default root directory under the user's application data
     let data_dir = dirs::data_dir().expect("Could not get users data folder");
-    let home_dir = data_dir.join("belle");
-
-    return home_dir;
+    data_dir.join("belle")
 }
 
 impl Default for ConfigData {

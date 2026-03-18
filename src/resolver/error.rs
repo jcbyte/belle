@@ -34,6 +34,7 @@ impl<T> ResolverContext<T> for Result<T, PubGrubError<BelleDependencyProvider>> 
     fn report_no_solution(self) -> Result<T, ResolverError> {
         self.map_err(|e| match e {
             PubGrubError::NoSolution(derivation_tree) => ResolverError::Conflict {
+                // todo test this, can it be printed nicer
                 report: DefaultStringReporter::report(&derivation_tree),
             },
             PubGrubError::ErrorRetrievingDependencies {

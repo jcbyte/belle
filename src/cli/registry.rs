@@ -234,7 +234,7 @@ pub fn print_package_meta(name: String, version: Option<SemanticVersion>) -> Res
             let resolved_package = alias
                 .alias
                 .get_resolved_package_manifest()?
-                .expect(&format!("Resolved alias '{}' cannot be found", alias.name));
+                .report_package_nonexistent(&alias.alias.name)?;
             print_meta(&resolved_package, Some(&alias));
         }
     };

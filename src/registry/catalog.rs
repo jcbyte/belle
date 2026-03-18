@@ -43,7 +43,7 @@ pub fn iter_packages() -> impl Iterator<Item = String> {
 pub fn get_package_versions(name: &String) -> Vec<PackageIdentifier> {
     let package_manifests = BelleConfig::read_config(|c| c.get_manifest_dir()).join(name);
 
-    let versions = WalkDir::new(package_manifests)
+    WalkDir::new(package_manifests)
         .min_depth(1)
         .max_depth(1)
         .into_iter()
@@ -53,7 +53,5 @@ pub fn get_package_versions(name: &String) -> Vec<PackageIdentifier> {
             SemanticVersion::from_str(stem).ok()
         })
         .map(|version| PackageIdentifier::new(name, version))
-        .collect();
-
-    versions
+        .collect()
 }

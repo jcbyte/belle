@@ -28,7 +28,7 @@ impl BelleConfig {
         } else {
             // Load config file from location at environment variable `BELLE_CONFIG` or use the home directory if that is not set
             env::var("BELLE_CONFIG")
-                .map(|path| PathBuf::from(path))
+                .map(PathBuf::from)
                 .unwrap_or_else(|_| default_home_dir().join("config.toml"))
         };
 

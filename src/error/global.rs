@@ -80,14 +80,14 @@ pub enum ParserError {
     DeData {
         name: String,
         #[source]
-        source: toml::de::Error,
+        source: Box<toml::de::Error>,
     },
 
     #[error("Could not serialise data for {name}")]
     SerData {
         name: String,
         #[source]
-        source: toml::ser::Error,
+        source: Box<toml::ser::Error>,
     },
 
     #[error("Could not deserialise {name} from '{path}'")]
@@ -95,7 +95,7 @@ pub enum ParserError {
         name: String,
         path: PathBuf,
         #[source]
-        source: toml::de::Error,
+        source: Box<toml::de::Error>,
     },
 
     #[error("Could not serialise {name} for '{path}'")]
@@ -103,7 +103,7 @@ pub enum ParserError {
         name: String,
         path: PathBuf,
         #[source]
-        source: toml::ser::Error,
+        source: Box<toml::ser::Error>,
     },
 }
 
@@ -116,7 +116,7 @@ impl<T> ParseErrorContext<T> for Result<T, toml::de::Error> {
     fn report_data(self, name: impl Into<String>) -> Result<T, ParserError> {
         self.map_err(|e| ParserError::DeData {
             name: name.into(),
-            source: e,
+            source: e.into(),
         })
     }
 
@@ -124,7 +124,7 @@ impl<T> ParseErrorContext<T> for Result<T, toml::de::Error> {
         self.map_err(|e| ParserError::DeFile {
             name: name.into(),
             path: path.into(),
-            source: e,
+            source: e.into(),
         })
     }
 }
@@ -133,7 +133,7 @@ impl<T> ParseErrorContext<T> for Result<T, toml::ser::Error> {
     fn report_data(self, name: impl Into<String>) -> Result<T, ParserError> {
         self.map_err(|e| ParserError::SerData {
             name: name.into(),
-            source: e,
+            source: e.into(),
         })
     }
 
@@ -141,7 +141,7 @@ impl<T> ParseErrorContext<T> for Result<T, toml::ser::Error> {
         self.map_err(|e| ParserError::SerFile {
             name: name.into(),
             path: path.into(),
-            source: e,
+            source: e.into(),
         })
     }
 }

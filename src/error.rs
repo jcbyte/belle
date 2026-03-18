@@ -1,7 +1,9 @@
 use thiserror::Error;
 
+mod custom;
 mod global;
 
+pub use custom::*;
 pub use global::*;
 
 use crate::{
@@ -25,7 +27,7 @@ pub enum AppError {
     Io(#[from] IoError),
 
     #[error(transparent)]
-    Parse(#[from] ParserError),
+    Parse(Box<ParserError>),
 
     #[error(transparent)]
     Archive(#[from] ArchiveError),
@@ -43,7 +45,7 @@ pub enum AppError {
     Registry(#[from] RegistryError),
 
     #[error(transparent)]
-    Fetch(#[from] FetchError),
+    Fetch(Box<FetchError>),
 
     #[error(transparent)]
     Metadata(#[from] MetadataError),
@@ -55,37 +57,16 @@ pub enum AppError {
     Cli(#[from] CliError),
 }
 
-#[derive(Error, Debug)]
-pub enum CustomError {
-    #[error("{msg}")]
-    WithSource {
-        msg: String,
-        #[source]
-        source: Box<dyn std::error::Error + Send + Sync>,
-    },
+// Custom From implementations to handle boxing
 
-    #[error("{msg}")]
-    WithoutSource { msg: String },
-}
-
-pub trait CustomErrorContext<T> {
-    fn report_custom(self, msg: impl Into<String>) -> Result<T, CustomError>;
-}
-
-impl<T> CustomErrorContext<T> for Option<T> {
-    fn report_custom(self, msg: impl Into<String>) -> Result<T, CustomError> {
-        self.ok_or_else(|| CustomError::WithoutSource { msg: msg.into() })
+impl From<ParserError> for AppError {
+    fn from(err: ParserError) -> Self {
+        AppError::Parse(Box::new(err))
     }
 }
 
-impl<T, E> CustomErrorContext<T> for Result<T, E>
-where
-    E: std::error::Error + Send + Sync + 'static,
-{
-    fn report_custom(self, msg: impl Into<String>) -> Result<T, CustomError> {
-        self.map_err(|e| CustomError::WithSource {
-            msg: msg.into(),
-            source: Box::new(e),
-        })
+impl From<FetchError> for AppError {
+    fn from(err: FetchError) -> Self {
+        AppError::Fetch(Box::new(err))
     }
 }

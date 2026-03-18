@@ -37,9 +37,7 @@ impl BelleDependencyProvider {
             VersionReq::Given(version) => {
                 // If the given version of isabelle is not linked then throw
                 if !linked_versions.contains(&version) {
-                    return Err(IsabelleError::VersionNotLinked {
-                        version: version.into(),
-                    });
+                    return Err(IsabelleError::VersionNotLinked { version });
                 }
 
                 HashSet::from([version])
