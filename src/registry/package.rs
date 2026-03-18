@@ -63,19 +63,26 @@ impl Package {
                     .report_read(format!("fetched {} package source", PackageIdentifier::from(self)))?;
 
                 // Find the inner folder that has the `ROOT` file
-                let mut prefix = PathBuf::new();
+                let mut prefix = None;
                 for i in 0..archive.len() {
                     let file = archive
                         .by_index(i)
                         .report_index(format!("fetched {} package source", PackageIdentifier::from(self)), i)?;
 
-                    if file.name().ends_with("ROOT") {
-                        if let Some(parent) = PathBuf::from(file.name()).parent() {
-                            prefix = parent.to_path_buf();
-                        }
+                    // If the path is unsafe, skip
+                    let Some(filename) = file.enclosed_name() else { continue };
+
+                    // Get the parent when the ROOT file is found
+                    if filename.ends_with("ROOT") {
+                        prefix = filename.parent().map(|p| p.to_path_buf());
                         break;
                     }
                 }
+
+                // Ensure the ROOT file was found
+                let Some(prefix) = prefix else {
+                    return Err(RegistryError::NoRootFile { package: self.into() }.into());
+                };
 
                 // Extract contents of the archive from the prefixed location
                 for i in 0..archive.len() {
@@ -85,9 +92,11 @@ impl Package {
                     // If the path is unsafe, skip
                     let Some(filename) = file.enclosed_name() else { continue };
 
+                    // Strip paths to reach the package source
                     if let Ok(stripped_path) = filename.strip_prefix(&prefix) {
                         let file_src = package_location.join(stripped_path);
 
+                        // Copy file and directory structure
                         if file.is_dir() {
                             fs::create_dir_all(&file_src).report_save(
                                 format!("{} package source directories", PackageIdentifier::from(self)),
@@ -112,7 +121,7 @@ impl Package {
                 let temp_link = package_location.with_added_extension("tmp");
 
                 symlink(path, &temp_link).report_save("active environment symlink", &temp_link)?;
-                fs::rename(temp_link, &package_location)
+                fs::rename(&temp_link, &package_location)
                     .report_save("active environment symlink", &package_location)?;
             }
             PackageSource::Default => Err(RegistryError::NoSource {
@@ -131,7 +140,7 @@ impl PackageIdentifier {
         let manifest_dir = BelleConfig::read_config(|c| c.get_manifest_dir());
 
         manifest_dir
-            .join(self.name.clone())
+            .join(&self.name)
             .join(self.version.to_string())
             .with_added_extension("toml")
     }
@@ -141,13 +150,12 @@ impl PackageIdentifier {
         // Theories are is located within `$theory_dir/{name}/{version}.toml`
         let theories_dir = BelleConfig::read_config(|c| c.get_theory_dir());
 
-        theories_dir.join(self.name.clone()).join(self.version.to_string())
+        theories_dir.join(&self.name).join(self.version.to_string())
     }
 
     /// Check that package exists in our metadata store on disk
     pub fn package_exists(&self) -> bool {
-        let manifest_file = self.get_manifest_path();
-        manifest_file.is_file()
+        self.get_manifest_path().is_file()
     }
 
     /// Retrieve a packages manifest data, it may return an alias or the value (to automatically resolve this use `get_resolved_package_manifest`)
@@ -185,8 +193,7 @@ impl PackageIdentifier {
 
     /// Get if this package has been downloaded already
     pub fn exists_locally(&self) -> bool {
-        let theory_dir = self.get_theory_location();
-        theory_dir.is_dir()
+        self.get_theory_location().is_dir()
     }
 
     /// Remove the package source files from disk

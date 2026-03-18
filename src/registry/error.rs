@@ -12,6 +12,9 @@ pub enum RegistryError {
 
     #[error("No versions found for package '{package}'.")]
     NoVersions { package: String },
+
+    #[error("No ROOT file found in package '{package}' source.")]
+    NoRootFile { package: PackageIdentifier },
 }
 
 pub trait RegistryNotExistContext<T> {
