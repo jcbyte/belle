@@ -6,7 +6,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use url::Url;
 
 use crate::{
-    fetch::{BelleClient, RepoMetadata, get_local_package_meta},
+    fetch::{BelleClient, RepoMetadata, ReturnedPackages, get_local_package_meta},
     registry::{Package, PackageIdentifier, RegistrablePackage},
 };
 
@@ -183,7 +183,7 @@ pub async fn source_remote_repo(url: Url, branch: &str) -> anyhow::Result<()> {
     pb.set_message("Fetching package manifest".to_string());
 
     let client = BelleClient::get()?;
-    let (package, aliases) = client.get_github_package_meta(url, branch).await?;
+    let ReturnedPackages { package, aliases } = client.get_github_package_meta(url, branch).await?;
     let package_identifier = PackageIdentifier::from(&package);
 
     package.register()?;
@@ -198,7 +198,7 @@ pub async fn source_remote_repo(url: Url, branch: &str) -> anyhow::Result<()> {
 }
 
 pub fn source_local_package(path: PathBuf) -> anyhow::Result<()> {
-    let (package, aliases) = get_local_package_meta(path)?;
+    let ReturnedPackages { package, aliases } = get_local_package_meta(path)?;
     let package_identifier = PackageIdentifier::from(&package);
 
     package.register()?;

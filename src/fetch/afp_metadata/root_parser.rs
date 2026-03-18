@@ -1,6 +1,6 @@
 use std::iter;
 
-use anyhow::Context;
+use crate::fetch::afp_metadata::error::{RootParserContext, RootParserError};
 
 #[derive(Debug, Clone)]
 pub struct RootFileSession {
@@ -95,7 +95,7 @@ fn parse_identifier(input: &str) -> Option<(&str, &str)> {
     None
 }
 
-pub fn parse_root(root: &str) -> anyhow::Result<Vec<RootFileSession>> {
+pub fn parse_root(root: &str) -> Result<Vec<RootFileSession>, RootParserError> {
     let clean_root = strip_comments(root);
     let mut sessions: Vec<RootFileSession> = Vec::new();
 
@@ -103,21 +103,19 @@ pub fn parse_root(root: &str) -> anyhow::Result<Vec<RootFileSession>> {
     let session_blocks = clean_root.split("\nsession ").skip(1);
     for session_block in session_blocks {
         // The name is th first thing after the session
-        let (name, rest) = parse_identifier(session_block).context("The session name could not be parsed")?;
+        let (name, rest) = parse_identifier(session_block).report_failed_parsing("session name")?;
 
         // This skips any notes after the name
-        let (_, rest) = rest
-            .split_once("=")
-            .context("The session header could not be skipped during parsing")?;
+        let (_, rest) = rest.split_once("=").report_failed_parsing("session header")?;
 
         // The parent session is given after the "="
-        let (parent, rest) = parse_identifier(rest).context("The session parent could not be parsed")?;
+        let (parent, rest) = parse_identifier(rest).report_failed_parsing("session parent")?;
 
         // Remove the description part of the session in case it contains "sessions"
         let rests: Vec<&str> = rest.split("description").collect();
         let session_body_rest = if let Some(after_desc) = rests.get(1) {
-            let (_description, removed_desc_rest) = parse_identifier(after_desc)
-                .context("The session provides a description but it could not be parsed")?;
+            let (_description, removed_desc_rest) =
+                parse_identifier(after_desc).report_failed_parsing("session description")?;
             // Rebuild the rest of ROOT file excluding the description block
             let mut parts = rests.into_iter();
             let first = parts.next().unwrap_or("");

@@ -78,14 +78,14 @@ impl<T> IoPathErrorContext<T> for Option<T> {
 pub enum ParserError {
     #[error("Could not deserialise data from {name}")]
     DeData {
-        name: &'static str,
+        name: String,
         #[source]
         source: toml::de::Error,
     },
 
     #[error("Could not serialise data for {name}")]
     SerData {
-        name: &'static str,
+        name: String,
         #[source]
         source: toml::ser::Error,
     },
@@ -108,13 +108,16 @@ pub enum ParserError {
 }
 
 pub trait ParseErrorContext<T> {
-    fn report_data(self, name: &'static str) -> Result<T, ParserError>;
+    fn report_data(self, name: impl Into<String>) -> Result<T, ParserError>;
     fn report_file(self, name: impl Into<String>, path: impl Into<PathBuf>) -> Result<T, ParserError>;
 }
 
 impl<T> ParseErrorContext<T> for Result<T, toml::de::Error> {
-    fn report_data(self, name: &'static str) -> Result<T, ParserError> {
-        self.map_err(|e| ParserError::DeData { name, source: e })
+    fn report_data(self, name: impl Into<String>) -> Result<T, ParserError> {
+        self.map_err(|e| ParserError::DeData {
+            name: name.into(),
+            source: e,
+        })
     }
 
     fn report_file(self, name: impl Into<String>, path: impl Into<PathBuf>) -> Result<T, ParserError> {
@@ -127,8 +130,11 @@ impl<T> ParseErrorContext<T> for Result<T, toml::de::Error> {
 }
 
 impl<T> ParseErrorContext<T> for Result<T, toml::ser::Error> {
-    fn report_data(self, name: &'static str) -> Result<T, ParserError> {
-        self.map_err(|e| ParserError::SerData { name, source: e })
+    fn report_data(self, name: impl Into<String>) -> Result<T, ParserError> {
+        self.map_err(|e| ParserError::SerData {
+            name: name.into(),
+            source: e,
+        })
     }
 
     fn report_file(self, name: impl Into<String>, path: impl Into<PathBuf>) -> Result<T, ParserError> {

@@ -1,4 +1,3 @@
-use anyhow::{Context, anyhow};
 use pubgrub::SemanticVersion;
 use std::cell::RefCell;
 use std::collections::HashSet;
@@ -7,15 +6,18 @@ use std::{collections::HashMap, io::Cursor};
 use zip::ZipArchive;
 
 use crate::config::BelleConfig;
-use crate::fetch::AFPRepo;
-use crate::fetch::afp_metadata::{AuthorMetadata, RepoMetadata, TheoryMetadata, dependency};
+use crate::error::{AppError, ArchiveErrorContext, IoErrorContext, ParseErrorContext};
+use crate::fetch::afp_metadata::error::MetadataError;
+use crate::fetch::afp_metadata::{AuthorMetadata, RepoMetadata, TheoryMetadata, root_parser};
 use crate::fetch::client::BelleClient;
+use crate::fetch::error::FetchError;
+use crate::fetch::{AFPRepo, ReturnedPackages};
 use crate::registry::{AliasPackage, Package, PackageAuthor, PackageIdentifier, PackageSource, get_package_versions};
 use crate::util::date_to_version;
 
 impl RepoMetadata {
     /// Fetch metadata from repo and parse it into interpreted repo metadata
-    pub async fn get(repo: &AFPRepo, client: &BelleClient) -> anyhow::Result<Self> {
+    pub async fn get(repo: &AFPRepo, client: &BelleClient) -> Result<Self, AppError> {
         // Download full metadata archive bytes from repo
         let bytes = client.get_afp_metadata_archive(repo).await?;
 
@@ -25,43 +27,52 @@ impl RepoMetadata {
 
         // Walk through the archive
         let reader = Cursor::new(bytes);
-        let mut archive = ZipArchive::new(reader).context("Failed to read zip archive")?;
+        let mut archive = ZipArchive::new(reader).report_read(format!("{} metadata archive", repo.name))?;
 
         let legacy = archive.file_names().any(|name| name.ends_with("metadata"));
         if archive.is_empty() || legacy {
-            anyhow::bail!("Legacy AFP repo, the metadata cannot be fetched");
+            return Err(FetchError::LegacyAfp {
+                afp_name: repo.name.to_string(),
+            }
+            .into());
         }
 
         for i in 0..archive.len() {
-            let mut file = archive.by_index(i)?;
-            let Some(name) = file.enclosed_name() else { continue };
+            let mut file = archive.by_index(i).report_index(format!("{} metadata archive", repo.name), i)?;
+            // If the path is unsafe, skip
+            let Some(filename) = file.enclosed_name() else { continue };
 
             // Handler to read file content if required
-            let mut read_content = || -> anyhow::Result<String> {
+            let mut read_content = || -> Result<String, std::io::Error> {
                 let mut content = String::with_capacity(file.size() as usize);
                 file.read_to_string(&mut content)?;
                 Ok(content)
             };
 
             // Match file name to check if we should handle it
-            if name.ends_with("authors.toml") {
+            if filename.ends_with("authors.toml") {
                 // Create authors from "authors.toml"
-                let content = read_content()?;
-                authors = RepoMetadata::parse_authors(&content)?;
-            } else if name.ends_with("licenses.toml") {
+                let content = read_content().report_read(format!("authors for {} repository", repo.name), &filename)?;
+                authors = RepoMetadata::parse_authors(&content)
+                    .report_data(format!("authors for {} repository", repo.name))?;
+            } else if filename.ends_with("licenses.toml") {
                 // Create licences from "licenses.toml"
-                let content = read_content()?;
-                licences = RepoMetadata::parse_licences(&content)?;
-            } else if name.parent().is_some_and(|p| p.ends_with("entries")) {
+                let content =
+                    read_content().report_read(format!("licences for {} repository", repo.name), &filename)?;
+                licences = RepoMetadata::parse_licences(&content)
+                    .report_data(format!("licences for {} repository", repo.name))?;
+            } else if filename.parent().is_some_and(|p| p.ends_with("entries")) {
                 // Each TOML file in the `entries/` subfolder represents a theory
-                let Some(thy_name) = name.file_stem().map(|tn| tn.to_string_lossy().to_string()) else {
+                let Some(thy_name) = filename.file_stem().and_then(|s| s.to_str()) else {
                     continue;
                 };
 
                 // Insert these separately into the hashable
-                let content = read_content()?;
-                let theory_metadata = RepoMetadata::parse_theory(&content)?;
-                theories.insert(thy_name, theory_metadata);
+                let content = read_content()
+                    .report_read(format!("theory {} for {} repository", thy_name, repo.name), &filename)?;
+                let theory_metadata = RepoMetadata::parse_theory(&content)
+                    .report_data(format!("theory {} for {} repository", thy_name, repo.name))?;
+                theories.insert(thy_name.to_string(), theory_metadata);
             }
         }
 
@@ -87,11 +98,10 @@ impl RepoMetadata {
         &self,
         thy_name: &String,
         client: &BelleClient,
-    ) -> anyhow::Result<(Package, bool, Vec<AliasPackage>)> {
-        let meta = self
-            .theories
-            .get(thy_name)
-            .ok_or_else(|| anyhow!("Theory '{}' does not exist in the repo metadata", thy_name))?;
+    ) -> Result<(ReturnedPackages, bool), AppError> {
+        let meta = self.theories.get(thy_name).ok_or_else(|| MetadataError::NoPackage {
+            package: thy_name.to_string(),
+        })?;
         let version = date_to_version(&meta.date);
 
         // Fetch theories ROOT file from the repo
@@ -100,7 +110,7 @@ impl RepoMetadata {
         let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
 
         // Extract sessions from the root file
-        let sessions = dependency::parse_root(&thy_root)?;
+        let sessions = root_parser::parse_root(&thy_root)?;
 
         let session_names: Vec<&String> = sessions.iter().map(|s| &s.name).collect();
         let entry_deps: HashSet<&String> = sessions
@@ -151,49 +161,40 @@ impl RepoMetadata {
             .collect();
 
         // Get licence from matching its key
-        let licence = self.licences.get(&meta.licence_key).ok_or_else(|| {
-            anyhow!(
-                "Licence '{}' for theory '{}' does not exist in the repo metadata",
-                meta.licence_key,
-                thy_name
-            )
+        let licence = self.licences.get(&meta.licence_key).ok_or_else(|| MetadataError::MissingData {
+            name: format!("licence {}", meta.licence_key),
+            package: thy_name.to_string(),
         })?;
 
         // Get authors and contributors by matching there keys
         let authors = meta
             .author_keys
             .iter()
-            .map(|ak| {
+            .map(|author_key| {
                 self.authors
-                    .get(ak)
+                    .get(author_key)
                     .cloned()
-                    .ok_or_else(|| {
-                        anyhow!(
-                            "Author '{}' for theory '{}' does not exist in the repo metadata",
-                            ak,
-                            thy_name
-                        )
+                    .ok_or_else(|| MetadataError::MissingData {
+                        name: format!("author {}", author_key),
+                        package: thy_name.to_string(),
                     })
                     .map(PackageAuthor::from) // Convert to the correct format
             })
-            .collect::<anyhow::Result<Vec<_>>>()?;
+            .collect::<Result<Vec<_>, MetadataError>>()?;
         let contributors = meta
             .contributor_keys
             .iter()
-            .map(|ck| {
+            .map(|contributor_key| {
                 self.authors
-                    .get(ck)
+                    .get(contributor_key)
                     .cloned()
-                    .ok_or_else(|| {
-                        anyhow!(
-                            "Author '{}' for theory '{}' does not exist in the repo metadata",
-                            ck,
-                            thy_name
-                        )
+                    .ok_or_else(|| MetadataError::MissingData {
+                        name: format!("author {}", contributor_key),
+                        package: thy_name.to_string(),
                     })
                     .map(PackageAuthor::from) // Convert to the correct format
             })
-            .collect::<anyhow::Result<Vec<_>>>()?;
+            .collect::<Result<Vec<_>, MetadataError>>()?;
 
         // Return created package with all metadata
         let package = Package {
@@ -214,10 +215,16 @@ impl RepoMetadata {
             extra: meta.extra.clone(),
         };
 
-        Ok((package, fully_resolved, alias_packages))
+        Ok((
+            ReturnedPackages {
+                package,
+                aliases: alias_packages,
+            },
+            fully_resolved,
+        ))
     }
 
-    pub fn resolve_package_meta(&self, package: &mut Package) -> anyhow::Result<()> {
+    pub fn resolve_package_meta(&self, package: &mut Package) -> Result<(), MetadataError> {
         let seen_aliases = self.seen_aliases.borrow();
 
         let deps = package
@@ -230,7 +237,7 @@ impl RepoMetadata {
 
                     // Use seen aliases first, to try and resolve
                     if let Some(package_name) = seen_aliases.get(dep_name) {
-                        let meta = self.theories.get(package_name).expect("A seen alias was set, but did not find");
+                        let meta = self.theories.get(package_name).expect("A seen alias was set but did not find");
                         found_meta = Some(meta)
                     // If there was no seen alias check the registry for the alias
                     } else {
@@ -247,18 +254,17 @@ impl RepoMetadata {
                     match found_meta {
                         // Use the version of the original package, as the alias points to the same version number
                         Some(meta) => Ok(date_to_version(&meta.date)),
-                        None => Err(anyhow!(
-                            "Package '{}' depends on '{}' but that does not seem to exist",
-                            &package.name,
-                            &dep_name
-                        )),
+                        None => Err(MetadataError::DependencyMissing {
+                            package: package.name.to_string(),
+                            dependency: dep_name.to_string(),
+                        }),
                     }
                 } else {
                     Ok(*dep_version)
                 };
                 Ok((dep_name.clone(), version?))
             })
-            .collect::<anyhow::Result<HashMap<String, SemanticVersion>>>()?;
+            .collect::<Result<HashMap<String, SemanticVersion>, MetadataError>>()?;
 
         package.dependencies = deps;
         Ok(())

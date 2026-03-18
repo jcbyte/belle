@@ -4,7 +4,6 @@ use std::{
     path::PathBuf,
 };
 
-use anyhow::Context;
 use zip::ZipArchive;
 
 use crate::{
@@ -55,7 +54,7 @@ impl Package {
 
                 let bytes = match &self.source {
                     PackageSource::Afp(repo) => client.get_afp_package(&self.name, repo).await?,
-                    PackageSource::Remote { url } => client.get_remote_package(url.clone()).await?,
+                    PackageSource::Remote { url } => client.get_remote_package(url).await?,
                     _ => unreachable!(),
                 };
 
@@ -83,13 +82,8 @@ impl Package {
                     let mut file = archive
                         .by_index(i)
                         .report_index(format!("{} package source", PackageIdentifier::from(self)), i)?;
-                    let filename = match file.enclosed_name() {
-                        Some(filename) => filename,
-                        None => {
-                            // If the path is unsafe, skip
-                            continue;
-                        }
-                    };
+                    // If the path is unsafe, skip
+                    let Some(filename) = file.enclosed_name() else { continue };
 
                     if let Ok(stripped_path) = filename.strip_prefix(&prefix) {
                         let file_src = package_location.join(stripped_path);
@@ -107,7 +101,7 @@ impl Package {
                             let mut out_file = fs::File::create(&file_src)
                                 .report_save(format!("{} package source", PackageIdentifier::from(self)), &file_src)?;
                             io::copy(&mut file, &mut out_file)
-                                .report_save(format!("{} package source", PackageIdentifier::from(self)), &file_src);
+                                .report_save(format!("{} package source", PackageIdentifier::from(self)), &file_src)?;
                         }
                     }
                 }
@@ -200,7 +194,7 @@ impl PackageIdentifier {
         let theory_dir = self.get_theory_location();
 
         if theory_dir.is_dir() {
-            fs::remove_dir_all(&theory_dir).report_delete(format!("{} package source", self), &theory_dir);
+            fs::remove_dir_all(&theory_dir).report_delete(format!("{} package source", self), &theory_dir)?;
         }
 
         Ok(())

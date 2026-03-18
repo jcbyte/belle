@@ -46,6 +46,9 @@ pub enum FetchError {
         source: url::ParseError,
     },
 
+    #[error("{afp_name} is a legacy AFP repository, the metadata cannot be fetched automatically.")]
+    LegacyAfp { afp_name: String },
+
     #[error("No package manifest found at '{path}'.")]
     NoLocalManifest { path: PathBuf },
 }

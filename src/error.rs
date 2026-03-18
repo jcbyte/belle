@@ -5,8 +5,14 @@ mod global;
 pub use global::*;
 
 use crate::{
-    environment::error::EnvironmentError, fetch::error::FetchError, isabelle::error::IsabelleError,
-    registry::error::RegistryError, resolver::error::ResolverError,
+    environment::error::EnvironmentError,
+    fetch::{
+        afp_metadata::error::{MetadataError, RootParserError},
+        error::FetchError,
+    },
+    isabelle::error::IsabelleError,
+    registry::error::RegistryError,
+    resolver::error::ResolverError,
 };
 
 #[derive(Error, Debug)]
@@ -40,6 +46,12 @@ pub enum AppError {
 
     #[error(transparent)]
     Fetch(#[from] FetchError),
+
+    #[error(transparent)]
+    Metadata(#[from] MetadataError),
+
+    #[error(transparent)]
+    RootParser(#[from] RootParserError),
 }
 
 // pub trait CustomErrorContext<T> {

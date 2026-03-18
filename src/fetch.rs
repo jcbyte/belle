@@ -1,5 +1,5 @@
 mod afp;
-mod afp_metadata;
+pub mod afp_metadata;
 mod client;
 pub mod error;
 mod local;
@@ -8,7 +8,7 @@ mod types;
 
 pub use afp_metadata::RepoMetadata;
 pub use client::BelleClient;
-pub use types::AFPRepo;
+pub use types::{AFPRepo, ReturnedPackages};
 
 pub use local::get_local_package_meta;
 

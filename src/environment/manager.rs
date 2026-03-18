@@ -29,11 +29,6 @@ pub fn switch_env(name: &String) -> Result<(), AppError> {
     Ok(())
 }
 
-pub fn get_active_env() -> Result<Option<String>, AppError> {
-    let active_env = Environment::active()?;
-    Ok(active_env.map(|env| env.name.clone()))
-}
-
 pub fn iter_envs() -> impl Iterator<Item = String> {
     let env_dir = BelleConfig::read_config(|c| c.get_env_dir());
 

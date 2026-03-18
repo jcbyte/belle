@@ -1,16 +1,13 @@
 use std::collections::HashMap;
 
-use anyhow::Context;
-
 use crate::fetch::afp_metadata::{
     AFPAuthorMeta, AFPLicenceMeta, AFPTheoryMeta, AuthorMetadata, RepoMetadata, TheoryMetadata,
 };
 
 impl RepoMetadata {
     /// Convert from raw received data to our author metadata interpretation
-    pub(super) fn parse_authors(toml_content: &str) -> anyhow::Result<HashMap<String, AuthorMetadata>> {
-        let authors_raw: HashMap<String, AFPAuthorMeta> =
-            toml::from_str(toml_content).context("Failed to parse TOML for authors metadata")?;
+    pub(super) fn parse_authors(toml_content: &str) -> Result<HashMap<String, AuthorMetadata>, toml::de::Error> {
+        let authors_raw: HashMap<String, AFPAuthorMeta> = toml::from_str(toml_content)?;
 
         let authors = authors_raw
             .into_iter()
@@ -35,9 +32,8 @@ impl RepoMetadata {
     }
 
     /// Convert from raw received data to our licence metadata interpretation
-    pub(super) fn parse_licences(toml_content: &str) -> anyhow::Result<HashMap<String, String>> {
-        let licences_raw: HashMap<String, AFPLicenceMeta> =
-            toml::from_str(toml_content).context("Failed to parse TOML for licences metadata")?;
+    pub(super) fn parse_licences(toml_content: &str) -> Result<HashMap<String, String>, toml::de::Error> {
+        let licences_raw: HashMap<String, AFPLicenceMeta> = toml::from_str(toml_content)?;
 
         let licences = licences_raw
             .into_iter()
@@ -48,9 +44,8 @@ impl RepoMetadata {
     }
 
     /// Convert from raw received data to our theory metadata interpretation
-    pub(super) fn parse_theory(toml_content: &str) -> anyhow::Result<TheoryMetadata> {
-        let theory_raw: AFPTheoryMeta =
-            toml::from_str(toml_content).context("Failed to parse TOML for theory metadata")?;
+    pub(super) fn parse_theory(toml_content: &str) -> Result<TheoryMetadata, toml::de::Error> {
+        let theory_raw: AFPTheoryMeta = toml::from_str(toml_content)?;
 
         // Add dois, and pubs into extra if they exist
         let mut extra_table = theory_raw.extra;
