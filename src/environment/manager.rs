@@ -5,30 +5,31 @@ use junction::create as symlink;
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
 
-use anyhow::Context;
 use walkdir::WalkDir;
 
-use crate::{config::BelleConfig, environment::Environment};
+use crate::{
+    config::BelleConfig,
+    environment::{Environment, error::EnvironmentError},
+    error::{AppError, IoErrorContext},
+};
 
-// todo thiserror
-pub fn switch_env(name: &String) -> anyhow::Result<()> {
+pub fn switch_env(name: &String) -> Result<(), AppError> {
     let active_env_link = BelleConfig::read_config(|c| c.get_active_env_link());
     let active_env = Environment::env_dir_for_name(name);
 
     if !active_env.is_dir() {
-        anyhow::bail!("Environment '{}' cannot be found", name);
+        return Err(EnvironmentError::DoesNotExist { name: name.to_string() }.into());
     }
 
     // Create a temporary symlink and overwrite to avoid `AlreadyExists` errors
     let temp_link = active_env_link.with_added_extension("tmp");
-    symlink(active_env, &temp_link).context("Failed to create junction/symlink for active environment")?;
-    fs::rename(temp_link, active_env_link)
-        .context("Failed to overwrite existing junction/symlink for the active environment")?;
+    symlink(active_env, &temp_link).report_save("active environment symlink", &temp_link)?;
+    fs::rename(temp_link, &active_env_link).report_save("active environment symlink", &active_env_link)?;
 
     Ok(())
 }
 
-pub fn get_active_env() -> anyhow::Result<Option<String>> {
+pub fn get_active_env() -> Result<Option<String>, AppError> {
     let active_env = Environment::active()?;
     Ok(active_env.map(|env| env.name.clone()))
 }

@@ -120,7 +120,7 @@ pub async fn create_env(name: Option<String>, new: bool, isabelle: Option<Semant
 }
 
 pub fn list_envs() -> anyhow::Result<()> {
-    let active_env = manager::get_active_env()?;
+    let active_env = Environment::active()?.map(|active_env| active_env.name);
 
     for env in manager::iter_envs() {
         let env_line = if active_env.as_deref() == Some(env.as_str()) {
