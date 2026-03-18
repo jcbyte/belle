@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use thiserror::Error;
 
 mod global;
@@ -11,6 +13,12 @@ use crate::{
 
 #[derive(Error, Debug)]
 pub enum AppError {
+    // #[error("{msg}")]
+    // Custom {
+    //     msg: String,
+    //     #[source]
+    //     source: Box<dyn std::error::Error + Send + Sync>,
+    // },
     #[error(transparent)]
     Io(#[from] IoError),
 
@@ -32,3 +40,19 @@ pub enum AppError {
     #[error(transparent)]
     Registry(#[from] RegistryError),
 }
+
+// pub trait CustomErrorContext<T> {
+//     fn report_custom(self, msg: impl Into<String>) -> Result<T, AppError>;
+// }
+
+// impl<T, E> CustomErrorContext<T> for Result<T, E>
+// where
+//     E: Error + Send + Sync + 'static,
+// {
+//     fn report_custom(self, msg: impl Into<String>) -> Result<T, AppError> {
+//         self.map_err(|e| AppError::Custom {
+//             msg: msg.into(),
+//             source: Box::new(e),
+//         })
+//     }
+// }
