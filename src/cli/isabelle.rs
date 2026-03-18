@@ -3,9 +3,14 @@ use std::path::PathBuf;
 use console::style;
 use pubgrub::SemanticVersion;
 
-use crate::{config::BelleConfig, isabelle::Isabelle, util::get_isabelle_name};
+use crate::{
+    config::BelleConfig,
+    error::AppError,
+    isabelle::{Isabelle, error::IsabelleError},
+    util::get_isabelle_name,
+};
 
-pub fn link(path: PathBuf) -> anyhow::Result<()> {
+pub fn link(path: PathBuf) -> Result<(), AppError> {
     let isabelle = Isabelle::locate(path)?;
 
     isabelle.link()?;
@@ -22,14 +27,14 @@ pub fn link(path: PathBuf) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn unlink(version: SemanticVersion) -> anyhow::Result<()> {
+pub fn unlink(version: SemanticVersion) -> Result<(), AppError> {
     let isabelle = BelleConfig::read_config(|c| {
         c.isabelles.get(&version).map(|path| Isabelle {
             version,
             path: path.clone(),
         })
     })
-    .ok_or_else(|| anyhow::anyhow!("No Linked Isabelle matching version {}", version))?;
+    .ok_or(IsabelleError::VersionNotLinked { version })?;
 
     isabelle.unlink()?;
     BelleConfig::write_config(|c| c.isabelles.remove(&version));

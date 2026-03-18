@@ -2,15 +2,16 @@ use console::style;
 use pubgrub::SemanticVersion;
 
 use crate::{
-    cli::environment::finalise_env,
+    cli::{environment::finalise_env, error::CliError},
     config::BelleConfig,
-    environment::{Environment, PackageType},
+    environment::{Environment, PackageType, error::EnvironmentError},
+    error::AppError,
     resolver::ISABELLE_PACKAGE,
     util::get_isabelle_name,
 };
 
-pub async fn add_package(name: String, version: Option<SemanticVersion>) -> anyhow::Result<()> {
-    let mut active_env = Environment::active()?.ok_or(anyhow::anyhow!("No environment is selected"))?;
+pub async fn add_package(name: String, version: Option<SemanticVersion>) -> Result<(), AppError> {
+    let mut active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
 
     active_env.add_package(name.clone(), version.into())?;
     finalise_env(&mut active_env, true).await?;
@@ -19,8 +20,8 @@ pub async fn add_package(name: String, version: Option<SemanticVersion>) -> anyh
     Ok(())
 }
 
-pub async fn remove_package(name: &String) -> anyhow::Result<()> {
-    let mut active_env = Environment::active()?.ok_or(anyhow::anyhow!("No environment is selected"))?;
+pub async fn remove_package(name: &String) -> Result<(), AppError> {
+    let mut active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
 
     active_env.remove_package(name)?;
     finalise_env(&mut active_env, true).await?;
@@ -29,8 +30,8 @@ pub async fn remove_package(name: &String) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn list_packages(all: bool) -> anyhow::Result<()> {
-    let active_env = Environment::active()?.ok_or(anyhow::anyhow!("No environment is selected"))?;
+pub fn list_packages(all: bool) -> Result<(), AppError> {
+    let active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
 
     let packages = active_env.get_packages();
     let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
@@ -56,9 +57,7 @@ pub fn list_packages(all: bool) -> anyhow::Result<()> {
         }
     }
 
-    let isabelle_version = isabelle_listing
-        .ok_or(anyhow::anyhow!("Isabelle version could not be found"))?
-        .version;
+    let isabelle_version = isabelle_listing.ok_or(EnvironmentError::NoIsabelleVersion)?.version;
 
     println!("Environment: {}", style(active_env.name).cyan());
 

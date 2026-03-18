@@ -1,9 +1,13 @@
-use crate::cli::{
-    self,
-    schema::{CacheAction, Commands, EnvAction, SourceAction, SourceAfpAction},
+use crate::{
+    cli::{
+        self,
+        schema::{CacheAction, Commands, EnvAction, SourceAction, SourceAfpAction},
+    },
+    error::AppError,
 };
 
 mod environment;
+pub mod error;
 mod fetch;
 mod isabelle;
 mod package;
@@ -15,7 +19,7 @@ use pubgrub::SemanticVersion;
 pub use schema::Cli;
 use types::IsabelleVersion;
 
-pub async fn run(args: Cli) -> anyhow::Result<()> {
+pub async fn run(args: Cli) -> Result<(), AppError> {
     match args.command {
         Commands::Link(args) => isabelle::link(args.path)?,
         Commands::Unlink(args) => isabelle::unlink(args.version.into())?,

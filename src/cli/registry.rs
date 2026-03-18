@@ -1,35 +1,35 @@
 use std::{collections::HashSet, fs};
 
-use anyhow::Context;
 use console::style;
 use pubgrub::SemanticVersion;
 
 use crate::{
     config::BelleConfig,
     environment::{Environment, manager::iter_envs},
+    error::{AppError, IoErrorContext},
     registry::{
-        self, AliasPackage, Package, PackageIdentifier, PackageSource, RegisteredPackage, iter_installed_packages,
-        iter_packages,
+        self, AliasPackage, Package, PackageIdentifier, PackageSource, RegisteredPackage,
+        error::RegistryNotExistContext, iter_installed_packages, iter_packages,
     },
     util::get_isabelle_name,
 };
 
 /// Remove all theories from disk
-pub fn clean_theories() -> anyhow::Result<()> {
+pub fn clean_theories() -> Result<(), AppError> {
     let thy_dir = BelleConfig::read_config(|c| c.get_theory_dir());
     if !thy_dir.is_dir() {
         println!("No theories found in cache");
         return Ok(());
     }
 
-    fs::remove_dir_all(thy_dir).context("Failed to remove theory cache")?;
+    fs::remove_dir_all(&thy_dir).report_delete("packages source", &thy_dir)?;
     println!("Cleaned {} theories from cache.", style("all").bold());
 
     Ok(())
 }
 
 /// Remove all metadata from disk
-pub fn clean_metadata() -> anyhow::Result<()> {
+pub fn clean_metadata() -> Result<(), AppError> {
     let manifest_dir = BelleConfig::read_config(|c| c.get_manifest_dir());
 
     if !manifest_dir.is_dir() {
@@ -37,14 +37,14 @@ pub fn clean_metadata() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    fs::remove_dir_all(manifest_dir).context("Failed to remove manifest cache")?;
+    fs::remove_dir_all(&manifest_dir).report_delete("packages manifests", &manifest_dir)?;
     println!("Cleaned metadata for {} theories.", style("all").bold());
 
     Ok(())
 }
 
 /// List versions of a package in our local metadata
-pub fn list_versions(name: String) -> anyhow::Result<()> {
+pub fn list_versions(name: String) -> Result<(), AppError> {
     let versions = registry::get_package_versions(&name);
 
     if versions.is_empty() {
@@ -214,33 +214,29 @@ fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
 }
 
 /// Display metadata for a specific package on the console, if a version is not given then the latest will be shown
-pub fn print_package_meta(name: String, version: Option<SemanticVersion>) -> anyhow::Result<()> {
+pub fn print_package_meta(name: String, version: Option<SemanticVersion>) -> Result<(), AppError> {
     let package = match version {
         Some(v) => PackageIdentifier::new(name, v),
         None => {
             let versions = registry::get_package_versions(&name);
             versions
                 .iter()
-                .max_by_key(|pi| pi.version)
+                .max_by_key(|package_id| package_id.version)
                 .cloned()
-                .ok_or_else(|| anyhow::anyhow!("No versions of '{}' can be found", name))?
+                .report_package_nonexistent(name)?
         }
     };
 
-    let package_meta = package.get_package_manifest()?;
-
+    let package_meta = package.get_package_manifest()?.report_package_nonexistent(package.name)?;
     match package_meta {
-        Some(meta) => match meta {
-            RegisteredPackage::Package(meta) => print_meta(&meta, None),
-            RegisteredPackage::Alias(alias) => {
-                let resolved_package = alias
-                    .alias
-                    .get_resolved_package_manifest()?
-                    .unwrap_or_else(|| panic!("Resolved alias '{}' cannot be found", alias.name));
-                print_meta(&resolved_package, Some(&alias));
-            }
-        },
-        None => anyhow::bail!("Package '{}' does not exist", package),
+        RegisteredPackage::Package(meta) => print_meta(&meta, None),
+        RegisteredPackage::Alias(alias) => {
+            let resolved_package = alias
+                .alias
+                .get_resolved_package_manifest()?
+                .expect(&format!("Resolved alias '{}' cannot be found", alias.name));
+            print_meta(&resolved_package, Some(&alias));
+        }
     };
 
     Ok(())
@@ -285,7 +281,7 @@ pub fn search_registry(search: String) {
     println!("Found {} Results.", style(results.len()).bold());
 }
 
-pub fn purge_packages() -> anyhow::Result<()> {
+pub fn purge_packages() -> Result<(), AppError> {
     let mut used_packages: HashSet<PackageIdentifier> = HashSet::new();
 
     for env_name in iter_envs() {

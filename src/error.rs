@@ -5,6 +5,7 @@ mod global;
 pub use global::*;
 
 use crate::{
+    cli::error::CliError,
     environment::error::EnvironmentError,
     fetch::{
         afp_metadata::error::{MetadataError, RootParserError},
@@ -17,12 +18,9 @@ use crate::{
 
 #[derive(Error, Debug)]
 pub enum AppError {
-    // #[error("{msg}")]
-    // Custom {
-    //     msg: String,
-    //     #[source]
-    //     source: Box<dyn std::error::Error + Send + Sync>,
-    // },
+    #[error(transparent)]
+    Custom(#[from] CustomError),
+
     #[error(transparent)]
     Io(#[from] IoError),
 
@@ -52,20 +50,42 @@ pub enum AppError {
 
     #[error(transparent)]
     RootParser(#[from] RootParserError),
+
+    #[error(transparent)]
+    Cli(#[from] CliError),
 }
 
-// pub trait CustomErrorContext<T> {
-//     fn report_custom(self, msg: impl Into<String>) -> Result<T, AppError>;
-// }
+#[derive(Error, Debug)]
+pub enum CustomError {
+    #[error("{msg}")]
+    WithSource {
+        msg: String,
+        #[source]
+        source: Box<dyn std::error::Error + Send + Sync>,
+    },
 
-// impl<T, E> CustomErrorContext<T> for Result<T, E>
-// where
-//     E: Error + Send + Sync + 'static,
-// {
-//     fn report_custom(self, msg: impl Into<String>) -> Result<T, AppError> {
-//         self.map_err(|e| AppError::Custom {
-//             msg: msg.into(),
-//             source: Box::new(e),
-//         })
-//     }
-// }
+    #[error("{msg}")]
+    WithoutSource { msg: String },
+}
+
+pub trait CustomErrorContext<T> {
+    fn report_custom(self, msg: impl Into<String>) -> Result<T, CustomError>;
+}
+
+impl<T> CustomErrorContext<T> for Option<T> {
+    fn report_custom(self, msg: impl Into<String>) -> Result<T, CustomError> {
+        self.ok_or_else(|| CustomError::WithoutSource { msg: msg.into() })
+    }
+}
+
+impl<T, E> CustomErrorContext<T> for Result<T, E>
+where
+    E: std::error::Error + Send + Sync + 'static,
+{
+    fn report_custom(self, msg: impl Into<String>) -> Result<T, CustomError> {
+        self.map_err(|e| CustomError::WithSource {
+            msg: msg.into(),
+            source: Box::new(e),
+        })
+    }
+}

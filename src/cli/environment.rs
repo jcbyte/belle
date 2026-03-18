@@ -5,14 +5,16 @@ use indicatif::{ProgressBar, ProgressStyle};
 use pubgrub::SemanticVersion;
 
 use crate::{
-    environment::{Environment, VersionReq, manager},
-    registry::PackageIdentifier,
+    cli::error::CliError,
+    environment::{Environment, VersionReq, error::EnvironmentError, manager},
+    error::{AppError, CustomError, CustomErrorContext, IoErrorContext},
+    registry::{PackageIdentifier, error::RegistryNotExistContext},
     resolver::ISABELLE_PACKAGE,
     util::get_isabelle_name,
 };
 
 /// Apply any changes made to environment files, with logging
-pub async fn finalise_env(env: &mut Environment, include_resolve: bool) -> anyhow::Result<()> {
+pub async fn finalise_env(env: &mut Environment, include_resolve: bool) -> Result<(), AppError> {
     // Don't resolve if we want to skip it
     if include_resolve {
         let pb = ProgressBar::new_spinner();
@@ -37,19 +39,17 @@ pub async fn finalise_env(env: &mut Environment, include_resolve: bool) -> anyho
         let pb = ProgressBar::new(missing_packages.len() as u64);
         pb.set_style(
             ProgressStyle::default_bar()
-                .template("{spinner} [{bar:40.cyan/blue}] {pos}/{len} {msg}")?
+                .template("{spinner} [{bar:40.cyan/blue}] {pos}/{len} {msg}")
+                .expect("Invalid hardcoded spinner template")
                 .progress_chars("#>-"),
         );
 
         for package in &missing_packages {
             pb.set_message(format!("Fetching{}", style(&package).cyan()));
 
-            let package_meta = package.get_resolved_package_manifest()?.ok_or_else(|| {
-                anyhow::anyhow!(
-                    "Package '{}' from environment cannot be found in local registry",
-                    package
-                )
-            })?;
+            let package_meta = package
+                .get_resolved_package_manifest()?
+                .report_package_nonexistent(&package.name)?;
 
             package_meta.get_package().await?;
 
@@ -72,12 +72,12 @@ pub async fn finalise_env(env: &mut Environment, include_resolve: bool) -> anyho
     Ok(())
 }
 
-fn get_env_name(name: Option<&String>) -> anyhow::Result<(String, bool)> {
+fn get_env_name(name: Option<&String>) -> Result<(String, bool), AppError> {
     let name = match name {
         Some(n) => (n.clone(), false),
         None => {
             let frozen_env = Environment::frozen()?
-                .ok_or_else(|| anyhow::anyhow!("No name given, and no belle file found in workspace."))?;
+                .report_custom("No name was given, and no lockfile is found in workspace to infer from.")?;
             (frozen_env.name.clone(), true)
         }
     };
@@ -85,7 +85,7 @@ fn get_env_name(name: Option<&String>) -> anyhow::Result<(String, bool)> {
     Ok(name)
 }
 
-pub fn switch_env(name: Option<String>) -> anyhow::Result<()> {
+pub fn switch_env(name: Option<String>) -> Result<(), AppError> {
     let (name, _using_frozen) = get_env_name(name.as_ref())?;
 
     manager::switch_env(&name)?;
@@ -94,11 +94,16 @@ pub fn switch_env(name: Option<String>) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub async fn create_env(name: Option<String>, new: bool, isabelle: Option<SemanticVersion>) -> anyhow::Result<()> {
+pub async fn create_env(name: Option<String>, new: bool, isabelle: Option<SemanticVersion>) -> Result<(), AppError> {
     let (env_name, using_frozen) = get_env_name(name.as_ref())?;
 
     if using_frozen && !new && isabelle.is_some() {
-        anyhow::bail!("Isabelle version cannot be given when creating from an existing belle file.");
+        return Err(CustomError::WithoutSource {
+            // todo should this just try to migrate instead?
+            msg: "Isabelle version cannot be given when creating from an existing belle file, migrate later."
+                .to_string(),
+        }
+        .into());
     }
 
     let mut new_env = Environment::new(env_name.clone(), isabelle.into())?;
@@ -119,7 +124,7 @@ pub async fn create_env(name: Option<String>, new: bool, isabelle: Option<Semant
     Ok(())
 }
 
-pub fn list_envs() -> anyhow::Result<()> {
+pub fn list_envs() -> Result<(), AppError> {
     let active_env = Environment::active()?.map(|active_env| active_env.name);
 
     for env in manager::iter_envs() {
@@ -139,29 +144,29 @@ pub fn list_envs() -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn remove_env(name: &String) -> anyhow::Result<()> {
+pub fn remove_env(name: &String) -> Result<(), AppError> {
     let env_dir = Environment::env_dir_for_name(name);
 
     if !env_dir.is_dir() {
-        anyhow::bail!("Environment '{}' cannot be found.", name);
+        return Err(EnvironmentError::DoesNotExist { name: name.to_string() }.into());
     }
 
-    fs::remove_dir_all(env_dir)?;
+    fs::remove_dir_all(&env_dir).report_delete("environment directory", &env_dir)?;
 
     println!("Removed environment: {}.", style(name).cyan().bold());
     Ok(())
 }
 
-pub fn freeze_env() -> anyhow::Result<()> {
-    let active_env = Environment::active()?.ok_or(anyhow::anyhow!("No environment is selected"))?;
+pub fn freeze_env() -> Result<(), AppError> {
+    let active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
     active_env.freeze()?;
 
-    println!("Frozen environments to belle file.");
+    println!("Frozen environment to belle file.");
     Ok(())
 }
 
-pub async fn sync_env() -> anyhow::Result<()> {
-    let mut active_env = Environment::active()?.ok_or(anyhow::anyhow!("No selected environment"))?;
+pub async fn sync_env() -> Result<(), AppError> {
+    let mut active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
 
     active_env.sync()?;
     // Don't resolve as we want to keep the lockfile identical
@@ -171,8 +176,8 @@ pub async fn sync_env() -> anyhow::Result<()> {
     Ok(())
 }
 
-pub async fn migrate_isabelle(version: Option<SemanticVersion>, unpin_existing: bool) -> anyhow::Result<()> {
-    let mut active_env = Environment::active()?.ok_or(anyhow::anyhow!("No environment is selected"))?;
+pub async fn migrate_isabelle(version: Option<SemanticVersion>, unpin_existing: bool) -> Result<(), AppError> {
+    let mut active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
 
     active_env.migrate_isabelle(version.into(), unpin_existing);
     finalise_env(&mut active_env, true).await?;
@@ -183,7 +188,7 @@ pub async fn migrate_isabelle(version: Option<SemanticVersion>, unpin_existing: 
             let version = active_env
                 .lock
                 .get(ISABELLE_PACKAGE)
-                .ok_or(anyhow::anyhow!("No Isabelle version is given for the environment"))?;
+                .ok_or(EnvironmentError::NoIsabelleVersion)?;
             (*version, false)
         }
     };

@@ -157,8 +157,7 @@ impl Environment {
         Ok(())
     }
 
-    pub fn resolve_lock(&mut self) -> anyhow::Result<()> {
-        // todo produce correct errors
+    pub fn resolve_lock(&mut self) -> Result<(), AppError> {
         let resolved_packages = BelleDependencyProvider::resolve(self.isabelle.clone(), self.packages.clone())?;
         self.lock = resolved_packages;
 

@@ -1,17 +1,17 @@
 use std::{path::PathBuf, time::Duration};
 
-use anyhow::Context;
 use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
 use url::Url;
 
 use crate::{
+    error::{AppError, CustomErrorContext},
     fetch::{BelleClient, RepoMetadata, ReturnedPackages, get_local_package_meta},
     registry::{Package, PackageIdentifier, RegistrablePackage},
 };
 
 /// List AFP repositories and print them in a simple table
-pub async fn list_afp_repositories(limit: usize) -> anyhow::Result<()> {
+pub async fn list_afp_repositories(limit: usize) -> Result<(), AppError> {
     let pb = ProgressBar::new_spinner();
     pb.enable_steady_tick(Duration::from_millis(100));
     pb.set_message("Fetching repository list".to_string());
@@ -41,21 +41,25 @@ pub async fn list_afp_repositories(limit: usize) -> anyhow::Result<()> {
 
 /// Fetch metadata for a specific repository (or the latest if not specified)
 /// Register packages which do not yet exist locally
-pub async fn fetch_afp_meta(repo_name: Option<String>) -> anyhow::Result<()> {
+pub async fn fetch_afp_meta(repo_name: Option<String>) -> Result<(), AppError> {
     // Get the repo structure
     let client = BelleClient::get()?;
     let repo = match repo_name {
         Some(name) => {
             // If a name is passed we need to get its id
-            let repo = client.get_afp_repo(&name).await?;
-            // Warn if the repo does not exist
-            repo.with_context(|| format!("Could not find repo with name '{}'", name))?
+            client
+                .get_afp_repo(&name)
+                .await?
+                // Warn if the repo does not exist
+                .report_custom(format!("Could not find repo with name '{}'", name))?
         }
         None => {
             // Get the most recent repo if none specified
             let latest_repo_collection = client.get_afp_repos(1).await?;
-            let latest_repo = latest_repo_collection.first().cloned();
-            latest_repo.context("Failed to fetch latest repo name")?
+            latest_repo_collection
+                .into_iter()
+                .next()
+                .report_custom("Failed to find the latest repo")?
         }
     };
 
@@ -85,7 +89,8 @@ pub async fn fetch_afp_meta(repo_name: Option<String>) -> anyhow::Result<()> {
     let pb = ProgressBar::new(repo_theories.len() as u64);
     pb.set_style(
         ProgressStyle::default_bar()
-            .template("{spinner} [{bar:40.cyan/blue}] {pos}/{len} {msg}")?
+            .template("{spinner} [{bar:40.cyan/blue}] {pos}/{len} {msg}")
+            .expect("// todo this shouldn't be repeated ideally")
             .progress_chars("#>-"),
     );
 
@@ -109,7 +114,7 @@ pub async fn fetch_afp_meta(repo_name: Option<String>) -> anyhow::Result<()> {
             // Creating metadata will require network, so this could take some time
             let package_meta = repo_metadata.create_package_meta(&theory.name, client).await;
             match package_meta {
-                Ok((package, fully_resolved, aliases)) => {
+                Ok((ReturnedPackages { package, aliases }, fully_resolved)) => {
                     if fully_resolved {
                         package.register()?;
                     } else {
@@ -177,7 +182,7 @@ pub async fn fetch_afp_meta(repo_name: Option<String>) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub async fn source_remote_repo(url: Url, branch: &str) -> anyhow::Result<()> {
+pub async fn source_remote_repo(url: Url, branch: &str) -> Result<(), AppError> {
     let pb = ProgressBar::new_spinner();
     pb.enable_steady_tick(Duration::from_millis(100));
     pb.set_message("Fetching package manifest".to_string());
@@ -197,7 +202,7 @@ pub async fn source_remote_repo(url: Url, branch: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn source_local_package(path: PathBuf) -> anyhow::Result<()> {
+pub fn source_local_package(path: PathBuf) -> Result<(), AppError> {
     let ReturnedPackages { package, aliases } = get_local_package_meta(path)?;
     let package_identifier = PackageIdentifier::from(&package);
 
