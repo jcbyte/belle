@@ -4,7 +4,10 @@ mod global;
 
 pub use global::*;
 
-use crate::{environment::error::EnvironmentError, isabelle::error::IsabelleError};
+use crate::{
+    environment::error::EnvironmentError, isabelle::error::IsabelleError, registry::error::RegistryError,
+    resolver::error::ResolverError,
+};
 
 #[derive(Error, Debug)]
 pub enum AppError {
@@ -18,5 +21,11 @@ pub enum AppError {
     Environment(#[from] EnvironmentError),
 
     #[error(transparent)]
+    Resolver(#[from] ResolverError),
+
+    #[error(transparent)]
     Isabelle(#[from] IsabelleError),
+
+    #[error(transparent)]
+    Registry(#[from] RegistryError),
 }

@@ -10,8 +10,13 @@ use std::{
 use crate::{
     config::BelleConfig,
     environment::VersionReq,
-    registry::{PackageIdentifier, RegisteredPackage, get_package_versions},
-    resolver::{ISABELLE_PACKAGE, SolverError},
+    error::AppError,
+    isabelle::error::IsabelleError,
+    registry::{PackageIdentifier, RegisteredPackage, error::RegistryNotExistContext, get_package_versions},
+    resolver::{
+        ISABELLE_PACKAGE,
+        error::{ResolverContext, ResolverError},
+    },
 };
 
 type SemVS = Ranges<SemanticVersion>;
@@ -26,7 +31,7 @@ pub struct BelleDependencyProvider {
 }
 
 impl BelleDependencyProvider {
-    fn new(isabelle_version: VersionReq, root_packages: HashMap<String, VersionReq>) -> anyhow::Result<Self> {
+    fn new(isabelle_version: VersionReq, root_packages: HashMap<String, VersionReq>) -> Result<Self, IsabelleError> {
         let linked_versions: HashSet<SemanticVersion> =
             BelleConfig::read_config(|c| c.isabelles.keys().cloned().collect());
 
@@ -36,9 +41,9 @@ impl BelleDependencyProvider {
             VersionReq::Given(version) => {
                 // If the given version of isabelle is not linked then throw
                 if !linked_versions.contains(&version) {
-                    return Err(anyhow::anyhow!(
-                        "An isabelle version is specified, but that version is not linked. Consider migrating."
-                    ));
+                    return Err(IsabelleError::VersionNotLinked {
+                        version: version.into(),
+                    });
                 }
 
                 HashSet::from([version])
@@ -54,7 +59,7 @@ impl BelleDependencyProvider {
         })
     }
 
-    fn get_package_versions(&self, name: &String) -> anyhow::Result<HashSet<SemanticVersion>> {
+    fn get_package_versions(&self, name: &String) -> Result<HashSet<SemanticVersion>, AppError> {
         if let Some(versions) = self.package_versions.borrow().get(name) {
             return Ok(versions.clone());
         }
@@ -68,7 +73,7 @@ impl BelleDependencyProvider {
 }
 
 impl DependencyProvider for BelleDependencyProvider {
-    fn choose_version(&self, package: &String, range: &SemVS) -> Result<Option<SemanticVersion>, SolverError> {
+    fn choose_version(&self, package: &String, range: &SemVS) -> Result<Option<SemanticVersion>, AppError> {
         if package.eq(".") {
             return Ok(Some(SemanticVersion::zero()));
         }
@@ -119,7 +124,7 @@ impl DependencyProvider for BelleDependencyProvider {
         &self,
         package: &String,
         version: &SemanticVersion,
-    ) -> Result<Dependencies<String, SemVS, Self::M>, SolverError> {
+    ) -> Result<Dependencies<String, SemVS, Self::M>, AppError> {
         // If the package name is "." this is our root package so its dependencies are as given
         if package.eq(".") {
             let deps: HashMap<String, Ranges<SemanticVersion>, rustc_hash::FxBuildHasher> = self
@@ -153,7 +158,7 @@ impl DependencyProvider for BelleDependencyProvider {
 
         let manifest = package
             .get_package_manifest()?
-            .with_context(|| format!("Package '{}' does not exist", package))?;
+            .report_package_nonexistent(package.to_string())?;
 
         let mut deps: HashMap<String, SemVS, rustc_hash::FxBuildHasher> = HashMap::with_hasher(FxBuildHasher);
 
@@ -187,7 +192,7 @@ impl DependencyProvider for BelleDependencyProvider {
         Ok(Dependencies::Available(deps))
     }
 
-    type Err = SolverError;
+    type Err = AppError;
     type P = String;
     type V = SemanticVersion;
     type VS = SemVS;
@@ -198,10 +203,11 @@ impl BelleDependencyProvider {
     pub fn resolve(
         isabelle: VersionReq,
         packages: HashMap<String, VersionReq>,
-    ) -> anyhow::Result<HashMap<String, SemanticVersion>> {
+    ) -> Result<HashMap<String, SemanticVersion>, AppError> {
         let resolver = BelleDependencyProvider::new(isabelle, packages)?;
 
-        let mut resolved_dependencies = resolve(&resolver, String::from("."), SemanticVersion::zero())?;
+        let mut resolved_dependencies =
+            resolve(&resolver, String::from("."), SemanticVersion::zero()).report_no_solution()?;
         resolved_dependencies.remove(".");
 
         Ok(resolved_dependencies.into_iter().collect())

@@ -1,4 +1,5 @@
 mod catalog;
+pub mod error;
 mod package;
 mod types;
 
