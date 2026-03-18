@@ -1,10 +1,11 @@
 use std::{path::PathBuf, time::Duration};
 
 use console::style;
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::ProgressBar;
 use url::Url;
 
 use crate::{
+    cli::theming::ProgressBarTheme,
     error::{AppError, CustomErrorContext},
     fetch::{BelleClient, RepoMetadata, ReturnedPackages, get_local_package_meta},
     registry::{Package, PackageIdentifier, RegistrablePackage},
@@ -86,13 +87,7 @@ pub async fn fetch_afp_meta(repo_name: Option<String>) -> Result<(), AppError> {
         style("]").dim(),
     ));
 
-    let pb = ProgressBar::new(repo_theories.len() as u64);
-    pb.set_style(
-        ProgressStyle::default_bar()
-            .template("{spinner} [{bar:40.cyan/blue}] {pos}/{len} {msg}")
-            .expect("// todo this shouldn't be repeated ideally")
-            .progress_chars("#>-"),
-    );
+    let pb = ProgressBar::new(repo_theories.len() as u64).with_belle_style();
 
     let mut unresolved_packages: Vec<Package> = Vec::new();
 

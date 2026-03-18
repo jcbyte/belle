@@ -13,6 +13,7 @@ mod isabelle;
 mod package;
 mod registry;
 mod schema;
+mod theming;
 mod types;
 
 use pubgrub::SemanticVersion;

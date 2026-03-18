@@ -1,11 +1,11 @@
 use std::{fs, time::Duration};
 
 use console::style;
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::ProgressBar;
 use pubgrub::SemanticVersion;
 
 use crate::{
-    cli::error::CliError,
+    cli::{error::CliError, theming::ProgressBarTheme},
     environment::{Environment, VersionReq, error::EnvironmentError, manager},
     error::{AppError, CustomError, CustomErrorContext, IoErrorContext},
     registry::{PackageIdentifier, error::RegistryNotExistContext},
@@ -36,13 +36,7 @@ pub async fn finalise_env(env: &mut Environment, include_resolve: bool) -> Resul
         .collect();
 
     if !missing_packages.is_empty() {
-        let pb = ProgressBar::new(missing_packages.len() as u64);
-        pb.set_style(
-            ProgressStyle::default_bar()
-                .template("{spinner} [{bar:40.cyan/blue}] {pos}/{len} {msg}")
-                .expect("Invalid hardcoded spinner template")
-                .progress_chars("#>-"),
-        );
+        let pb = ProgressBar::new(missing_packages.len() as u64).with_belle_style();
 
         for package in &missing_packages {
             pb.set_message(format!("Fetching{}", style(&package).cyan()));
