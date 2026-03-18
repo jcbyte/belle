@@ -76,11 +76,17 @@ pub struct PackageIdentifier {
 }
 
 impl PackageIdentifier {
-    pub fn new(name: impl Into<String>, version: SemanticVersion) -> Self {
+    pub fn new(name: impl Into<String>, version: impl Into<SemanticVersion>) -> Self {
         PackageIdentifier {
             name: name.into(),
-            version,
+            version: version.into(),
         }
+    }
+}
+
+impl From<Package> for PackageIdentifier {
+    fn from(package: Package) -> Self {
+        Self::new(package.name, package.version)
     }
 }
 
@@ -102,6 +108,12 @@ pub struct AliasPackage {
     pub name: String,
     pub version: SemanticVersion,
     pub alias: PackageIdentifier,
+}
+
+impl From<AliasPackage> for PackageIdentifier {
+    fn from(alias: AliasPackage) -> Self {
+        Self::new(alias.name, alias.version)
+    }
 }
 
 impl From<&AliasPackage> for PackageIdentifier {

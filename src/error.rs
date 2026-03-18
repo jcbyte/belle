@@ -15,7 +15,10 @@ pub enum AppError {
     Io(#[from] IoError),
 
     #[error(transparent)]
-    Parse(#[from] ParseError),
+    Parse(#[from] ParserError),
+
+    #[error(transparent)]
+    Archive(#[from] ArchiveError),
 
     #[error(transparent)]
     Environment(#[from] EnvironmentError),

@@ -3,7 +3,7 @@ use std::{fs, path::Path};
 use pubgrub::SemanticVersion;
 use toml::value::Date;
 
-use crate::error::{IoContext, IoError};
+use crate::error::{IoError, IoErrorContext};
 
 /// Convert a toml Date into a SemVer following: year.month.day
 pub fn date_to_version(date: &Date) -> SemanticVersion {

@@ -1,6 +1,5 @@
 use std::str::FromStr;
 
-use anyhow::Context;
 use pubgrub::SemanticVersion;
 use walkdir::WalkDir;
 
@@ -19,10 +18,10 @@ pub fn iter_installed_packages() -> impl Iterator<Item = PackageIdentifier> {
         .filter_map(|entry| {
             // Extract the last two components: [..., "name", "version"]
             let mut p = entry.path().components().rev();
-            let version_str = p.next()?.as_os_str().to_string_lossy().to_string();
-            let name = p.next()?.as_os_str().to_string_lossy().to_string();
+            let version_str = p.next()?.as_os_str().to_str()?;
+            let name = p.next()?.as_os_str().to_str()?;
 
-            let version = SemanticVersion::from_str(&version_str).ok()?;
+            let version = SemanticVersion::from_str(version_str).ok()?;
 
             Some(PackageIdentifier::new(name, version))
         })
@@ -41,20 +40,19 @@ pub fn iter_packages() -> impl Iterator<Item = String> {
 }
 
 /// Scan for all versions for a specific package
-pub fn get_package_versions(name: &String) -> anyhow::Result<Vec<PackageIdentifier>> {
+pub fn get_package_versions(name: &String) -> Vec<PackageIdentifier> {
     let package_manifests = BelleConfig::read_config(|c| c.get_manifest_dir()).join(name);
 
-    let versions: Result<Vec<PackageIdentifier>, _> = WalkDir::new(package_manifests)
+    let versions = WalkDir::new(package_manifests)
         .min_depth(1)
         .max_depth(1)
         .into_iter()
         .filter_map(|entry| entry.ok())
-        .filter_map(|entry| entry.path().file_stem().map(|filename| filename.to_string_lossy().to_string()))
-        .map(|version_str| {
-            SemanticVersion::from_str(&version_str)
-                .map(|version| PackageIdentifier::new(name, version))
-                .with_context(|| format!("Could not parse version '{}' for package {}", version_str, name))
+        .filter_map(|entry| {
+            let stem = entry.path().file_stem()?.to_str()?;
+            SemanticVersion::from_str(stem).ok()
         })
+        .map(|version| PackageIdentifier::new(name, version))
         .collect();
 
     versions

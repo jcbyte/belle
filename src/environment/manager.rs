@@ -10,6 +10,7 @@ use walkdir::WalkDir;
 
 use crate::{config::BelleConfig, environment::Environment};
 
+// todo thiserror
 pub fn switch_env(name: &String) -> anyhow::Result<()> {
     let active_env_link = BelleConfig::read_config(|c| c.get_active_env_link());
     let active_env = Environment::env_dir_for_name(name);

@@ -10,7 +10,7 @@ use pubgrub::SemanticVersion;
 use crate::{
     config::BelleConfig,
     environment::{Environment, PackageListing, PackageType, error::EnvironmentError, types::VersionReq},
-    error::{AppError, IoContext, IoPathContext, ParseContext},
+    error::{AppError, IoErrorContext, IoPathErrorContext, ParseErrorContext},
     registry::PackageIdentifier,
     resolver::{BelleDependencyProvider, ISABELLE_PACKAGE},
     util::create_parent_dirs,

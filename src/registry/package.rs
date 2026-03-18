@@ -9,8 +9,9 @@ use zip::ZipArchive;
 
 use crate::{
     config::BelleConfig,
+    error::{AppError, ArchiveErrorContext, IoError, IoErrorContext, ParseErrorContext},
     fetch::BelleClient,
-    registry::{AliasPackage, Package, PackageIdentifier, PackageSource, RegisteredPackage},
+    registry::{AliasPackage, Package, PackageIdentifier, PackageSource, RegisteredPackage, error::RegistryError},
     util::create_parent_dirs,
 };
 
@@ -20,41 +21,32 @@ use junction::create as symlink;
 use std::os::unix::fs::symlink;
 
 pub trait RegistrablePackage: Into<RegisteredPackage> {
-    fn get_identifier(&self) -> PackageIdentifier;
-
-    fn register(self) -> anyhow::Result<()> {
-        let identifier = self.get_identifier();
-
+    fn register(self) -> Result<(), AppError>
+    where
+        for<'a> &'a Self: Into<PackageIdentifier>,
+    {
+        let identifier: PackageIdentifier = (&self).into();
         let registerable_package: RegisteredPackage = self.into();
 
         // Write metadata manifest
         let manifest_file = identifier.get_manifest_path();
-        let manifest_toml_string = toml::to_string(&registerable_package)
-            .with_context(|| format!("Could not create {} TOML manifest", identifier))?;
+        let manifest_toml_string =
+            toml::to_string(&registerable_package).report_file(format!("{} manifest", identifier), &manifest_file)?;
 
         create_parent_dirs(&manifest_file)
-            .with_context(|| format!("Could not create {} manifest directories on disk", identifier))?;
-        fs::write(manifest_file, manifest_toml_string)
-            .with_context(|| format!("Could not write {} TOML manifest to disk", identifier))?;
+            .report_save(format!("{} manifest directories", identifier), &manifest_file)?;
+        fs::write(&manifest_file, manifest_toml_string)
+            .report_save(format!("{} manifest", identifier), &manifest_file)?;
 
         Ok(())
     }
 }
 
-impl RegistrablePackage for Package {
-    fn get_identifier(&self) -> PackageIdentifier {
-        PackageIdentifier::from(self)
-    }
-}
-
-impl RegistrablePackage for AliasPackage {
-    fn get_identifier(&self) -> PackageIdentifier {
-        PackageIdentifier::from(self)
-    }
-}
+impl RegistrablePackage for Package {}
+impl RegistrablePackage for AliasPackage {}
 
 impl Package {
-    pub async fn get_package(&self) -> anyhow::Result<()> {
+    pub async fn get_package(&self) -> Result<(), AppError> {
         let package_location = PackageIdentifier::from(self).get_theory_location();
 
         match &self.source {
@@ -68,12 +60,15 @@ impl Package {
                 };
 
                 let reader = Cursor::new(bytes);
-                let mut archive = ZipArchive::new(reader)?;
+                let mut archive = ZipArchive::new(reader)
+                    .report_read(format!("fetched {} package source", PackageIdentifier::from(self)))?;
 
                 // Find the inner folder that has the `ROOT` file
                 let mut prefix = PathBuf::new();
                 for i in 0..archive.len() {
-                    let file = archive.by_index(i)?;
+                    let file = archive
+                        .by_index(i)
+                        .report_index(format!("fetched {} package source", PackageIdentifier::from(self)), i)?;
 
                     if file.name().ends_with("ROOT") {
                         if let Some(parent) = PathBuf::from(file.name()).parent() {
@@ -85,18 +80,34 @@ impl Package {
 
                 // Extract contents of the archive from the prefixed location
                 for i in 0..archive.len() {
-                    let mut file = archive.by_index(i)?;
-                    let filename = file.enclosed_name().ok_or(anyhow::anyhow!("Invalid file path in archive"))?;
+                    let mut file = archive
+                        .by_index(i)
+                        .report_index(format!("{} package source", PackageIdentifier::from(self)), i)?;
+                    let filename = match file.enclosed_name() {
+                        Some(filename) => filename,
+                        None => {
+                            // If the path is unsafe, skip
+                            continue;
+                        }
+                    };
 
                     if let Ok(stripped_path) = filename.strip_prefix(&prefix) {
                         let file_src = package_location.join(stripped_path);
 
                         if file.is_dir() {
-                            fs::create_dir_all(&file_src)?;
+                            fs::create_dir_all(&file_src).report_save(
+                                format!("{} package source directories", PackageIdentifier::from(self)),
+                                &file_src,
+                            )?;
                         } else {
-                            create_parent_dirs(&file_src)?;
-                            let mut out_file = fs::File::create(&file_src)?;
-                            io::copy(&mut file, &mut out_file)?;
+                            create_parent_dirs(&file_src).report_save(
+                                format!("{} package source directories", PackageIdentifier::from(self)),
+                                &file_src,
+                            )?;
+                            let mut out_file = fs::File::create(&file_src)
+                                .report_save(format!("{} package source", PackageIdentifier::from(self)), &file_src)?;
+                            io::copy(&mut file, &mut out_file)
+                                .report_save(format!("{} package source", PackageIdentifier::from(self)), &file_src);
                         }
                     }
                 }
@@ -106,11 +117,13 @@ impl Package {
                 // Create a temporary symlink and overwrite to avoid `AlreadyExists` errors
                 let temp_link = package_location.with_added_extension("tmp");
 
-                symlink(path, &temp_link).context("Failed to create junction/symlink for active environment")?;
-                fs::rename(temp_link, package_location)
-                    .context("Failed to overwrite existing junction/symlink for the active environment")?;
+                symlink(path, &temp_link).report_save("active environment symlink", &temp_link)?;
+                fs::rename(temp_link, &package_location)
+                    .report_save("active environment symlink", &package_location)?;
             }
-            PackageSource::Default => anyhow::bail!("Source is not given for this package"),
+            PackageSource::Default => Err(RegistryError::NoSource {
+                package: PackageIdentifier::from(self).to_string(),
+            })?,
         };
 
         Ok(())
@@ -145,7 +158,7 @@ impl PackageIdentifier {
 
     /// Retrieve a packages manifest data, it may return an alias or the value (to automatically resolve this use `get_resolved_package_manifest`)
     /// Will be `None` if the package does not exist in our metadata store
-    pub fn get_package_manifest(&self) -> anyhow::Result<Option<RegisteredPackage>> {
+    pub fn get_package_manifest(&self) -> Result<Option<RegisteredPackage>, AppError> {
         let manifest_file = self.get_manifest_path();
 
         // If the manifest file does not exist then it is not in our store
@@ -153,17 +166,17 @@ impl PackageIdentifier {
             return Ok(None);
         }
 
-        let manifest_toml_string = fs::read_to_string(manifest_file)
-            .with_context(|| format!("Failed to read manifest file for {} package", self))?;
-        let package: RegisteredPackage = toml::from_str(&manifest_toml_string)
-            .with_context(|| format!("Failed to parse TOML for {} manifest file", self))?;
+        let manifest_toml_string =
+            fs::read_to_string(&manifest_file).report_read(format!("{} manifest", self), &manifest_file)?;
+        let package: RegisteredPackage =
+            toml::from_str(&manifest_toml_string).report_file(format!("{} manifest", self), &manifest_file)?;
 
         Ok(Some(package))
     }
 
     /// Retrieve a packages manifest resolving all aliases data
     /// Will be `None` if the package does not exist in our metadata store
-    pub fn get_resolved_package_manifest(&self) -> anyhow::Result<Option<Package>> {
+    pub fn get_resolved_package_manifest(&self) -> Result<Option<Package>, AppError> {
         let package = self.get_package_manifest()?;
 
         if let Some(registered_package) = package {
@@ -183,11 +196,11 @@ impl PackageIdentifier {
     }
 
     /// Remove the package source files from disk
-    pub fn remove(&self) -> anyhow::Result<()> {
+    pub fn remove(&self) -> Result<(), IoError> {
         let theory_dir = self.get_theory_location();
 
         if theory_dir.is_dir() {
-            fs::remove_dir_all(theory_dir)?;
+            fs::remove_dir_all(&theory_dir).report_delete(format!("{} package source", self), &theory_dir);
         }
 
         Ok(())

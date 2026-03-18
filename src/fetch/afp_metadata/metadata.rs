@@ -235,7 +235,7 @@ impl RepoMetadata {
                     // If there was no seen alias check the registry for the alias
                     } else {
                         // Go though each version in case there are multiple connected to different packages
-                        for package in get_package_versions(dep_name)? {
+                        for package in get_package_versions(dep_name) {
                             // If the alias points to a package in the repo then this is the correct package
                             if let Some(meta) = self.theories.get(&package.name) {
                                 found_meta = Some(meta);

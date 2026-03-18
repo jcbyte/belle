@@ -4,6 +4,9 @@ use thiserror::Error;
 pub enum RegistryError {
     #[error("Package '{package}' does not exist")]
     NotExist { package: String },
+
+    #[error("No source defined for package '{package}'.")]
+    NoSource { package: String },
 }
 
 pub trait RegistryNotExistContext<T> {

@@ -1,4 +1,3 @@
-use anyhow::Context;
 use pubgrub::{Dependencies, DependencyProvider, PackageResolutionStatistics, Ranges, SemanticVersion, resolve};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use std::{
@@ -13,10 +12,7 @@ use crate::{
     error::AppError,
     isabelle::error::IsabelleError,
     registry::{PackageIdentifier, RegisteredPackage, error::RegistryNotExistContext, get_package_versions},
-    resolver::{
-        ISABELLE_PACKAGE,
-        error::{ResolverContext, ResolverError},
-    },
+    resolver::{ISABELLE_PACKAGE, error::ResolverContext},
 };
 
 type SemVS = Ranges<SemanticVersion>;
@@ -59,16 +55,16 @@ impl BelleDependencyProvider {
         })
     }
 
-    fn get_package_versions(&self, name: &String) -> Result<HashSet<SemanticVersion>, AppError> {
+    fn get_package_versions(&self, name: &String) -> HashSet<SemanticVersion> {
         if let Some(versions) = self.package_versions.borrow().get(name) {
-            return Ok(versions.clone());
+            return versions.clone();
         }
 
         let mut cache = self.package_versions.borrow_mut();
-        let fetched: HashSet<SemanticVersion> = get_package_versions(name)?.into_iter().map(|v| v.version).collect();
+        let fetched: HashSet<SemanticVersion> = get_package_versions(name).into_iter().map(|v| v.version).collect();
         cache.insert(name.clone(), fetched.clone());
 
-        Ok(fetched)
+        fetched
     }
 }
 
@@ -84,7 +80,7 @@ impl DependencyProvider for BelleDependencyProvider {
             self.isabelle_versions.clone()
         } else {
             // Else pick from the list of the packages versions
-            self.get_package_versions(package)?
+            self.get_package_versions(package)
         };
 
         // Return the highest version of the package that satisfies the range
@@ -113,7 +109,7 @@ impl DependencyProvider for BelleDependencyProvider {
 
         // Prioritise packages with fewer compatible versions
         // If versions cannot be got, an empty HashSet is provided => Reverse(0)
-        let versions = self.get_package_versions(package).unwrap_or_default();
+        let versions = self.get_package_versions(package);
         let valid_versions_count = versions.iter().filter(|v| range.contains(v)).count();
 
         // Invert to pick packages with fewest versions

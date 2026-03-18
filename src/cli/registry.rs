@@ -45,7 +45,7 @@ pub fn clean_metadata() -> anyhow::Result<()> {
 
 /// List versions of a package in our local metadata
 pub fn list_versions(name: String) -> anyhow::Result<()> {
-    let versions = registry::get_package_versions(&name)?;
+    let versions = registry::get_package_versions(&name);
 
     if versions.is_empty() {
         println!("No versions of package {} installed", name)
@@ -218,7 +218,7 @@ pub fn print_package_meta(name: String, version: Option<SemanticVersion>) -> any
     let package = match version {
         Some(v) => PackageIdentifier::new(name, v),
         None => {
-            let versions = registry::get_package_versions(&name)?;
+            let versions = registry::get_package_versions(&name);
             versions
                 .iter()
                 .max_by_key(|pi| pi.version)
