@@ -84,7 +84,10 @@ impl Isabelle {
         #[cfg(windows)]
         let path = self.exec_with_isabelle(&format!("cygpath -u \"{}\"", path.display()))?;
         #[cfg(unix)]
-        let path = path.to_str().report_path(&path)?.to_string();
+        let path = {
+            use crate::error::IoPathErrorContext;
+            path.to_str().report_path(&path)?.to_string()
+        };
 
         Ok(path.trim().to_string())
     }
