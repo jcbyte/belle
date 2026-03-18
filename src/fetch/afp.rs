@@ -1,16 +1,19 @@
-use anyhow::Context;
 use regex::Regex;
+use url::Url;
 
 use crate::{
     config::BelleConfig,
-    fetch::{AFPRepo, BelleClient},
+    fetch::{
+        AFPRepo, BelleClient,
+        error::{FetchError, FetchErrorContext, FetchUrlContext},
+    },
 };
 
 impl BelleClient {
     /// Retrieve all repos within the AFP repository up to given limit
-    pub async fn get_afp_repos(&self, limit: usize) -> anyhow::Result<Vec<AFPRepo>> {
+    pub async fn get_afp_repos(&self, limit: usize) -> Result<Vec<AFPRepo>, FetchError> {
         // Regex to match an AFP repos name
-        let re = Regex::new(r"^afp-[\d-]+$").context("Failed to create regex pattern for AFP repository name")?;
+        let re = Regex::new(r"^afp-[\d-]+$").expect("Invalid hardcoded regex expression");
 
         let mut afp_repos: Vec<AFPRepo> = Vec::new();
         let mut page = 1;
@@ -22,20 +25,21 @@ impl BelleClient {
         // Continue iterating over pages of results until there is no more results or we reach our limit
         loop {
             // Retrieve repos/projects within the specified group
-            let afp_repo_list_url = format!(
+            let afp_repo_list_url = Url::parse(&format!(
                 "https://foss.heptapod.net/api/v4/groups/{}/projects?order_by=created_at&sort=desc&per_page={}&page={}",
                 afp_group, per_page, page
-            );
+            ))
+            .report_invalid_url("Hetapod afp list")?;
 
             let repos: Vec<AFPRepo> = self
                 .client
-                .get(afp_repo_list_url)
+                .get(afp_repo_list_url.clone())
                 .send()
                 .await
-                .context("Failed to send request to Hetapod")?
+                .report_fetch("Hetapod afp list", &afp_repo_list_url)?
                 .json()
                 .await
-                .context("Failed to parse JSON response from Hetapod")?;
+                .report_reading_fetched("Hetapod afp list", &afp_repo_list_url)?;
 
             let received_count = repos.len();
 
@@ -66,27 +70,28 @@ impl BelleClient {
     }
 
     /// Get a singular repo (id) from its name, or `None` is it does not exist
-    pub async fn get_afp_repo(&self, name: &String) -> anyhow::Result<Option<AFPRepo>> {
+    pub async fn get_afp_repo(&self, name: &String) -> Result<Option<AFPRepo>, FetchError> {
         let mut page = 1;
 
         let afp_group = BelleConfig::read_config(|c| c.afp_group.clone());
 
         loop {
             // Query AFP group for repo searching for name (this is a fuzzy search)
-            let afp_repo_details_url = format!(
+            let afp_repo_details_url = Url::parse(&format!(
                 "https://foss.heptapod.net/api/v4/groups/{}/projects?search={}&per_page=1&page={}",
                 afp_group, name, page
-            );
+            ))
+            .report_invalid_url("Hetapod project data")?;
 
             let repo_collection: Vec<AFPRepo> = self
                 .client
-                .get(afp_repo_details_url)
+                .get(afp_repo_details_url.clone())
                 .send()
                 .await
-                .context("Failed to send request to Hetapod")?
+                .report_fetch("Hetapod project data", &afp_repo_details_url)?
                 .json()
                 .await
-                .context("Failed to parse JSON response from Hetapod")?;
+                .report_reading_fetched("Hetapod project data", &afp_repo_details_url)?;
 
             let possible_repo = repo_collection.first();
 
@@ -106,62 +111,71 @@ impl BelleClient {
     }
 
     /// Retrieve the metadata archive for a given repo
-    pub async fn get_afp_metadata_archive(&self, repo: &AFPRepo) -> anyhow::Result<bytes::Bytes> {
+    pub async fn get_afp_metadata_archive(&self, repo: &AFPRepo) -> Result<bytes::Bytes, FetchError> {
         // Retrieve the bytes for the archive at `/metadata` for the given repo
-        let meta_archive_url = format!(
+        let meta_archive_url = Url::parse(&format!(
             "https://foss.heptapod.net/api/v4/projects/{}/repository/archive.zip?path=metadata",
             repo.id
-        );
+        ))
+        .report_invalid_url(format!("{} metadata archive", repo.name))?;
 
         let bytes = self
             .client
-            .get(meta_archive_url)
+            .get(meta_archive_url.clone())
             .send()
             .await
-            .with_context(|| format!("Failed to fetch metadata archive for '{}' repo", repo.name))?
+            .report_fetch(format!("{} metadata archive", repo.name), &meta_archive_url)?
             .bytes()
             .await
-            .with_context(|| format!("Failed to read metadata archive bytes for '{}' repo", repo.name))?;
+            .report_reading_fetched(format!("{} metadata archive", repo.name), &meta_archive_url)?;
 
         Ok(bytes)
     }
 
     /// Retrieve the ROOT file for a given theory
-    pub async fn get_afp_thy_root(&self, repo: &AFPRepo, thy: &String) -> anyhow::Result<String> {
+    pub async fn get_afp_thy_root(&self, repo: &AFPRepo, thy: &String) -> Result<String, FetchError> {
         // Retrieve the raw string of the ROOT file at `/thys/$thy/ROOT` for the given theory and repo
-        let root_file_url = format!(
+        let root_file_url = Url::parse(&format!(
             "https://foss.heptapod.net/api/v4/projects/{}/repository/files/thys%2F{}%2FROOT/raw",
             repo.id, thy
-        );
+        ))
+        .report_invalid_url(format!("ROOT file for {} in {}", thy, repo.name))?;
 
         let file_content = self
             .client
-            .get(root_file_url)
+            .get(root_file_url.clone())
             .send()
             .await
-            .with_context(|| format!("Failed to fetch ROOT file for '{}' in '{}' repo", thy, repo.name))?
+            .report_fetch(format!("ROOT file for {} in {}", thy, repo.name), &root_file_url)?
             .text()
             .await
-            .with_context(|| format!("Failed to read ROOT file from '{}' in '{}' repo", thy, repo.name))?;
+            .report_reading_fetched(format!("ROOT file for {} in {}", thy, repo.name), &root_file_url)?;
 
         Ok(file_content)
     }
 
-    pub async fn get_afp_package(&self, name: &str, repo: &AFPRepo) -> anyhow::Result<bytes::Bytes> {
-        let package_archive_url = format!(
+    pub async fn get_afp_package(&self, thy: &str, repo: &AFPRepo) -> Result<bytes::Bytes, FetchError> {
+        let package_archive_url = Url::parse(&format!(
             "https://foss.heptapod.net/api/v4/projects/{}/repository/archive.zip?path=thys%2F{}",
-            repo.id, name
-        );
+            repo.id, thy
+        ))
+        .report_invalid_url(format!("package source for {} in {}", thy, repo.name))?;
 
         let bytes = self
             .client
-            .get(package_archive_url)
+            .get(package_archive_url.clone())
             .send()
             .await
-            .with_context(|| format!("Failed to fetch archive for '{}' from '{}' repo", name, repo.name))?
+            .report_fetch(
+                format!("package source for {} in {}", thy, repo.name),
+                &package_archive_url,
+            )?
             .bytes()
             .await
-            .with_context(|| format!("Failed to read archive bytes for '{}' from '{}' repo", name, repo.name))?;
+            .report_reading_fetched(
+                format!("package source for {} in {}", thy, repo.name),
+                &package_archive_url,
+            )?;
 
         Ok(bytes)
     }

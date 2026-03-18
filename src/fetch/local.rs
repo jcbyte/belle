@@ -1,27 +1,23 @@
 use std::{fs, path::PathBuf};
 
-use anyhow::{self, Context};
-
 use crate::{
-    fetch::PACKAGE_FILE,
+    error::{AppError, IoErrorContext, ParseErrorContext},
+    fetch::{PACKAGE_FILE, error::FetchError, types::ReturnedPackages},
     registry::{AliasPackage, Package, PackageIdentifier},
 };
 
-pub fn get_local_package_meta(path: PathBuf) -> anyhow::Result<(Package, Vec<AliasPackage>)> {
-    //
+pub fn get_local_package_meta(path: PathBuf) -> Result<ReturnedPackages, AppError> {
     let pkg_file = path.join(PACKAGE_FILE);
+
     if !pkg_file.is_file() {
-        anyhow::bail!("Package manifest could not be found");
+        return Err(FetchError::NoLocalManifest { path: pkg_file }.into());
     }
 
-    let package_content = fs::read_to_string(pkg_file).context("Could not read package manifest")?;
-    let mut package =
-        toml::from_str::<Package>(&package_content).context("Failed to parse TOML for package manifest")?;
+    let package_content = fs::read_to_string(&pkg_file).report_read("package manifest", &pkg_file)?;
+    let mut package = toml::from_str::<Package>(&package_content).report_data("package manifest")?;
 
     package.source = crate::registry::PackageSource::Local {
-        path: path
-            .canonicalize()
-            .with_context(|| format!("Failed to canonicalise path '{}'", path.to_string_lossy()))?,
+        path: path.canonicalize().report_read("package root", &path)?,
     };
 
     let aliases: Vec<AliasPackage> = package
@@ -34,5 +30,5 @@ pub fn get_local_package_meta(path: PathBuf) -> anyhow::Result<(Package, Vec<Ali
         })
         .collect();
 
-    Ok((package, aliases))
+    Ok(ReturnedPackages { package, aliases })
 }

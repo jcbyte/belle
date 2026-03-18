@@ -1,6 +1,7 @@
 mod afp;
 mod afp_metadata;
 mod client;
+pub mod error;
 mod local;
 mod remote;
 mod types;

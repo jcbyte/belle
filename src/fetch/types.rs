@@ -3,7 +3,10 @@ use std::sync::OnceLock;
 use pubgrub::SemanticVersion;
 use serde::{Deserialize, Serialize};
 
-use crate::util::get_isabelle_version;
+use crate::{
+    registry::{AliasPackage, Package},
+    util::get_isabelle_version,
+};
 
 /// Container holding a repositories name and heptapod id
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -21,4 +24,9 @@ impl AFPRepo {
     pub fn get_version(&self) -> &SemanticVersion {
         self.version_cache.get_or_init(|| get_isabelle_version(&self.name))
     }
+}
+
+pub struct ReturnedPackages {
+    pub package: Package,
+    pub aliases: Vec<AliasPackage>,
 }

@@ -1,6 +1,6 @@
 use std::sync::OnceLock;
 
-use anyhow::Context;
+use crate::fetch::error::{FetchError, FetchErrorContext};
 
 pub struct BelleClient {
     pub client: reqwest::Client,
@@ -10,24 +10,24 @@ static CONFIG_INSTANCE: OnceLock<BelleClient> = OnceLock::new();
 
 impl BelleClient {
     /// Create reqwest client to use throughout
-    fn new() -> anyhow::Result<Self> {
+    fn new() -> Result<Self, FetchError> {
         let client = reqwest::Client::builder()
             // Include a custom user agent for politeness
             .user_agent("belle-client")
             .build()
-            .context("Failed to create reqwest Client")?;
+            .report_failed_init()?;
 
         Ok(Self { client })
     }
 
     /// Get the reqwest client
-    pub fn get() -> anyhow::Result<&'static Self> {
+    pub fn get() -> Result<&'static Self, FetchError> {
         if let Some(instance) = CONFIG_INSTANCE.get() {
             return Ok(instance);
         }
 
         let client = Self::new()?;
-        let _ = CONFIG_INSTANCE.set(client);
+        CONFIG_INSTANCE.set(client).ok().expect("Client has already been initialised");
 
         Ok(CONFIG_INSTANCE.get().expect("Client was just created"))
     }

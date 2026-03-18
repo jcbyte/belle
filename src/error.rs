@@ -1,5 +1,3 @@
-use std::error::Error;
-
 use thiserror::Error;
 
 mod global;
@@ -7,8 +5,8 @@ mod global;
 pub use global::*;
 
 use crate::{
-    environment::error::EnvironmentError, isabelle::error::IsabelleError, registry::error::RegistryError,
-    resolver::error::ResolverError,
+    environment::error::EnvironmentError, fetch::error::FetchError, isabelle::error::IsabelleError,
+    registry::error::RegistryError, resolver::error::ResolverError,
 };
 
 #[derive(Error, Debug)]
@@ -39,6 +37,9 @@ pub enum AppError {
 
     #[error(transparent)]
     Registry(#[from] RegistryError),
+
+    #[error(transparent)]
+    Fetch(#[from] FetchError),
 }
 
 // pub trait CustomErrorContext<T> {

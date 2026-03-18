@@ -1,52 +1,65 @@
-use anyhow::{Context, bail};
 use reqwest::StatusCode;
 use url::Url;
 
 use crate::{
-    fetch::{BelleClient, PACKAGE_FILE},
+    error::{AppError, ParseErrorContext},
+    fetch::{
+        BelleClient, PACKAGE_FILE,
+        error::{FetchError, FetchErrorContext, FetchUrlContext},
+        types::ReturnedPackages,
+    },
     registry::{AliasPackage, Package, PackageIdentifier},
 };
 
 impl BelleClient {
-    pub async fn get_github_package_meta(
-        &self,
-        url: Url,
-        branch: &str,
-    ) -> anyhow::Result<(Package, Vec<AliasPackage>)> {
+    pub async fn get_github_package_meta(&self, url: Url, branch: &str) -> Result<ReturnedPackages, AppError> {
         // Ensure this is a github repo
-        if url.host_str() != Some("github.com") {
-            return Err(anyhow::anyhow!("Only github repositories are currently supported"));
-        }
+        match url.host_str() {
+            Some("github.com") => {}
+            Some(host) => {
+                return Err(FetchError::RepositoryNotSupported { repo: host.to_string() }.into());
+            }
+            None => {
+                return Err(FetchError::NoRepository.into());
+            }
+        };
 
-        let mut segments = url.path_segments().ok_or(anyhow::anyhow!(""))?;
+        let mut segments = url.path_segments().expect("URL has a hostname so must have segments");
         let (owner, repo) = match (segments.next(), segments.next()) {
             // Strip ".git" from the name if it exists
             (Some(o), Some(r)) => (o, r.strip_suffix(".git").unwrap_or(r)),
-            _ => return Err(anyhow::anyhow!("Invalid GitHub Repo URL")),
+            _ => return Err(FetchError::InvalidRepositoryURL { url }.into()),
         };
 
-        let raw_url = format!(
+        let raw_url = Url::parse(&format!(
             "https://raw.githubusercontent.com/{}/{}/{}/{}",
             owner, repo, branch, PACKAGE_FILE
-        );
+        ))
+        .report_invalid_url("repository manifest file")?;
         let zip_url = Url::parse(&format!("https://github.com/{}/{}/zipball/{}", owner, repo, branch))
-            .context("Failed to construct remote archive URL")?;
+            .report_invalid_url("repository source archive")?;
 
         let response = self
             .client
-            .get(raw_url)
+            .get(raw_url.clone())
             .send()
             .await
-            .context("Failed to send request to GitHub")?;
+            .report_fetch("package meta", &raw_url)?;
 
         if response.status() == StatusCode::NOT_FOUND {
-            bail!("Package manifest or repository could not be found");
+            return Err(FetchError::NotFound {
+                name: "package manifest".to_string(),
+                url: raw_url,
+            }
+            .into());
         }
 
-        let package_content = response.text().await.context("Failed to parse response from GitHub")?;
+        let package_content = response
+            .text()
+            .await
+            .report_reading_fetched("package manifest file", &raw_url)?;
 
-        let mut package =
-            toml::from_str::<Package>(&package_content).context("Failed to parse TOML for package manifest")?;
+        let mut package = toml::from_str::<Package>(&package_content).report_data("package manifest")?;
 
         package.source = crate::registry::PackageSource::Remote { url: zip_url };
 
@@ -60,19 +73,19 @@ impl BelleClient {
             })
             .collect();
 
-        Ok((package, aliases))
+        Ok(ReturnedPackages { package, aliases })
     }
 
-    pub async fn get_remote_package(&self, url: Url) -> anyhow::Result<bytes::Bytes> {
+    pub async fn get_remote_package(&self, url: &Url) -> Result<bytes::Bytes, FetchError> {
         let bytes = self
             .client
-            .get(url)
+            .get(url.clone())
             .send()
             .await
-            .context("Failed to send request to fetch package")?
+            .report_fetch("package source", url)?
             .bytes()
             .await
-            .context("Failed to read archive bytes")?;
+            .report_reading_fetched("package source archive", url)?;
 
         Ok(bytes)
     }
