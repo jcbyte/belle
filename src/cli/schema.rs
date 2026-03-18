@@ -12,6 +12,16 @@ use crate::cli::IsabelleVersion;
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
+
+    #[command(flatten)]
+    pub global_args: GlobalArgs,
+}
+
+#[derive(Args)]
+pub struct GlobalArgs {
+    /// Display the original source of errors
+    #[arg(long, global = true)]
+    pub backtrace: bool,
 }
 
 #[derive(Subcommand)]

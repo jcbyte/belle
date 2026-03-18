@@ -66,13 +66,13 @@ pub async fn finalise_env(env: &mut Environment, include_resolve: bool) -> Resul
     Ok(())
 }
 
-fn get_env_name(name: Option<&String>) -> Result<(String, bool), AppError> {
+fn get_env_name(name: Option<String>) -> Result<String, AppError> {
     let name = match name {
-        Some(n) => (n.clone(), false),
+        Some(n) => n,
         None => {
             let frozen_env = Environment::frozen()?
                 .report_custom("No name was given, and no lockfile is found in workspace to infer from.")?;
-            (frozen_env.name.clone(), true)
+            frozen_env.name
         }
     };
 
@@ -80,7 +80,7 @@ fn get_env_name(name: Option<&String>) -> Result<(String, bool), AppError> {
 }
 
 pub fn switch_env(name: Option<String>) -> Result<(), AppError> {
-    let (name, _using_frozen) = get_env_name(name.as_ref())?;
+    let name = get_env_name(name)?;
 
     manager::switch_env(&name)?;
 
@@ -89,7 +89,8 @@ pub fn switch_env(name: Option<String>) -> Result<(), AppError> {
 }
 
 pub async fn create_env(name: Option<String>, new: bool, isabelle: Option<SemanticVersion>) -> Result<(), AppError> {
-    let (env_name, using_frozen) = get_env_name(name.as_ref())?;
+    let using_frozen = name.is_some();
+    let env_name = get_env_name(name)?;
 
     if using_frozen && !new && isabelle.is_some() {
         return Err(CustomError::WithoutSource {
@@ -102,7 +103,7 @@ pub async fn create_env(name: Option<String>, new: bool, isabelle: Option<Semant
 
     let mut new_env = Environment::new(env_name.clone(), isabelle.into())?;
 
-    if using_frozen && new {
+    if using_frozen && !new {
         // If created from a belle file, we want to sync this into the environment
         new_env.sync()?;
         // Don't resolve as we want to keep the lockfile identical
