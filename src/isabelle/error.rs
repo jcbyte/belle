@@ -47,7 +47,6 @@ impl<T> IsabelleInvalidOutputContext<T> for Result<T, std::string::FromUtf8Error
     }
 }
 
-#[cfg_attr(not(windows), allow(dead_code))] // As the context is not touched on Unix, however the `VersionNotLinked` is still used, and the implementation should work
 pub trait IsabelleVersionLinkedContext<T> {
     fn report_not_linked(self, version: impl Into<SemanticVersion>) -> Result<T, IsabelleError>;
 }
