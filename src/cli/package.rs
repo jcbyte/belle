@@ -20,7 +20,7 @@ pub async fn add_package(name: String, version: Option<SemanticVersion>) -> Resu
     Ok(())
 }
 
-pub async fn remove_package(name: &String) -> Result<(), AppError> {
+pub async fn remove_package(name: &str) -> Result<(), AppError> {
     let mut active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
 
     active_env.remove_package(name)?;

@@ -139,7 +139,7 @@ pub fn list_envs() -> Result<(), AppError> {
     Ok(())
 }
 
-pub fn remove_env(name: &String) -> Result<(), AppError> {
+pub fn remove_env(name: &str) -> Result<(), AppError> {
     let env_dir = Environment::env_dir_for_name(name);
 
     if !env_dir.is_dir() {

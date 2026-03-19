@@ -14,7 +14,7 @@ pub fn link(path: PathBuf) -> Result<(), AppError> {
     let isabelle = Isabelle::locate(path)?;
 
     isabelle.link()?;
-    BelleConfig::write_config(|c| c.isabelles.insert(isabelle.version, isabelle.path.clone()));
+    BelleConfig::write_config(|c| c.isabelles.insert(isabelle.version, isabelle.path));
 
     println!(
         "Linked {} {} {}{}{}",
@@ -24,6 +24,7 @@ pub fn link(path: PathBuf) -> Result<(), AppError> {
         style(isabelle.version).green(),
         style("]").dim()
     );
+
     Ok(())
 }
 

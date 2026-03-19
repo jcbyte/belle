@@ -1,4 +1,4 @@
-use std::{path::PathBuf, time::Duration};
+use std::{path::Path, time::Duration};
 
 use console::style;
 use indicatif::ProgressBar;
@@ -42,14 +42,14 @@ pub async fn list_afp_repositories(limit: usize) -> Result<(), AppError> {
 
 /// Fetch metadata for a specific repository (or the latest if not specified)
 /// Register packages which do not yet exist locally
-pub async fn fetch_afp_meta(repo_name: Option<String>) -> Result<(), AppError> {
+pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
     // Get the repo structure
     let client = BelleClient::get()?;
     let repo = match repo_name {
         Some(name) => {
             // If a name is passed we need to get its id
             client
-                .get_afp_repo(&name)
+                .get_afp_repo(name)
                 .await?
                 // Warn if the repo does not exist
                 .report_custom(format!("Could not find repo with name '{}'", name))?
@@ -132,7 +132,7 @@ pub async fn fetch_afp_meta(repo_name: Option<String>) -> Result<(), AppError> {
                 }
                 // If this produces an error then don't crash the entire fetch process
                 Err(e) => {
-                    pb.println(format!("{}", style(e).red()));
+                    pb.println(format!("{} {}", style("Error:").bold().red(), style(e).bright().red()));
                     failed += 1
                 }
             }
@@ -148,14 +148,14 @@ pub async fn fetch_afp_meta(repo_name: Option<String>) -> Result<(), AppError> {
         ));
 
         match repo_metadata.resolve_package_meta(&mut unresolved_package) {
-            Ok(_) => {}
+            Ok(_) => {
+                unresolved_package.register()?;
+            }
             Err(e) => {
-                pb.println(format!("{}", style(e).red()));
+                pb.println(format!("{} {}", style("Error:").bold().red(), style(e).bright().red()));
                 failed += 1
             }
         };
-
-        unresolved_package.register()?;
     }
 
     pb.finish_and_clear();
@@ -177,13 +177,13 @@ pub async fn fetch_afp_meta(repo_name: Option<String>) -> Result<(), AppError> {
     Ok(())
 }
 
-pub async fn source_remote_repo(url: Url, branch: &str) -> Result<(), AppError> {
+pub async fn source_remote_repo(url: &Url, branch: &str) -> Result<(), AppError> {
     let pb = ProgressBar::new_spinner();
     pb.enable_steady_tick(Duration::from_millis(100));
     pb.set_message("Fetching package manifest".to_string());
 
     let client = BelleClient::get()?;
-    let ReturnedPackages { package, aliases } = client.get_github_package_meta(&url, branch).await?;
+    let ReturnedPackages { package, aliases } = client.get_github_package_meta(url, branch).await?;
     let package_identifier = PackageIdentifier::from(&package);
 
     package.register()?;
@@ -197,8 +197,8 @@ pub async fn source_remote_repo(url: Url, branch: &str) -> Result<(), AppError> 
     Ok(())
 }
 
-pub fn source_local_package(path: PathBuf) -> Result<(), AppError> {
-    let ReturnedPackages { package, aliases } = get_local_package_meta(&path)?;
+pub fn source_local_package(path: &Path) -> Result<(), AppError> {
+    let ReturnedPackages { package, aliases } = get_local_package_meta(path)?;
     let package_identifier = PackageIdentifier::from(&package);
 
     package.register()?;

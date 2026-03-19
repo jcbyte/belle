@@ -53,10 +53,8 @@ async fn main() {
         return;
     }
 }
-
 // todo error hints
 
-// todo 7.3 use references instead of cloning everywhere
 // todo 7.1 ensure consistent naming of packages
 // todo 7.4 consistent CLI output
 

@@ -37,7 +37,7 @@ pub fn get_isabelle_name(version: &SemanticVersion) -> String {
 
     // Use a name of "0" if the version was 0.0.0 and no name is generated
     if name.is_empty() {
-        return String::from("0");
+        return "0".to_string();
     }
 
     name
@@ -77,36 +77,17 @@ mod tests {
 
     #[test]
     fn test_get_isabelle_version() {
-        assert_eq!(
-            get_isabelle_version(&String::from("2019")),
-            SemanticVersion::new(2019, 0, 0)
-        );
-        assert_eq!(
-            get_isabelle_version(&String::from("2025-2")),
-            SemanticVersion::new(2025, 2, 0)
-        );
-        assert_eq!(
-            get_isabelle_version(&String::from("2026-20-3")),
-            SemanticVersion::new(2026, 20, 3)
-        );
-
-        assert_eq!(get_isabelle_version(&String::from("")), SemanticVersion::new(0, 0, 0));
+        assert_eq!(get_isabelle_version("2019"), SemanticVersion::new(2019, 0, 0));
+        assert_eq!(get_isabelle_version("2025-2"), SemanticVersion::new(2025, 2, 0));
+        assert_eq!(get_isabelle_version("2026-20-3"), SemanticVersion::new(2026, 20, 3));
+        assert_eq!(get_isabelle_version(""), SemanticVersion::new(0, 0, 0));
 
         // Test non-numeric fields
+        assert_eq!(get_isabelle_version("afp-4-3"), SemanticVersion::new(4, 3, 0));
+        assert_eq!(get_isabelle_version("Isabelle2025-2"), SemanticVersion::new(2025, 2, 0));
+        assert_eq!(get_isabelle_version("TextHere10-1-1\n"), SemanticVersion::new(10, 1, 1));
         assert_eq!(
-            get_isabelle_version(&String::from("afp-4-3")),
-            SemanticVersion::new(4, 3, 0)
-        );
-        assert_eq!(
-            get_isabelle_version(&String::from("Isabelle2025-2")),
-            SemanticVersion::new(2025, 2, 0)
-        );
-        assert_eq!(
-            get_isabelle_version(&String::from("TextHere10-1-1\n")),
-            SemanticVersion::new(10, 1, 1)
-        );
-        assert_eq!(
-            get_isabelle_version(&String::from("TextHere20-2AndBetween2-9\n")),
+            get_isabelle_version("TextHere20-2AndBetween2-9\n"),
             SemanticVersion::new(20, 22, 9)
         );
     }
@@ -130,7 +111,7 @@ mod tests {
             ("afp-2026-1", "2026-1"),
         ];
         for (name, expected) in cases {
-            let ver = get_isabelle_version(&name.to_string());
+            let ver = get_isabelle_version(name);
             let round = get_isabelle_name(&ver);
             assert_eq!(round, expected, "round-trip for {}", name);
         }

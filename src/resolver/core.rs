@@ -147,7 +147,7 @@ impl DependencyProvider for BelleDependencyProvider {
 
         // Isabelle packages have isabelle as a dependency with the same version as themselves
         if BelleConfig::read_config(|c| c.isabelle_packages.contains(package)) {
-            let isabelle_dep = FxHashMap::from_iter([(String::from(ISABELLE_PACKAGE), SemVS::singleton(version))]);
+            let isabelle_dep = FxHashMap::from_iter([(ISABELLE_PACKAGE.to_string(), SemVS::singleton(version))]);
             return Ok(Dependencies::Available(isabelle_dep));
         }
 
@@ -183,7 +183,7 @@ impl DependencyProvider for BelleDependencyProvider {
                 }
 
                 // Add isabelle itself as a dependency
-                deps.insert(String::from(ISABELLE_PACKAGE), isabelle_versions);
+                deps.insert(ISABELLE_PACKAGE.to_string(), isabelle_versions);
             }
         }
 
@@ -205,7 +205,7 @@ impl BelleDependencyProvider {
         let resolver = BelleDependencyProvider::new(isabelle, packages)?;
 
         let mut resolved_dependencies =
-            resolve(&resolver, String::from("."), SemanticVersion::zero()).report_no_solution()?;
+            resolve(&resolver, ".".to_string(), SemanticVersion::zero()).report_no_solution()?;
         resolved_dependencies.remove(".");
 
         Ok(resolved_dependencies.into_iter().collect())

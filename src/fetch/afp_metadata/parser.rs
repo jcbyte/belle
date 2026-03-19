@@ -50,10 +50,10 @@ impl RepoMetadata {
         // Add dois, and pubs into extra if they exist
         let mut extra_table = theory_raw.extra;
         if !theory_raw.related.dois.is_empty() {
-            extra_table.insert(String::from("dois"), theory_raw.related.dois.into());
+            extra_table.insert("dois".to_string(), theory_raw.related.dois.into());
         }
         if !theory_raw.related.pubs.is_empty() {
-            extra_table.insert(String::from("pubs"), theory_raw.related.pubs.into());
+            extra_table.insert("pubs".to_string(), theory_raw.related.pubs.into());
         }
 
         let theory = TheoryMetadata {
