@@ -13,7 +13,7 @@ use crate::{
     error::{AppError, IoErrorContext},
 };
 
-pub fn switch_env(name: &String) -> Result<(), AppError> {
+pub fn switch_env(name: &str) -> Result<(), AppError> {
     let active_env_link = BelleConfig::read_config(|c| c.get_active_env_link());
     let active_env = Environment::env_dir_for_name(name);
 

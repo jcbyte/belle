@@ -33,7 +33,7 @@ pub async fn remove_package(name: &String) -> Result<(), AppError> {
 pub fn list_packages(all: bool) -> Result<(), AppError> {
     let active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
 
-    let packages = active_env.get_packages();
+    let packages = active_env.iter_packages();
     let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
 
     // Partition these

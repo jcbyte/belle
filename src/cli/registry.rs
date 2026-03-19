@@ -285,7 +285,7 @@ pub fn purge_packages() -> Result<(), AppError> {
     let mut used_packages: HashSet<PackageIdentifier> = HashSet::new();
 
     for env_name in iter_envs() {
-        let env = Environment::get(env_name)?.expect("Environment listed, but could not be gotten");
+        let env = Environment::get(&env_name)?.expect("Environment listed, but could not be gotten");
         for (name, version) in env.lock {
             used_packages.insert(PackageIdentifier::new(name, version));
         }

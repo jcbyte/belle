@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     fs::{self, File},
     io::{BufWriter, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use pubgrub::SemanticVersion;
@@ -11,6 +11,7 @@ use crate::{
     config::BelleConfig,
     environment::{Environment, PackageListing, PackageType, error::EnvironmentError, types::VersionReq},
     error::{AppError, IoErrorContext, IoPathErrorContext, ParseErrorContext},
+    isabelle::{Isabelle, error::IsabelleVersionLinkedContext},
     registry::PackageIdentifier,
     resolver::{BelleDependencyProvider, ISABELLE_PACKAGE},
     util::create_parent_dirs,
@@ -44,17 +45,17 @@ impl Environment {
             return Ok(None);
         };
 
-        Ok(Some(Self::load(env_file)?))
+        Ok(Some(Self::load(&env_file)?))
     }
 
-    pub fn get(name: String) -> Result<Option<Self>, AppError> {
-        let env_file = Self::env_file_for_name(&name);
+    pub fn get(name: &str) -> Result<Option<Self>, AppError> {
+        let env_file = Self::env_file_for_name(name);
 
         if !env_file.is_file() {
             return Ok(None);
         };
 
-        Ok(Some(Self::load(env_file)?))
+        Ok(Some(Self::load(&env_file)?))
     }
 
     /// Get the environment in the freeze file, if any
@@ -65,10 +66,10 @@ impl Environment {
             return Ok(None);
         }
 
-        Ok(Some(Self::load(freeze_file)?))
+        Ok(Some(Self::load(&freeze_file)?))
     }
 
-    pub fn env_dir_for_name(name: &String) -> PathBuf {
+    pub fn env_dir_for_name(name: &str) -> PathBuf {
         BelleConfig::read_config(|c| c.get_env_dir()).join(name)
     }
 
@@ -76,7 +77,7 @@ impl Environment {
         env_dir.join("env.toml")
     }
 
-    pub fn env_file_for_name(name: &String) -> PathBuf {
+    pub fn env_file_for_name(name: &str) -> PathBuf {
         Self::join_env_file(Self::env_dir_for_name(name))
     }
 
@@ -92,13 +93,16 @@ impl Environment {
         self.get_env_dir().join("ROOTS")
     }
 
-    fn load(env_file: PathBuf) -> Result<Self, AppError> {
+    fn load(env_file: &Path) -> Result<Self, AppError> {
         if !env_file.is_file() {
-            return Err(EnvironmentError::FileDoesNotExist { path: env_file }.into());
+            return Err(EnvironmentError::FileDoesNotExist {
+                path: env_file.to_path_buf(),
+            }
+            .into());
         }
 
-        let content = fs::read_to_string(&env_file).report_read("environment file", &env_file)?;
-        let parsed_env = toml::from_str(&content).report_file("environment file", &env_file)?;
+        let content = fs::read_to_string(env_file).report_read("environment file", env_file)?;
+        let parsed_env = toml::from_str(&content).report_file("environment file", env_file)?;
 
         Ok(parsed_env)
     }
@@ -148,9 +152,11 @@ impl Environment {
         Ok(())
     }
 
-    pub fn remove_package(&mut self, name: &String) -> Result<(), EnvironmentError> {
+    pub fn remove_package(&mut self, name: &str) -> Result<(), EnvironmentError> {
         if !self.packages.contains_key(name) {
-            Err(EnvironmentError::PackageDoesNotExist { package: name.clone() })?;
+            Err(EnvironmentError::PackageDoesNotExist {
+                package: name.to_string(),
+            })?;
         }
 
         self.packages.remove(name);
@@ -164,32 +170,21 @@ impl Environment {
         Ok(())
     }
 
-    pub fn get_packages(&self) -> Vec<PackageListing> {
-        self.lock
-            .iter()
-            .map(|(name, version)| match self.packages.get(name) {
-                None => PackageListing {
-                    name: name.clone(),
-                    version: *version,
-                    kind: PackageType::Transitive,
+    pub fn iter_packages(&self) -> impl Iterator<Item = PackageListing> {
+        self.lock.iter().map(|(name, version)| match self.packages.get(name) {
+            None => PackageListing {
+                name: name.clone(),
+                version: *version,
+                kind: PackageType::Transitive,
+            },
+            Some(direct_version) => PackageListing {
+                name: name.clone(),
+                version: *version,
+                kind: PackageType::Direct {
+                    given_version: !direct_version.is_any(),
                 },
-                Some(direct_version) => PackageListing {
-                    name: name.clone(),
-                    version: *version,
-                    kind: PackageType::Direct {
-                        given_version: !direct_version.is_any(),
-                    },
-                },
-            })
-            .collect()
-    }
-
-    pub fn migrate_isabelle(&mut self, version: VersionReq, unpin_existing: bool) {
-        self.isabelle = version;
-
-        if unpin_existing {
-            self.packages = self.packages.keys().map(|name| (name.clone(), VersionReq::Any)).collect();
-        }
+            },
+        })
     }
 
     /// Get packages installed by the user, filtering isabelle's built in ones.
@@ -202,19 +197,28 @@ impl Environment {
             .filter(move |(name, _version)| !name.eq(&ISABELLE_PACKAGE) && !isabelle_packages.contains(name))
     }
 
+    pub fn migrate_isabelle(&mut self, version: VersionReq, unpin_existing: bool) {
+        self.isabelle = version;
+
+        if unpin_existing {
+            self.packages = self.packages.keys().map(|name| (name.clone(), VersionReq::Any)).collect();
+        }
+    }
+
     pub fn create_roots_file(&self) -> Result<(), AppError> {
         let packages_src = self
             .iter_user_packages()
             .map(|(name, version)| PackageIdentifier::new(name, *version))
             .map(|p| p.get_theory_location());
 
-        let written_roots_file = self.get_roots_file();
+        let mut written_roots_file = self.get_roots_file();
         // On windows place these paths in a temporary file, to convert later
-        #[cfg(windows)]
-        let written_roots_file = written_roots_file.with_added_extension("tmp");
+        if cfg!(windows) {
+            written_roots_file.add_extension("tmp");
+        }
 
-        let roots_file_ob = File::create(&written_roots_file).report_save("root file", &written_roots_file)?;
-        let mut writer = BufWriter::new(roots_file_ob);
+        let roots_file = File::create(&written_roots_file).report_save("root file", &written_roots_file)?;
+        let mut writer = BufWriter::new(roots_file);
 
         for package_src in packages_src {
             let package_root_normal = dunce::canonicalize(&package_src).report_read("package root", &package_src)?;
@@ -224,18 +228,16 @@ impl Environment {
 
         writer.flush().report_save("root file", &written_roots_file)?;
 
-        #[cfg(windows)]
-        {
-            // On windows convert our temporary list of paths into cygwin ones
-            use crate::isabelle::{Isabelle, error::IsabelleVersionLinkedContext};
+        // On windows convert our temporary list of paths into cygwin ones
+        if cfg!(windows) {
             let env_isabelle = self.lock.get(ISABELLE_PACKAGE).ok_or(EnvironmentError::NoIsabelleVersion)?;
 
-            let linked_isabelles = BelleConfig::read_config(|c| c.isabelles.clone());
-            let isabelle = linked_isabelles.get(env_isabelle).report_not_linked(env_isabelle)?;
+            let isabelle =
+                BelleConfig::read_config(|c| c.isabelles.get(env_isabelle).report_not_linked(env_isabelle).cloned())?;
 
             // Convert written paths
             Isabelle::exec_with_isabelle_from_path(
-                isabelle,
+                &isabelle,
                 &format!(
                     "cygpath -f \"{}\" > \"{}\"",
                     written_roots_file.display(),

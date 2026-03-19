@@ -64,15 +64,17 @@ impl BelleConfig {
     pub fn init() -> Result<(), AppError> {
         let mgr = BelleConfig::load()?;
         CONFIG_INSTANCE.set(RwLock::new(mgr)).expect("Config is already initialised");
+
         Ok(())
     }
 
-    // Global accessors
+    // Global accessor
     pub fn read_config<R>(f: impl FnOnce(&ConfigData) -> R) -> R {
         let lock = CONFIG_INSTANCE.get().expect("Config is not initialised").read().unwrap();
         f(&lock.data)
     }
 
+    // Global writer (with auto-save)
     pub fn write_config<R>(f: impl FnOnce(&mut ConfigData) -> R) -> R {
         let mut lock = CONFIG_INSTANCE.get().expect("Config is not initialised").write().unwrap();
         let res = f(&mut lock.data);
