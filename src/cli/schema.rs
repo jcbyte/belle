@@ -221,6 +221,7 @@ pub struct AddArgs {
     pub name: String,
 
     /// Specific version to add (defaults to latest)
+    #[arg(short, long)]
     pub version: Option<SemanticVersion>,
 }
 

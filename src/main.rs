@@ -54,10 +54,8 @@ async fn main() {
     }
 }
 
-// todo readme
-
 // todo error hints
-// todo consistent CLI+Errors output
+// todo consistent CLI + Errors output
 
 // todo unit testing
 // todo integration testing

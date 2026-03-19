@@ -116,6 +116,8 @@ pub async fn create_env(name: Option<String>, new: bool, isabelle: Option<Semant
 
     println!("Created new environment: {}.", style(env_name).cyan().bold());
 
+    // todo should we switch into this env immediately
+
     Ok(())
 }
 
