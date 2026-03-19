@@ -74,7 +74,7 @@ impl Isabelle {
             let path_res = self.exec_with_isabelle(&format!("cygpath -u \"{}\"", path.display()))?;
             Ok(path_res.trim().to_string())
         } else {
-            let path_str = path.to_str().report_path(&path)?;
+            let path_str = path.to_str().report_path(path)?;
             Ok(path_str.trim().to_string())
         }
     }

@@ -18,7 +18,7 @@ pub fn get_local_package_meta(path: &Path) -> Result<ReturnedPackages, AppError>
 
     // Set the package source to the local directory
     package.source = crate::registry::PackageSource::Local {
-        path: path.canonicalize().report_read("package root", &path)?,
+        path: path.canonicalize().report_read("package root", path)?,
     };
 
     // Extract aliases to return them separately

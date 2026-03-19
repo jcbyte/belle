@@ -53,12 +53,12 @@ async fn main() {
         return;
     }
 }
-// todo error hints
 
 // todo 7.1 ensure consistent naming of packages
-// todo 7.4 consistent CLI output
-
 // todo readme
 
-// todo 8 unit testing
-// todo 9 integration testing
+// todo error hints
+// todo consistent CLI+Errors output
+
+// todo unit testing
+// todo integration testing

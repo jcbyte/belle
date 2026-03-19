@@ -99,7 +99,7 @@ impl BelleClient {
                 None => return Ok(None),
 
                 // If we have a repo check the name is exact, as Hetapod uses a fuzzy search
-                Some(repo) if &repo.name == name => return Ok(Some(repo.clone())),
+                Some(repo) if repo.name == name => return Ok(Some(repo.clone())),
 
                 // If we have a repo but it is not an exact match, check the next page
                 _ => {}
