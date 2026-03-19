@@ -89,7 +89,7 @@ pub fn switch_env(name: Option<String>) -> Result<(), AppError> {
 }
 
 pub async fn create_env(name: Option<String>, new: bool, isabelle: Option<SemanticVersion>) -> Result<(), AppError> {
-    let using_frozen = name.is_some();
+    let using_frozen = name.is_none();
     let env_name = get_env_name(name)?;
 
     if using_frozen && !new && isabelle.is_some() {
