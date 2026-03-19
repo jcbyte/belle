@@ -14,16 +14,16 @@ use crate::{
     util::get_isabelle_name,
 };
 
-/// Remove all theories from disk
-pub fn clean_theories() -> Result<(), AppError> {
-    let thy_dir = BelleConfig::read_config(|c| c.get_theory_dir());
-    if !thy_dir.is_dir() {
-        println!("No theories found in cache");
+/// Remove all packages from disk
+pub fn clean_packages() -> Result<(), AppError> {
+    let package_dir = BelleConfig::read_config(|c| c.get_package_dir());
+    if !package_dir.is_dir() {
+        println!("No packages found in cache");
         return Ok(());
     }
 
-    fs::remove_dir_all(&thy_dir).report_delete("packages source", &thy_dir)?;
-    println!("Cleaned {} theories from cache.", style("all").bold());
+    fs::remove_dir_all(&package_dir).report_delete("packages source", &package_dir)?;
+    println!("Cleaned {} packages from cache.", style("all").bold());
 
     Ok(())
 }
@@ -38,7 +38,7 @@ pub fn clean_metadata() -> Result<(), AppError> {
     }
 
     fs::remove_dir_all(&manifest_dir).report_delete("packages manifests", &manifest_dir)?;
-    println!("Cleaned metadata for {} theories.", style("all").bold());
+    println!("Cleaned metadata for {} packages.", style("all").bold());
 
     Ok(())
 }

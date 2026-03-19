@@ -67,7 +67,7 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
     let pb = ProgressBar::new_spinner();
     pb.enable_steady_tick(Duration::from_millis(100));
     pb.set_message(format!(
-        "Fetching theories list from {} {}{}{}",
+        "Fetching packages list from {} {}{}{}",
         style(&repo.name).cyan().bold(),
         style("[").dim(),
         style(repo.get_version()).green(),
@@ -76,38 +76,38 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
 
     // Get the metadata from the repo, and then create our metadata struct from this
     let repo_metadata = RepoMetadata::get(&repo, client).await?;
-    let repo_theories = repo_metadata.all_theories();
+    let repo_packages = repo_metadata.all_packages();
 
     pb.finish_with_message(format!(
-        "Found {} theories from {} {}{}{}.",
-        style(repo_theories.len()).bold(),
+        "Found {} packages from {} {}{}{}.",
+        style(repo_packages.len()).bold(),
         style(&repo.name).cyan().bold(),
         style("[").dim(),
         style(repo.get_version()).green(),
         style("]").dim(),
     ));
 
-    let pb = ProgressBar::new(repo_theories.len() as u64).with_belle_style();
+    let pb = ProgressBar::new(repo_packages.len() as u64).with_belle_style();
 
     let mut unresolved_packages: Vec<Package> = Vec::new();
 
     let mut failed = 0;
-    for theory in repo_metadata.all_theories() {
-        pb.set_message(format!("Syncing {}", style(&theory).cyan()));
+    for package in repo_metadata.all_packages() {
+        pb.set_message(format!("Syncing {}", style(&package).cyan()));
 
-        if theory.package_exists() {
+        if package.package_exists() {
             // If the package already exists, we must ensure that we have this isabelle version listed
-            let mut theory_meta = theory
+            let mut package_meta = package
                 .get_resolved_package_manifest()?
                 .expect("Package exists, but its manifest could not be found");
-            if theory_meta.isabelles.insert(*repo.get_version()) {
+            if package_meta.isabelles.insert(*repo.get_version()) {
                 // Only re-register if this modified to avoid unnecessary IO
-                theory_meta.register()?;
+                package_meta.register()?;
             }
         } else {
             // Create the package metadata and register it
             // Creating metadata will require network, so this could take some time
-            let package_meta = repo_metadata.create_package_meta(&theory.name, client).await;
+            let package_meta = repo_metadata.create_package_meta(&package.name, client).await;
             match package_meta {
                 Ok((ReturnedPackages { package, aliases }, fully_resolved)) => {
                     if fully_resolved {
@@ -161,7 +161,7 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
     pb.finish_and_clear();
     println!(
         "Synced {} packages from {} {}{}{}. {}",
-        style(repo_theories.len() - failed).bold(),
+        style(repo_packages.len() - failed).bold(),
         style(&repo.name).cyan().bold(),
         style("[").dim(),
         style(repo.get_version()).yellow(),

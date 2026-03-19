@@ -131,34 +131,34 @@ impl BelleClient {
         Ok(bytes)
     }
 
-    /// Retrieve the ROOT file for a given theory
-    pub async fn get_afp_thy_root(&self, repo: &AFPRepo, thy: &str) -> Result<String, FetchError> {
-        // Retrieve the raw string of the ROOT file at `/thys/$thy/ROOT` for the given theory and repo
+    /// Retrieve the ROOT file for a given entry
+    pub async fn get_afp_entry_root(&self, repo: &AFPRepo, entry: &str) -> Result<String, FetchError> {
+        // Retrieve the raw string of the ROOT file at `/thys/$thy/ROOT` for the given entry and repo
         let root_file_url = Url::parse(&format!(
             "https://foss.heptapod.net/api/v4/projects/{}/repository/files/thys%2F{}%2FROOT/raw",
-            repo.id, thy
+            repo.id, entry
         ))
-        .report_invalid_url(format!("ROOT file for {} in {}", thy, repo.name))?;
+        .report_invalid_url(format!("ROOT file for {} in {}", entry, repo.name))?;
 
         let file_content = self
             .client
             .get(root_file_url.clone())
             .send()
             .await
-            .report_fetch(format!("ROOT file for {} in {}", thy, repo.name), &root_file_url)?
+            .report_fetch(format!("ROOT file for {} in {}", entry, repo.name), &root_file_url)?
             .text()
             .await
-            .report_reading_fetched(format!("ROOT file for {} in {}", thy, repo.name), &root_file_url)?;
+            .report_reading_fetched(format!("ROOT file for {} in {}", entry, repo.name), &root_file_url)?;
 
         Ok(file_content)
     }
 
-    pub async fn get_afp_package(&self, thy: &str, repo: &AFPRepo) -> Result<bytes::Bytes, FetchError> {
+    pub async fn get_afp_package(&self, entry: &str, repo: &AFPRepo) -> Result<bytes::Bytes, FetchError> {
         let package_archive_url = Url::parse(&format!(
             "https://foss.heptapod.net/api/v4/projects/{}/repository/archive.zip?path=thys%2F{}",
-            repo.id, thy
+            repo.id, entry
         ))
-        .report_invalid_url(format!("package source for {} in {}", thy, repo.name))?;
+        .report_invalid_url(format!("package source for {} in {}", entry, repo.name))?;
 
         let bytes = self
             .client
@@ -166,13 +166,13 @@ impl BelleClient {
             .send()
             .await
             .report_fetch(
-                format!("package source for {} in {}", thy, repo.name),
+                format!("package source for {} in {}", entry, repo.name),
                 &package_archive_url,
             )?
             .bytes()
             .await
             .report_reading_fetched(
-                format!("package source for {} in {}", thy, repo.name),
+                format!("package source for {} in {}", entry, repo.name),
                 &package_archive_url,
             )?;
 

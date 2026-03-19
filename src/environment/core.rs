@@ -209,7 +209,7 @@ impl Environment {
         let packages_src = self
             .iter_user_packages()
             .map(|(name, version)| PackageIdentifier::new(name, *version))
-            .map(|p| p.get_theory_location());
+            .map(|p| p.get_package_location());
 
         let mut written_roots_file = self.get_roots_file();
         // On windows place these paths in a temporary file, to convert later

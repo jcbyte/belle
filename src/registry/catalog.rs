@@ -7,7 +7,7 @@ use crate::{config::BelleConfig, registry::PackageIdentifier};
 
 /// Scan for all installed packages
 pub fn iter_installed_packages() -> impl Iterator<Item = PackageIdentifier> {
-    let packages_dir = BelleConfig::read_config(|c| c.get_theory_dir());
+    let packages_dir = BelleConfig::read_config(|c| c.get_package_dir());
 
     WalkDir::new(packages_dir)
         .min_depth(2)

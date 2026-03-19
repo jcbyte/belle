@@ -20,7 +20,7 @@ pub struct AFPRepo {
 }
 
 impl AFPRepo {
-    /// Generate version number for theories within a repo though its name
+    /// Generate version number for afp repo though its name
     pub fn get_version(&self) -> &SemanticVersion {
         self.version_cache.get_or_init(|| get_isabelle_version(&self.name))
     }

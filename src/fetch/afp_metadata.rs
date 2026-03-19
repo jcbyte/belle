@@ -5,6 +5,6 @@ mod root_parser;
 mod schema;
 mod types;
 
-use schema::{AFPAuthorMeta, AFPLicenceMeta, AFPTheoryMeta};
+use schema::{AFPAuthorMeta, AFPEntryMeta, AFPLicenceMeta};
 pub use types::RepoMetadata;
-use types::{AuthorMetadata, TheoryMetadata};
+use types::{AuthorMetadata, EntryMetadata};

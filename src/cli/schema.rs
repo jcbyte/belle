@@ -36,11 +36,11 @@ pub enum Commands {
     #[command(subcommand)]
     Source(SourceAction),
 
-    /// Manage locally cached theories and metadata
+    /// Manage locally cached packages and metadata
     #[command(subcommand)]
     Cache(CacheAction),
 
-    /// Display detailed information for a specific package/theory
+    /// Display detailed information for a specific package
     #[command(visible_alias = "show")]
     Inspect(InspectArgs),
 
@@ -143,14 +143,14 @@ pub enum CacheAction {
 
 #[derive(Args)]
 pub struct CacheCleanArgs {
-    /// Also remove package/theory metadata (all sourced packages must be re-sourced)
+    /// Also remove package metadata (all sourced packages must be re-sourced)
     #[arg(long)]
     pub meta: bool,
 }
 
 #[derive(Args)]
 pub struct InspectArgs {
-    /// The name of the package/theory to inspect
+    /// The name of the package to inspect
     pub name: String,
 
     /// Inspect a specific version (defaults to latest)

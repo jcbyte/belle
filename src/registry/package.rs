@@ -46,7 +46,7 @@ impl RegistrablePackage for AliasPackage {}
 
 impl Package {
     pub async fn get_package(&self) -> Result<(), AppError> {
-        let package_location = PackageIdentifier::from(self).get_theory_location();
+        let package_location = PackageIdentifier::from(self).get_package_location();
 
         match &self.source {
             PackageSource::Afp(..) | PackageSource::Remote { .. } => {
@@ -145,12 +145,12 @@ impl PackageIdentifier {
             .with_added_extension("toml")
     }
 
-    /// Get theory location
-    pub fn get_theory_location(&self) -> PathBuf {
-        // Theories are is located within `$theory_dir/{name}/{version}.toml`
-        let theories_dir = BelleConfig::read_config(|c| c.get_theory_dir());
+    /// Get package location
+    pub fn get_package_location(&self) -> PathBuf {
+        // packages are located within `$package_dir/{name}/{version}.toml`
+        let package_dir = BelleConfig::read_config(|c| c.get_package_dir());
 
-        theories_dir.join(&self.name).join(self.version.to_string())
+        package_dir.join(&self.name).join(self.version.to_string())
     }
 
     /// Check that package exists in our metadata store on disk
@@ -193,15 +193,15 @@ impl PackageIdentifier {
 
     /// Get if this package has been downloaded already
     pub fn exists_locally(&self) -> bool {
-        self.get_theory_location().is_dir()
+        self.get_package_location().is_dir()
     }
 
     /// Remove the package source files from disk
     pub fn remove(&self) -> Result<(), IoError> {
-        let theory_dir = self.get_theory_location();
+        let package_dir = self.get_package_location();
 
-        if theory_dir.is_dir() {
-            fs::remove_dir_all(&theory_dir).report_delete(format!("{} package source", self), &theory_dir)?;
+        if package_dir.is_dir() {
+            fs::remove_dir_all(&package_dir).report_delete(format!("{} package source", self), &package_dir)?;
         }
 
         Ok(())

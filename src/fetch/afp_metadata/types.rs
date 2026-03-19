@@ -11,9 +11,9 @@ pub struct AuthorMetadata {
     pub orcid: Option<String>,
 }
 
-/// Interpretation of AFP Theory metadata
+/// Interpretation of AFP Entry metadata
 #[derive(Debug, Clone)]
-pub struct TheoryMetadata {
+pub struct EntryMetadata {
     pub title: String,
     pub date: toml::value::Date,
     pub r#abstract: String,
@@ -31,7 +31,7 @@ pub struct RepoMetadata {
     pub repo: AFPRepo,
     pub authors: HashMap<String, AuthorMetadata>,
     pub licences: HashMap<String, String>,
-    pub theories: HashMap<String, TheoryMetadata>,
+    pub entries: HashMap<String, EntryMetadata>,
 
     pub seen_aliases: RefCell<HashMap<String, String>>,
 }

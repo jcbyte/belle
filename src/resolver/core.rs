@@ -33,7 +33,7 @@ impl BelleDependencyProvider {
 
         let isabelle_versions = match isabelle_version {
             // If an isabelle version is given, only allow this to be the available version
-            // All theories will eventually reference an isabelle package
+            // All packages will eventually reference an isabelle package
             VersionReq::Given(version) => {
                 // If the given version of isabelle is not linked then throw
                 if !linked_versions.contains(&version) {

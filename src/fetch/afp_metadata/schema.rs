@@ -35,7 +35,7 @@ pub struct AFPLicenceMeta {
 }
 
 #[derive(Debug, Deserialize, Default)]
-pub struct AFPTheoryRelatedMeta {
+pub struct AFPEntryRelatedMeta {
     #[serde(default)]
     pub dois: Vec<String>,
     #[serde(default)]
@@ -43,7 +43,7 @@ pub struct AFPTheoryRelatedMeta {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct AFPTheoryMeta {
+pub struct AFPEntryMeta {
     pub title: String,
     pub date: toml::value::Date,
     pub topics: Vec<String>,
@@ -58,5 +58,5 @@ pub struct AFPTheoryMeta {
     #[serde(default)]
     pub extra: toml::Table,
     #[serde(default)]
-    pub related: AFPTheoryRelatedMeta,
+    pub related: AFPEntryRelatedMeta,
 }

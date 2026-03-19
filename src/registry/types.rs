@@ -18,7 +18,7 @@ pub enum RegisteredPackage {
     Alias(AliasPackage),
 }
 
-/// Theory author information
+/// Entry author information
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PackageAuthor {
     pub name: String,
@@ -27,7 +27,7 @@ pub struct PackageAuthor {
     pub orcid: Option<String>,
 }
 
-/// Theory source information
+/// Entry source information
 #[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(tag = "type")]
 pub enum PackageSource {

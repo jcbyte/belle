@@ -34,7 +34,7 @@ pub async fn run(args: Cli) -> Result<(), AppError> {
         },
         Commands::Cache(action) => match action {
             CacheAction::Clean(args) => {
-                cli::registry::clean_theories()?;
+                cli::registry::clean_packages()?;
                 if args.meta {
                     cli::registry::clean_metadata()?;
                 }

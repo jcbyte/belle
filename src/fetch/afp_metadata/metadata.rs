@@ -8,7 +8,7 @@ use zip::ZipArchive;
 use crate::config::BelleConfig;
 use crate::error::{AppError, ArchiveErrorContext, IoErrorContext, ParseErrorContext};
 use crate::fetch::afp_metadata::error::MetadataError;
-use crate::fetch::afp_metadata::{AuthorMetadata, RepoMetadata, TheoryMetadata, root_parser};
+use crate::fetch::afp_metadata::{AuthorMetadata, EntryMetadata, RepoMetadata, root_parser};
 use crate::fetch::client::BelleClient;
 use crate::fetch::error::FetchError;
 use crate::fetch::{AFPRepo, ReturnedPackages};
@@ -32,7 +32,7 @@ impl RepoMetadata {
 
         let mut authors: HashMap<String, AuthorMetadata> = HashMap::default();
         let mut licences: HashMap<String, String> = HashMap::default();
-        let mut theories: HashMap<String, TheoryMetadata> = HashMap::new();
+        let mut entries: HashMap<String, EntryMetadata> = HashMap::new();
 
         for i in 0..archive.len() {
             let mut file = archive.by_index(i).report_index(format!("{} metadata archive", repo.name), i)?;
@@ -59,17 +59,17 @@ impl RepoMetadata {
                 licences = RepoMetadata::parse_licences(&content)
                     .report_data(format!("licences for {} repository", repo.name))?;
             } else if filename.parent().is_some_and(|p| p.ends_with("entries")) {
-                // Each TOML file in the `entries/` subfolder represents a theory
-                let Some(thy_name) = filename.file_stem().and_then(|s| s.to_str()) else {
+                // Each TOML file in the `entries/` subfolder represents an entry (package)
+                let Some(entry_name) = filename.file_stem().and_then(|s| s.to_str()) else {
                     continue;
                 };
 
                 // Insert these separately into the hashable
                 let content = read_content()
-                    .report_read(format!("theory {} for {} repository", thy_name, repo.name), &filename)?;
-                let theory_metadata = RepoMetadata::parse_theory(&content)
-                    .report_data(format!("theory {} for {} repository", thy_name, repo.name))?;
-                theories.insert(thy_name.to_string(), theory_metadata);
+                    .report_read(format!("entry {} for {} repository", entry_name, repo.name), &filename)?;
+                let entry_metadata = RepoMetadata::parse_entry(&content)
+                    .report_data(format!("entry {} for {} repository", entry_name, repo.name))?;
+                entries.insert(entry_name.to_string(), entry_metadata);
             }
         }
 
@@ -77,35 +77,35 @@ impl RepoMetadata {
             repo: repo.clone(),
             authors,
             licences,
-            theories,
+            entries,
             seen_aliases: RefCell::new(HashMap::new()),
         })
     }
 
-    /// Get all theories within the repo metadata
-    pub fn all_theories(&self) -> Vec<PackageIdentifier> {
-        self.theories
+    /// Get all packages within the repo metadata
+    pub fn all_packages(&self) -> Vec<PackageIdentifier> {
+        self.entries
             .iter()
-            .map(|(theory, meta)| PackageIdentifier::new(theory, date_to_version(&meta.date)))
+            .map(|(entry, meta)| PackageIdentifier::new(entry, date_to_version(&meta.date)))
             .collect()
     }
 
-    /// Create package metadata by collecting keys and fetching theory ROOT file for dependencies
+    /// Create package metadata by collecting keys and fetching entry ROOT file for session dependencies
     pub async fn create_package_meta(
         &self,
-        thy_name: &str,
+        entry_name: &str,
         client: &BelleClient,
     ) -> Result<(ReturnedPackages, bool), AppError> {
-        let meta = self.theories.get(thy_name).ok_or_else(|| MetadataError::NoPackage {
-            package: thy_name.to_string(),
+        let meta = self.entries.get(entry_name).ok_or_else(|| MetadataError::NoPackage {
+            package: entry_name.to_string(),
         })?;
         let version = date_to_version(&meta.date);
 
-        // Fetch theories ROOT file from the repo
-        let thy_root = client.get_afp_thy_root(&self.repo, thy_name).await?;
+        // Fetch entry ROOT file from the repo
+        let entry_root = client.get_afp_entry_root(&self.repo, entry_name).await?;
 
         // Extract sessions from the root file
-        let sessions = root_parser::parse_root(&thy_root)?;
+        let sessions = root_parser::parse_root(&entry_root)?;
 
         // Get all top-level session names the root file defines
         let session_names: Vec<&String> = sessions.iter().map(|s| &s.name).collect();
@@ -121,7 +121,7 @@ impl RepoMetadata {
         let provides_packages: Vec<String> = session_names
             .into_iter()
             // By filtering out the main session name, from all sessions defined in the root file
-            .filter(|&name| name != thy_name)
+            .filter(|&name| name != entry_name)
             .cloned()
             .collect();
         // Convert this list into `AliasPackages`
@@ -130,14 +130,14 @@ impl RepoMetadata {
             .map(|name| AliasPackage {
                 name: name.to_string(),
                 version,
-                alias: PackageIdentifier::new(thy_name, version),
+                alias: PackageIdentifier::new(entry_name, version),
             })
             .collect();
 
         // Add seen aliases to internal cache for resolving later
         let mut seen_aliases = self.seen_aliases.borrow_mut();
         for alias in &alias_packages {
-            seen_aliases.insert(alias.name.clone(), thy_name.to_string());
+            seen_aliases.insert(alias.name.clone(), entry_name.to_string());
         }
 
         let mut fully_resolved = true;
@@ -149,7 +149,7 @@ impl RepoMetadata {
                     return (dependency.to_string(), SemanticVersion::one());
                 }
 
-                let dep_version = match self.theories.get(dependency) {
+                let dep_version = match self.entries.get(dependency) {
                     // If the dependency is within the metadata we can get its correct version
                     Some(meta) => date_to_version(&meta.date),
                     // If not then mark this version as zero, meaning it needs to be further resolved (it may be an unknown alias)
@@ -166,7 +166,7 @@ impl RepoMetadata {
         // Get licence from matching its key
         let licence = self.licences.get(&meta.licence_key).ok_or_else(|| MetadataError::MissingData {
             name: format!("licence {}", meta.licence_key),
-            package: thy_name.to_string(),
+            package: entry_name.to_string(),
         })?;
 
         // Get authors and contributors by matching their keys
@@ -178,7 +178,7 @@ impl RepoMetadata {
                     .get(author_key)
                     .ok_or_else(|| MetadataError::MissingData {
                         name: format!("author {}", author_key),
-                        package: thy_name.to_string(),
+                        package: entry_name.to_string(),
                     })
                     // Convert to the correct format
                     .cloned()
@@ -194,7 +194,7 @@ impl RepoMetadata {
                     .get(contributor_key)
                     .ok_or_else(|| MetadataError::MissingData {
                         name: format!("contributor {}", contributor_key),
-                        package: thy_name.to_string(),
+                        package: entry_name.to_string(),
                     })
                     // Convert to the correct format
                     .cloned()
@@ -206,7 +206,7 @@ impl RepoMetadata {
         Ok((
             ReturnedPackages {
                 package: Package {
-                    name: thy_name.to_string(),
+                    name: entry_name.to_string(),
                     version,
                     title: meta.title.clone(),
                     date: meta.date,
@@ -239,7 +239,7 @@ impl RepoMetadata {
 
             // Use seen aliases first, to try and resolve
             if let Some(package_name) = seen_aliases.get(dep_name) {
-                let meta = self.theories.get(package_name).expect("A seen alias was set but did not find");
+                let meta = self.entries.get(package_name).expect("A seen alias was set but did not find");
                 // Use the version of the original package, as the alias points to the same version number
                 *dep_version = date_to_version(&meta.date);
                 continue;
@@ -252,7 +252,7 @@ impl RepoMetadata {
                     .get_resolved_package_manifest()?
                     .expect("Package version listed, but not cannot be found");
                 // If the alias points to a package in the repo then this is the correct package
-                if let Some(meta) = self.theories.get(&resolved_package.name) {
+                if let Some(meta) = self.entries.get(&resolved_package.name) {
                     // Use the version of the original package, as the alias points to the same version number
                     *dep_version = date_to_version(&meta.date);
 

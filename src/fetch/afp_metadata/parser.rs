@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::fetch::afp_metadata::{
-    AFPAuthorMeta, AFPLicenceMeta, AFPTheoryMeta, AuthorMetadata, RepoMetadata, TheoryMetadata,
+    AFPAuthorMeta, AFPEntryMeta, AFPLicenceMeta, AuthorMetadata, EntryMetadata, RepoMetadata,
 };
 
 impl RepoMetadata {
@@ -43,31 +43,31 @@ impl RepoMetadata {
         Ok(licences)
     }
 
-    /// Convert from raw received data to our theory metadata interpretation
-    pub(super) fn parse_theory(toml_content: &str) -> Result<TheoryMetadata, toml::de::Error> {
-        let theory_raw: AFPTheoryMeta = toml::from_str(toml_content)?;
+    /// Convert from raw received data to our entry metadata interpretation
+    pub(super) fn parse_entry(toml_content: &str) -> Result<EntryMetadata, toml::de::Error> {
+        let entry_raw: AFPEntryMeta = toml::from_str(toml_content)?;
 
         // Add dois, and pubs into extra if they exist
-        let mut extra_table = theory_raw.extra;
-        if !theory_raw.related.dois.is_empty() {
-            extra_table.insert("dois".to_string(), theory_raw.related.dois.into());
+        let mut extra_table = entry_raw.extra;
+        if !entry_raw.related.dois.is_empty() {
+            extra_table.insert("dois".to_string(), entry_raw.related.dois.into());
         }
-        if !theory_raw.related.pubs.is_empty() {
-            extra_table.insert("pubs".to_string(), theory_raw.related.pubs.into());
+        if !entry_raw.related.pubs.is_empty() {
+            extra_table.insert("pubs".to_string(), entry_raw.related.pubs.into());
         }
 
-        let theory = TheoryMetadata {
-            title: theory_raw.title,
-            date: theory_raw.date,
-            r#abstract: theory_raw.r#abstract,
-            licence_key: theory_raw.license,
-            topics: theory_raw.topics,
-            note: theory_raw.note.filter(|n| !n.is_empty()),
-            author_keys: theory_raw.authors.into_keys().collect(),
-            contributor_keys: theory_raw.contributors.into_keys().collect(),
+        let entry = EntryMetadata {
+            title: entry_raw.title,
+            date: entry_raw.date,
+            r#abstract: entry_raw.r#abstract,
+            licence_key: entry_raw.license,
+            topics: entry_raw.topics,
+            note: entry_raw.note.filter(|n| !n.is_empty()),
+            author_keys: entry_raw.authors.into_keys().collect(),
+            contributor_keys: entry_raw.contributors.into_keys().collect(),
             extra: extra_table,
         };
 
-        Ok(theory)
+        Ok(entry)
     }
 }

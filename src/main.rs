@@ -54,7 +54,6 @@ async fn main() {
     }
 }
 
-// todo 7.1 ensure consistent naming of packages
 // todo readme
 
 // todo error hints
