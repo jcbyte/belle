@@ -28,7 +28,6 @@ impl BelleClient {
 
         let client = Self::new()?;
         CONFIG_INSTANCE.set(client).ok().expect("Client has already been initialised");
-
         Ok(CONFIG_INSTANCE.get().expect("Client was just created"))
     }
 }

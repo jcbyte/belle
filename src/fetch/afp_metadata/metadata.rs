@@ -21,21 +21,18 @@ impl RepoMetadata {
         // Download full metadata archive bytes from repo
         let bytes = client.get_afp_metadata_archive(repo).await?;
 
-        let mut authors: HashMap<String, AuthorMetadata> = HashMap::default();
-        let mut licences: HashMap<String, String> = HashMap::default();
-        let mut theories: HashMap<String, TheoryMetadata> = HashMap::new();
-
         // Walk through the archive
         let reader = Cursor::new(bytes);
         let mut archive = ZipArchive::new(reader).report_read(format!("{} metadata archive", repo.name))?;
 
         let legacy = archive.file_names().any(|name| name.ends_with("metadata"));
         if archive.is_empty() || legacy {
-            return Err(FetchError::LegacyAfp {
-                afp_name: repo.name.to_string(),
-            }
-            .into());
+            return Err(FetchError::LegacyAfp { repo: repo.clone() }.into());
         }
+
+        let mut authors: HashMap<String, AuthorMetadata> = HashMap::default();
+        let mut licences: HashMap<String, String> = HashMap::default();
+        let mut theories: HashMap<String, TheoryMetadata> = HashMap::new();
 
         for i in 0..archive.len() {
             let mut file = archive.by_index(i).report_index(format!("{} metadata archive", repo.name), i)?;
@@ -96,7 +93,7 @@ impl RepoMetadata {
     /// Create package metadata by collecting keys and fetching theory ROOT file for dependencies
     pub async fn create_package_meta(
         &self,
-        thy_name: &String,
+        thy_name: &str,
         client: &BelleClient,
     ) -> Result<(ReturnedPackages, bool), AppError> {
         let meta = self.theories.get(thy_name).ok_or_else(|| MetadataError::NoPackage {
@@ -107,25 +104,31 @@ impl RepoMetadata {
         // Fetch theories ROOT file from the repo
         let thy_root = client.get_afp_thy_root(&self.repo, thy_name).await?;
 
-        let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
-
         // Extract sessions from the root file
         let sessions = root_parser::parse_root(&thy_root)?;
 
+        // Get all top-level session names the root file defines
         let session_names: Vec<&String> = sessions.iter().map(|s| &s.name).collect();
+        // Get dependencies from all sessions
         let entry_deps: HashSet<&String> = sessions
             .iter()
-            // Collect dependencies from all sessions
             .flat_map(|s| s.iter_all())
             // Remove sessions that are defined in this entry, as to not produce circular dependencies
             .filter(|dep| !session_names.contains(dep))
             .collect();
 
-        let provides_packages: Vec<String> = session_names.into_iter().filter(|s| !s.eq(&thy_name)).cloned().collect();
+        // Get packages that this session provides
+        let provides_packages: Vec<String> = session_names
+            .into_iter()
+            // By filtering out the main session name, from all sessions defined in the root file
+            .filter(|&name| name != thy_name)
+            .cloned()
+            .collect();
+        // Convert this list into `AliasPackages`
         let alias_packages: Vec<AliasPackage> = provides_packages
             .iter()
-            .map(|s| AliasPackage {
-                name: s.to_string(),
+            .map(|name| AliasPackage {
+                name: name.to_string(),
                 version,
                 alias: PackageIdentifier::new(thy_name, version),
             })
@@ -134,22 +137,22 @@ impl RepoMetadata {
         // Add seen aliases to internal cache for resolving later
         let mut seen_aliases = self.seen_aliases.borrow_mut();
         for alias in &alias_packages {
-            seen_aliases.insert(alias.name.clone(), thy_name.clone());
+            seen_aliases.insert(alias.name.clone(), thy_name.to_string());
         }
 
         let mut fully_resolved = true;
         let dependencies: HashMap<String, SemanticVersion> = entry_deps
-            .iter()
-            .cloned()
+            .into_iter()
             .map(|dependency| {
-                if isabelle_packages.contains(dependency) {
+                if BelleConfig::read_config(|c| c.isabelle_packages.contains(dependency)) {
                     // Isabelle packages will depend on the isabelle version so this version does not matter
                     return (dependency.to_string(), SemanticVersion::one());
                 }
 
                 let dep_version = match self.theories.get(dependency) {
+                    // If the dependency is within the metadata we can get its correct version
                     Some(meta) => date_to_version(&meta.date),
-                    // Mark this version as none, meaning it needs to be further resolved (it may be an unknown alias)
+                    // If not then mark this version as zero, meaning it needs to be further resolved (it may be an unknown alias)
                     None => {
                         fully_resolved = false;
                         SemanticVersion::zero()
@@ -166,107 +169,100 @@ impl RepoMetadata {
             package: thy_name.to_string(),
         })?;
 
-        // Get authors and contributors by matching there keys
+        // Get authors and contributors by matching their keys
         let authors = meta
             .author_keys
             .iter()
             .map(|author_key| {
                 self.authors
                     .get(author_key)
-                    .cloned()
                     .ok_or_else(|| MetadataError::MissingData {
                         name: format!("author {}", author_key),
                         package: thy_name.to_string(),
                     })
-                    .map(PackageAuthor::from) // Convert to the correct format
+                    // Convert to the correct format
+                    .cloned()
+                    .map(PackageAuthor::from)
             })
             .collect::<Result<Vec<_>, MetadataError>>()?;
+
         let contributors = meta
             .contributor_keys
             .iter()
             .map(|contributor_key| {
                 self.authors
                     .get(contributor_key)
-                    .cloned()
                     .ok_or_else(|| MetadataError::MissingData {
-                        name: format!("author {}", contributor_key),
+                        name: format!("contributor {}", contributor_key),
                         package: thy_name.to_string(),
                     })
-                    .map(PackageAuthor::from) // Convert to the correct format
+                    // Convert to the correct format
+                    .cloned()
+                    .map(PackageAuthor::from)
             })
             .collect::<Result<Vec<_>, MetadataError>>()?;
 
         // Return created package with all metadata
-        let package = Package {
-            name: thy_name.clone(),
-            version,
-            title: meta.title.clone(),
-            date: meta.date,
-            r#abstract: meta.r#abstract.clone(),
-            licence: licence.clone(),
-            topics: meta.topics.clone(),
-            note: meta.note.clone(),
-            authors,
-            contributors,
-            provides: provides_packages,
-            dependencies,
-            isabelles: HashSet::from([*self.repo.get_version()]),
-            source: PackageSource::Afp(self.repo.clone()),
-            extra: meta.extra.clone(),
-        };
-
         Ok((
             ReturnedPackages {
-                package,
+                package: Package {
+                    name: thy_name.to_string(),
+                    version,
+                    title: meta.title.clone(),
+                    date: meta.date,
+                    r#abstract: meta.r#abstract.clone(),
+                    licence: licence.clone(),
+                    topics: meta.topics.clone(),
+                    note: meta.note.clone(),
+                    authors,
+                    contributors,
+                    provides: provides_packages,
+                    dependencies,
+                    isabelles: HashSet::from([*self.repo.get_version()]),
+                    source: PackageSource::Afp(self.repo.clone()),
+                    extra: meta.extra.clone(),
+                },
                 aliases: alias_packages,
             },
             fully_resolved,
         ))
     }
 
-    pub fn resolve_package_meta(&self, package: &mut Package) -> Result<(), MetadataError> {
-        let seen_aliases = self.seen_aliases.borrow();
+    pub fn resolve_package_meta(&self, package: &mut Package) -> Result<(), AppError> {
+        let mut seen_aliases = self.seen_aliases.borrow_mut();
 
-        let deps = package
-            .dependencies
-            .iter()
-            .map(|(dep_name, dep_version)| {
-                // If the version is zero then this dependency hasn't been resolved properly, try it now
-                let version = if dep_version.eq(&SemanticVersion::zero()) {
-                    let mut found_meta = None;
+        for (dep_name, dep_version) in package.dependencies.iter_mut() {
+            // If the version isn't zero then this dependency has already been resolved properly
+            if *dep_version != SemanticVersion::zero() {
+                continue;
+            }
 
-                    // Use seen aliases first, to try and resolve
-                    if let Some(package_name) = seen_aliases.get(dep_name) {
-                        let meta = self.theories.get(package_name).expect("A seen alias was set but did not find");
-                        found_meta = Some(meta)
-                    // If there was no seen alias check the registry for the alias
-                    } else {
-                        // Go though each version in case there are multiple connected to different packages
-                        for package in get_package_versions(dep_name) {
-                            // If the alias points to a package in the repo then this is the correct package
-                            if let Some(meta) = self.theories.get(&package.name) {
-                                found_meta = Some(meta);
-                                break;
-                            }
-                        }
-                    }
+            // Use seen aliases first, to try and resolve
+            if let Some(package_name) = seen_aliases.get(dep_name) {
+                let meta = self.theories.get(package_name).expect("A seen alias was set but did not find");
+                // Use the version of the original package, as the alias points to the same version number
+                *dep_version = date_to_version(&meta.date);
+                continue;
+            }
 
-                    match found_meta {
-                        // Use the version of the original package, as the alias points to the same version number
-                        Some(meta) => Ok(date_to_version(&meta.date)),
-                        None => Err(MetadataError::DependencyMissing {
-                            package: package.name.to_string(),
-                            dependency: dep_name.to_string(),
-                        }),
-                    }
-                } else {
-                    Ok(*dep_version)
-                };
-                Ok((dep_name.clone(), version?))
-            })
-            .collect::<Result<HashMap<String, SemanticVersion>, MetadataError>>()?;
+            // If there was no seen alias check the registry for the alias
+            // Go though each version in case there are multiple connected to different packages
+            for package in get_package_versions(dep_name) {
+                let resolved_package = package
+                    .get_resolved_package_manifest()?
+                    .expect("Package version listed, but not cannot be found");
+                // If the alias points to a package in the repo then this is the correct package
+                if let Some(meta) = self.theories.get(&resolved_package.name) {
+                    // Use the version of the original package, as the alias points to the same version number
+                    *dep_version = date_to_version(&meta.date);
 
-        package.dependencies = deps;
+                    // Update the seen aliases in case the appears again
+                    seen_aliases.insert(dep_name.clone(), resolved_package.name.clone());
+                    break;
+                }
+            }
+        }
+
         Ok(())
     }
 }

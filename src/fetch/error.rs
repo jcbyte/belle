@@ -3,6 +3,8 @@ use std::path::PathBuf;
 use thiserror::Error;
 use url::Url;
 
+use crate::fetch::AFPRepo;
+
 #[derive(Error, Debug)]
 pub enum FetchError {
     #[error("HTTP client could not be initialised.")]
@@ -46,8 +48,8 @@ pub enum FetchError {
         source: url::ParseError,
     },
 
-    #[error("{afp_name} is a legacy AFP repository, the metadata cannot be fetched automatically.")]
-    LegacyAfp { afp_name: String },
+    #[error("{repo} is a legacy AFP repository, the metadata cannot be fetched automatically.")]
+    LegacyAfp { repo: AFPRepo },
 
     #[error("No package manifest found at '{path}'.")]
     NoLocalManifest { path: PathBuf },

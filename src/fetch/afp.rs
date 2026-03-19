@@ -41,13 +41,12 @@ impl BelleClient {
                 .await
                 .report_reading_fetched("Hetapod afp list", &afp_repo_list_url)?;
 
-            let received_count = repos.len();
-
             // If repos is empty then there are no more results
             if repos.is_empty() {
                 break;
             }
 
+            let received_count = repos.len();
             // Only keep repos which match the name of the AFP
             let retrieved_repos: Vec<AFPRepo> = repos.into_iter().filter(|p| re.is_match(&p.name)).collect();
 
@@ -70,7 +69,7 @@ impl BelleClient {
     }
 
     /// Get a singular repo (id) from its name, or `None` is it does not exist
-    pub async fn get_afp_repo(&self, name: &String) -> Result<Option<AFPRepo>, FetchError> {
+    pub async fn get_afp_repo(&self, name: &str) -> Result<Option<AFPRepo>, FetchError> {
         let mut page = 1;
 
         let afp_group = BelleConfig::read_config(|c| c.afp_group.clone());
@@ -133,7 +132,7 @@ impl BelleClient {
     }
 
     /// Retrieve the ROOT file for a given theory
-    pub async fn get_afp_thy_root(&self, repo: &AFPRepo, thy: &String) -> Result<String, FetchError> {
+    pub async fn get_afp_thy_root(&self, repo: &AFPRepo, thy: &str) -> Result<String, FetchError> {
         // Retrieve the raw string of the ROOT file at `/thys/$thy/ROOT` for the given theory and repo
         let root_file_url = Url::parse(&format!(
             "https://foss.heptapod.net/api/v4/projects/{}/repository/files/thys%2F{}%2FROOT/raw",

@@ -1,4 +1,4 @@
-use std::iter;
+use std::{borrow::Cow, iter};
 
 use crate::fetch::afp_metadata::error::{RootParserContext, RootParserError};
 
@@ -112,17 +112,13 @@ pub fn parse_root(root: &str) -> Result<Vec<RootFileSession>, RootParserError> {
         let (parent, rest) = parse_identifier(rest).report_failed_parsing("session parent")?;
 
         // Remove the description part of the session in case it contains "sessions"
-        let rests: Vec<&str> = rest.split("description").collect();
-        let session_body_rest = if let Some(after_desc) = rests.get(1) {
-            let (_description, removed_desc_rest) =
-                parse_identifier(after_desc).report_failed_parsing("session description")?;
+        let session_body_rest = if let Some((before_desc, after_desc)) = rest.split_once("description") {
+            let (_description, _desc) = parse_identifier(after_desc).report_failed_parsing("session description")?;
             // Rebuild the rest of ROOT file excluding the description block
-            let mut parts = rests.into_iter();
-            let first = parts.next().unwrap_or("");
-            let _second = parts.next();
-            format!("{}{}{}", first, removed_desc_rest, parts.collect::<String>())
+            Cow::Owned(format!("{}{}", before_desc, after_desc))
         } else {
-            rest.to_string()
+            // Use Cow to remove need to clone, when rebuilding in one branch
+            Cow::Borrowed(rest)
         };
 
         let mut dependencies: Vec<String> = Vec::new();
@@ -130,6 +126,7 @@ pub fn parse_root(root: &str) -> Result<Vec<RootFileSession>, RootParserError> {
         if let Some((_, session_rest)) = session_body_rest.split_once("sessions") {
             let mut rest = session_rest;
 
+            // Once reaching the next listed block we have gone though all sessions
             while let Some((dep, next_rest)) = parse_identifier(rest) {
                 if matches!(dep, "theories" | "document_files" | "directories" | "options") {
                     break;

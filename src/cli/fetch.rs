@@ -183,7 +183,7 @@ pub async fn source_remote_repo(url: Url, branch: &str) -> Result<(), AppError> 
     pb.set_message("Fetching package manifest".to_string());
 
     let client = BelleClient::get()?;
-    let ReturnedPackages { package, aliases } = client.get_github_package_meta(url, branch).await?;
+    let ReturnedPackages { package, aliases } = client.get_github_package_meta(&url, branch).await?;
     let package_identifier = PackageIdentifier::from(&package);
 
     package.register()?;
@@ -198,7 +198,7 @@ pub async fn source_remote_repo(url: Url, branch: &str) -> Result<(), AppError> 
 }
 
 pub fn source_local_package(path: PathBuf) -> Result<(), AppError> {
-    let ReturnedPackages { package, aliases } = get_local_package_meta(path)?;
+    let ReturnedPackages { package, aliases } = get_local_package_meta(&path)?;
     let package_identifier = PackageIdentifier::from(&package);
 
     package.register()?;

@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::{fs, path::Path};
 
 use crate::{
     error::{AppError, IoErrorContext, ParseErrorContext},
@@ -6,7 +6,7 @@ use crate::{
     registry::{AliasPackage, Package, PackageIdentifier},
 };
 
-pub fn get_local_package_meta(path: PathBuf) -> Result<ReturnedPackages, AppError> {
+pub fn get_local_package_meta(path: &Path) -> Result<ReturnedPackages, AppError> {
     let pkg_file = path.join(PACKAGE_FILE);
 
     if !pkg_file.is_file() {
@@ -16,10 +16,12 @@ pub fn get_local_package_meta(path: PathBuf) -> Result<ReturnedPackages, AppErro
     let package_content = fs::read_to_string(&pkg_file).report_read("package manifest", &pkg_file)?;
     let mut package = toml::from_str::<Package>(&package_content).report_data("package manifest")?;
 
+    // Set the package source to the local directory
     package.source = crate::registry::PackageSource::Local {
         path: path.canonicalize().report_read("package root", &path)?,
     };
 
+    // Extract aliases to return them separately
     let aliases: Vec<AliasPackage> = package
         .provides
         .iter()
