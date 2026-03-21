@@ -2,7 +2,6 @@ use std::{fs, time::Duration};
 
 use console::style;
 use indicatif::ProgressBar;
-use pubgrub::SemanticVersion;
 
 use crate::{
     cli::{
@@ -85,13 +84,13 @@ pub async fn finalise_env(env: &mut Environment, strategy: FinalizeStrategy) -> 
 fn warn_no_isabelle() -> Result<(), AppError> {
     let active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
 
-    if let Some(version) = active_env.get_isabelle_version()
-        && !BelleConfig::read_config(|c| c.isabelles.contains_key(&version))
+    if let VersionReq::Given(v) = active_env.get_isabelle_version()
+        && !BelleConfig::read_config(|c| c.isabelles.contains_key(&v))
     {
         print_warning_ln(format_args!(
             "This environment uses Isabelle {} [{}], but that version is not linked.",
-            get_isabelle_name(&version),
-            &version
+            get_isabelle_name(&v),
+            &v
         ));
     }
 
@@ -118,8 +117,8 @@ pub fn switch_env(name: Option<String>) -> Result<(), AppError> {
     Ok(())
 }
 
-pub fn create_env(name: String, isabelle: Option<SemanticVersion>) -> Result<(), AppError> {
-    let new_env = Environment::new(name.clone(), isabelle.into())?;
+pub fn create_env(name: String, isabelle: VersionReq) -> Result<(), AppError> {
+    let new_env = Environment::new(name.clone(), isabelle)?;
 
     // Save the new environment
     new_env.save()?;
@@ -203,10 +202,10 @@ pub async fn sync_env() -> Result<(), AppError> {
     Ok(())
 }
 
-pub async fn migrate_isabelle(version: Option<SemanticVersion>, unpin_existing: bool) -> Result<(), AppError> {
+pub async fn migrate_isabelle(version: VersionReq, unpin_existing: bool) -> Result<(), AppError> {
     let mut active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
 
-    active_env.migrate_isabelle(version.into(), unpin_existing);
+    active_env.migrate_isabelle(version, unpin_existing);
     finalise_env(&mut active_env, FinalizeStrategy::ResolveAndApply).await?;
 
     let new_isabelle_version = match &active_env.isabelle {

@@ -64,7 +64,6 @@ async fn main() {
 
 // todo error hints
 // todo consistent CLI + Errors output
-// todo use VersqionReq instead of option where possible
 // todo can i autodetect and strip colours if required
 
 // todo unit testing

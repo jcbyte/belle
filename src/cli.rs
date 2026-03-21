@@ -45,13 +45,15 @@ pub async fn run(args: Cli) -> Result<(), AppError> {
             if args.versions {
                 cli::registry::list_versions(&args.name)?;
             } else {
-                cli::registry::print_package_meta(args.name, args.version)?;
+                cli::registry::print_package_meta(args.name, args.version.into())?;
             }
         }
         Commands::Search(args) => registry::search_registry(args.query),
         Commands::Switch(args) | Commands::Env(EnvAction::Switch(args)) => environment::switch_env(args.name)?,
         Commands::Env(action) => match action {
-            EnvAction::Create(args) => environment::create_env(args.name, args.isabelle.map(SemanticVersion::from))?,
+            EnvAction::Create(args) => {
+                environment::create_env(args.name, args.isabelle.map(SemanticVersion::from).into())?
+            }
             EnvAction::List => environment::list_envs()?,
             EnvAction::Remove(args) => environment::remove_env(&args.name)?,
             EnvAction::Freeze => environment::freeze_env()?,
@@ -59,9 +61,9 @@ pub async fn run(args: Cli) -> Result<(), AppError> {
             EnvAction::Switch(_args) => unreachable!(),
         },
         Commands::Migrate(args) => {
-            environment::migrate_isabelle(args.version.map(SemanticVersion::from), args.unpin).await?
+            environment::migrate_isabelle(args.version.map(SemanticVersion::from).into(), args.unpin).await?
         }
-        Commands::Add(args) => package::add_package(args.name, args.version).await?,
+        Commands::Add(args) => package::add_package(args.name, args.version.into()).await?,
         Commands::Remove(args) => package::remove_package(&args.name).await?,
         Commands::List(args) => package::list_packages(args.all)?,
         Commands::Restore => environment::restore().await?,

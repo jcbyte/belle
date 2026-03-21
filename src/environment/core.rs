@@ -102,11 +102,11 @@ impl Environment {
         self.get_env_dir().join("ROOTS")
     }
 
-    pub fn get_isabelle_version(&self) -> Option<SemanticVersion> {
-        self.lock
-            .get(ISABELLE_PACKAGE)
-            .copied()
-            .or_else(|| self.isabelle.clone().into())
+    pub fn get_isabelle_version(&self) -> VersionReq {
+        match self.lock.get(ISABELLE_PACKAGE) {
+            Some(v) => VersionReq::Given(*v),
+            None => self.isabelle.clone(),
+        }
     }
 
     fn load(env_file: &Path) -> Result<Self, AppError> {

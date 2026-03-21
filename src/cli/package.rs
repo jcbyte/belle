@@ -1,5 +1,4 @@
 use console::style;
-use pubgrub::SemanticVersion;
 
 use crate::{
     cli::{
@@ -7,16 +6,16 @@ use crate::{
         error::CliError,
     },
     config::BelleConfig,
-    environment::{Environment, PackageType},
+    environment::{Environment, PackageType, VersionReq},
     error::AppError,
     resolver::ISABELLE_PACKAGE,
     util::get_isabelle_name,
 };
 
-pub async fn add_package(name: String, version: Option<SemanticVersion>) -> Result<(), AppError> {
+pub async fn add_package(name: String, version: VersionReq) -> Result<(), AppError> {
     let mut active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
 
-    active_env.add_package(name.clone(), version.into())?;
+    active_env.add_package(name.clone(), version)?;
     finalise_env(&mut active_env, FinalizeStrategy::ResolveAndApply).await?;
 
     println!("Added package {}.", style(name).cyan());

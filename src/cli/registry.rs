@@ -1,11 +1,10 @@
 use std::{collections::HashSet, fs};
 
 use console::style;
-use pubgrub::SemanticVersion;
 
 use crate::{
     config::BelleConfig,
-    environment::{Environment, manager::iter_envs},
+    environment::{Environment, VersionReq, manager::iter_envs},
     error::{AppError, IoErrorContext},
     registry::{
         self, AliasPackage, Package, PackageIdentifier, PackageSource, RegisteredPackage,
@@ -214,10 +213,10 @@ fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
 }
 
 /// Display metadata for a specific package on the console, if a version is not given then the latest will be shown
-pub fn print_package_meta(name: String, version: Option<SemanticVersion>) -> Result<(), AppError> {
+pub fn print_package_meta(name: String, version: VersionReq) -> Result<(), AppError> {
     let package = match version {
-        Some(v) => PackageIdentifier::new(name, v),
-        None => {
+        VersionReq::Given(v) => PackageIdentifier::new(name, v),
+        VersionReq::Any => {
             let versions = registry::get_package_versions(&name);
             versions
                 .into_iter()
