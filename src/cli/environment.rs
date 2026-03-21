@@ -166,6 +166,7 @@ pub async fn migrate_isabelle(version: Option<SemanticVersion>, unpin_existing: 
             let version = active_env
                 .lock
                 .get(ISABELLE_PACKAGE)
+                // todo if no packages this could fail
                 .ok_or(EnvironmentError::NoIsabelleVersion)?;
             (*version, false)
         }

@@ -54,7 +54,6 @@ async fn main() {
     }
 }
 
-// todo listing fails if no isabelle version
 // todo needs to be a way to refetch packages, in case cache clean is performed
 // todo if env/active doesn't exist then the components cannot be added
 // todo warn if no isabelle version linked matching package

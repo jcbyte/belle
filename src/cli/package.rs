@@ -33,16 +33,15 @@ pub async fn remove_package(name: &str) -> Result<(), AppError> {
 pub fn list_packages(all: bool) -> Result<(), AppError> {
     let active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
 
-    let packages = active_env.iter_packages();
     let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
 
-    // Partition these
+    // Partition packages into these
     let mut isabelle_listing = None;
     let mut dependencies = Vec::new();
     let mut transitive_dependencies = Vec::new();
     let mut isabelle_dependencies = Vec::new();
 
-    for dependency in packages {
+    for dependency in active_env.iter_packages() {
         match dependency.kind {
             PackageType::Direct { .. } => dependencies.push(dependency),
             PackageType::Transitive => {
@@ -57,18 +56,19 @@ pub fn list_packages(all: bool) -> Result<(), AppError> {
         }
     }
 
-    let isabelle_version = isabelle_listing.ok_or(EnvironmentError::NoIsabelleVersion)?.version;
-
     println!("Environment: {}", style(active_env.name).cyan());
 
-    println!(
-        "{} {} {}{}{}",
-        style("* Isabelle:").bold(),
-        style(get_isabelle_name(&isabelle_version)).cyan().bold(),
-        style("[").dim(),
-        style(isabelle_version.to_string()).green(),
-        style("]").dim(),
-    );
+    let formatted_isabelle_str = match isabelle_listing {
+        Some(isabelle) => format!(
+            "{} {}{}{}",
+            style(get_isabelle_name(&isabelle.version)).cyan().bold(),
+            style("[").dim(),
+            style(&isabelle.version.to_string()).green(),
+            style("]").dim(),
+        ),
+        None => format!("{}", style("Unspecified").dim()),
+    };
+    println!("{} {}", style("* Isabelle:").bold(), formatted_isabelle_str,);
 
     for package in dependencies {
         let version = style(package.version.to_string());
