@@ -80,7 +80,7 @@ impl Isabelle {
     }
 
     fn manage_component(&self, add: bool) -> Result<(), AppError> {
-        let active_env_dir = BelleConfig::read_config(|c| c.get_active_env_link());
+        let active_env_dir = BelleConfig::get_active_env_link();
         let isabelle_path = self.get_isabelle_path(&active_env_dir)?;
 
         // Add or remove the active environment directory as a component to isabelle

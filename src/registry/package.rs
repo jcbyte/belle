@@ -137,7 +137,7 @@ impl PackageIdentifier {
     /// Get manifest path for the given package
     fn get_manifest_path(&self) -> PathBuf {
         // Manifest file is located within `$manifest_dir/{name}/{version}.toml`
-        let manifest_dir = BelleConfig::read_config(|c| c.get_manifest_dir());
+        let manifest_dir = BelleConfig::get_manifest_dir();
 
         manifest_dir
             .join(&self.name)
@@ -148,7 +148,7 @@ impl PackageIdentifier {
     /// Get package location
     pub fn get_package_location(&self) -> PathBuf {
         // packages are located within `$package_dir/{name}/{version}.toml`
-        let package_dir = BelleConfig::read_config(|c| c.get_package_dir());
+        let package_dir = BelleConfig::get_package_dir();
 
         package_dir.join(&self.name).join(self.version.to_string())
     }

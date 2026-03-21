@@ -1,4 +1,4 @@
-mod data;
+mod paths;
 mod storage;
 mod types;
 

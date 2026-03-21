@@ -38,7 +38,7 @@ impl Environment {
 
     /// Get the active environment, if any
     pub fn active() -> Result<Option<Self>, AppError> {
-        let active_env = BelleConfig::read_config(|c| c.get_active_env_link());
+        let active_env = BelleConfig::get_active_env_link();
         let env_file = Self::join_env_file(active_env);
 
         if !env_file.is_file() {
@@ -70,7 +70,7 @@ impl Environment {
     }
 
     pub fn env_dir_for_name(name: &str) -> PathBuf {
-        BelleConfig::read_config(|c| c.get_env_dir()).join(name)
+        BelleConfig::get_env_dir().join(name)
     }
 
     pub fn join_env_file(env_dir: PathBuf) -> PathBuf {

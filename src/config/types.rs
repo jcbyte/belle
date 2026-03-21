@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(default)]
 pub struct ConfigData {
-    pub home: PathBuf,
     #[serde(rename = "afp-group")]
     pub afp_group: String,
     pub isabelles: HashMap<SemanticVersion, PathBuf>,
@@ -14,17 +13,10 @@ pub struct ConfigData {
     pub isabelle_packages: Vec<String>,
 }
 
-pub fn default_home_dir() -> PathBuf {
-    // Default root directory under the user's application data
-    let data_dir = dirs::data_dir().expect("Could not get users data folder");
-    data_dir.join("belle")
-}
-
 impl Default for ConfigData {
     /// Defaults for config
     fn default() -> Self {
         Self {
-            home: default_home_dir(),
             afp_group: "isa-afp".to_string(),
             isabelles: HashMap::new(),
             isabelle_packages: vec![

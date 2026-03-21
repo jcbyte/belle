@@ -16,7 +16,7 @@ use crate::{
 
 /// Remove all packages from disk
 pub fn clean_packages() -> Result<(), AppError> {
-    let package_dir = BelleConfig::read_config(|c| c.get_package_dir());
+    let package_dir = BelleConfig::get_package_dir();
     if !package_dir.is_dir() {
         println!("No packages found in cache");
         return Ok(());
@@ -30,7 +30,7 @@ pub fn clean_packages() -> Result<(), AppError> {
 
 /// Remove all metadata from disk
 pub fn clean_metadata() -> Result<(), AppError> {
-    let manifest_dir = BelleConfig::read_config(|c| c.get_manifest_dir());
+    let manifest_dir = BelleConfig::get_manifest_dir();
 
     if !manifest_dir.is_dir() {
         println!("No metadata found in cache");

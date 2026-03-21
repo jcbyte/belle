@@ -1,4 +1,6 @@
+# Rust
 /target
-belle_config.toml
+
+# Belle
 /belle_home
 belle.toml

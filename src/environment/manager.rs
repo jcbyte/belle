@@ -14,7 +14,7 @@ use crate::{
 };
 
 pub fn switch_env(name: &str) -> Result<(), AppError> {
-    let active_env_link = BelleConfig::read_config(|c| c.get_active_env_link());
+    let active_env_link = BelleConfig::get_active_env_link();
     let active_env = Environment::env_dir_for_name(name);
 
     if !active_env.is_dir() {
@@ -30,7 +30,7 @@ pub fn switch_env(name: &str) -> Result<(), AppError> {
 }
 
 pub fn iter_envs() -> impl Iterator<Item = String> {
-    let env_dir = BelleConfig::read_config(|c| c.get_env_dir());
+    let env_dir = BelleConfig::get_env_dir();
 
     WalkDir::new(env_dir)
         .min_depth(1)

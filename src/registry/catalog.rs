@@ -7,7 +7,7 @@ use crate::{config::BelleConfig, registry::PackageIdentifier};
 
 /// Scan for all installed packages
 pub fn iter_installed_packages() -> impl Iterator<Item = PackageIdentifier> {
-    let packages_dir = BelleConfig::read_config(|c| c.get_package_dir());
+    let packages_dir = BelleConfig::get_package_dir();
 
     WalkDir::new(packages_dir)
         .min_depth(2)
@@ -29,7 +29,7 @@ pub fn iter_installed_packages() -> impl Iterator<Item = PackageIdentifier> {
 
 /// Scan for all packages in registry
 pub fn iter_packages() -> impl Iterator<Item = String> {
-    let manifest_dir = BelleConfig::read_config(|c| c.get_manifest_dir());
+    let manifest_dir = BelleConfig::get_manifest_dir();
 
     WalkDir::new(manifest_dir)
         .min_depth(1)
@@ -41,7 +41,7 @@ pub fn iter_packages() -> impl Iterator<Item = String> {
 
 /// Scan for all versions for a specific package
 pub fn get_package_versions(name: &str) -> Vec<PackageIdentifier> {
-    let package_manifests = BelleConfig::read_config(|c| c.get_manifest_dir()).join(name);
+    let package_manifests = BelleConfig::get_manifest_dir().join(name);
 
     WalkDir::new(package_manifests)
         .min_depth(1)
