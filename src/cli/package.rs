@@ -4,7 +4,7 @@ use pubgrub::SemanticVersion;
 use crate::{
     cli::{environment::finalise_env, error::CliError},
     config::BelleConfig,
-    environment::{Environment, PackageType, error::EnvironmentError},
+    environment::{Environment, PackageType},
     error::AppError,
     resolver::ISABELLE_PACKAGE,
     util::get_isabelle_name,

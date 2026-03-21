@@ -188,3 +188,13 @@ pub async fn migrate_isabelle(version: Option<SemanticVersion>, unpin_existing: 
     );
     Ok(())
 }
+
+pub async fn refetch() -> Result<(), AppError> {
+    let mut active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
+
+    finalise_env(&mut active_env, false).await?;
+
+    println!("All packages exist locally");
+
+    Ok(())
+}

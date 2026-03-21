@@ -66,6 +66,7 @@ pub async fn run(args: Cli) -> Result<(), AppError> {
         Commands::Add(args) => package::add_package(args.name, args.version).await?,
         Commands::Remove(args) => package::remove_package(&args.name).await?,
         Commands::List(args) => package::list_packages(args.all)?,
+        Commands::Fetch => environment::refetch().await?,
     }
 
     Ok(())
