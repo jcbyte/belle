@@ -7,7 +7,7 @@ use pubgrub::SemanticVersion;
 use crate::{
     cli::{error::CliError, theming::ProgressBarTheme},
     environment::{Environment, VersionReq, error::EnvironmentError, manager},
-    error::{AppError, CustomError, CustomErrorContext, IoErrorContext},
+    error::{AppError, CustomErrorContext, IoErrorContext},
     registry::{PackageIdentifier, error::RegistryNotExistContext},
     resolver::ISABELLE_PACKAGE,
     util::get_isabelle_name,
@@ -66,7 +66,7 @@ pub async fn finalise_env(env: &mut Environment, include_resolve: bool) -> Resul
     Ok(())
 }
 
-fn get_env_name(name: Option<String>) -> Result<String, AppError> {
+pub fn switch_env(name: Option<String>) -> Result<(), AppError> {
     let name = match name {
         Some(n) => n,
         None => {
@@ -76,47 +76,23 @@ fn get_env_name(name: Option<String>) -> Result<String, AppError> {
         }
     };
 
-    Ok(name)
-}
-
-pub fn switch_env(name: Option<String>) -> Result<(), AppError> {
-    let name = get_env_name(name)?;
-
     manager::switch_env(&name)?;
 
     println!("Switched to environment {}.", style(name).cyan().bold());
     Ok(())
 }
 
-pub async fn create_env(name: Option<String>, new: bool, isabelle: Option<SemanticVersion>) -> Result<(), AppError> {
-    let using_frozen = name.is_none();
-    let env_name = get_env_name(name)?;
+pub async fn create_env(name: String, isabelle: Option<SemanticVersion>) -> Result<(), AppError> {
+    let mut new_env = Environment::new(name.clone(), isabelle.into())?;
 
-    if using_frozen && !new && isabelle.is_some() {
-        return Err(CustomError::WithoutSource {
-            // todo should this just try to migrate instead?
-            msg: "Isabelle version cannot be given when creating from an existing belle file, migrate later."
-                .to_string(),
-        }
-        .into());
-    }
+    finalise_env(&mut new_env, true).await?;
 
-    let mut new_env = Environment::new(env_name.clone(), isabelle.into())?;
+    println!("Created new environment: {}.", style(&name).cyan().bold());
 
-    if using_frozen && !new {
-        // If created from a belle file, we want to sync this into the environment
-        new_env.sync()?;
-        // Don't resolve as we want to keep the lockfile identical
-        finalise_env(&mut new_env, false).await?;
-    } else {
-        // Else just save the environment and generate a blank ROOTS file
-        new_env.save()?;
-        new_env.create_roots_file()?;
-    }
+    // Switch into the newly created environment, qol
+    manager::switch_env(&name)?;
 
-    println!("Created new environment: {}.", style(env_name).cyan().bold());
-
-    // todo should we switch into this env immediately
+    println!("Switched to environment {}.", style(&name).cyan().bold());
 
     Ok(())
 }

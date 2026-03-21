@@ -117,7 +117,7 @@ impl Environment {
         Ok(())
     }
 
-    fn get_freeze_file() -> PathBuf {
+    pub fn get_freeze_file() -> PathBuf {
         PathBuf::from(".").join("belle.toml")
     }
 

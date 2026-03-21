@@ -191,14 +191,10 @@ pub enum EnvAction {
 
 #[derive(Args)]
 pub struct EnvCreateArgs {
-    /// The name of the environment (defaults to name inside belle file, or overwrites if both provided)
-    pub name: Option<String>,
+    /// The name of the environment
+    pub name: String,
 
-    /// Ignore belle file and create fresh environment
-    #[arg(short, long)]
-    pub new: bool,
-
-    /// The Isabelle version to use in this environment
+    /// The Isabelle version to use in this environment (defaults to unpinned, picking latest)
     #[arg(short, long)]
     pub isabelle: Option<IsabelleVersion>,
 }

@@ -52,7 +52,7 @@ pub async fn run(args: Cli) -> Result<(), AppError> {
         Commands::Switch(args) | Commands::Env(EnvAction::Switch(args)) => environment::switch_env(args.name)?,
         Commands::Env(action) => match action {
             EnvAction::Create(args) => {
-                environment::create_env(args.name, args.new, args.isabelle.map(SemanticVersion::from)).await?
+                environment::create_env(args.name, args.isabelle.map(SemanticVersion::from)).await?
             }
             EnvAction::List => environment::list_envs()?,
             EnvAction::Remove(args) => environment::remove_env(&args.name)?,
