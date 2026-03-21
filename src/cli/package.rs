@@ -2,7 +2,10 @@ use console::style;
 use pubgrub::SemanticVersion;
 
 use crate::{
-    cli::{environment::finalise_env, error::CliError},
+    cli::{
+        environment::{FinalizeStrategy, finalise_env},
+        error::CliError,
+    },
     config::BelleConfig,
     environment::{Environment, PackageType},
     error::AppError,
@@ -14,7 +17,7 @@ pub async fn add_package(name: String, version: Option<SemanticVersion>) -> Resu
     let mut active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
 
     active_env.add_package(name.clone(), version.into())?;
-    finalise_env(&mut active_env, true).await?;
+    finalise_env(&mut active_env, FinalizeStrategy::ResolveAndApply).await?;
 
     println!("Added package {}.", style(name).cyan());
     Ok(())
@@ -24,7 +27,7 @@ pub async fn remove_package(name: &str) -> Result<(), AppError> {
     let mut active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
 
     active_env.remove_package(name)?;
-    finalise_env(&mut active_env, true).await?;
+    finalise_env(&mut active_env, FinalizeStrategy::ResolveAndApply).await?;
 
     println!("Removed package {}.", style(name).cyan());
     Ok(())

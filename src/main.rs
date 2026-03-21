@@ -37,6 +37,14 @@ fn display_errors(e: &AppError, backtrace: bool) {
 
 #[tokio::main]
 async fn main() {
+    println!(
+        "\n\n{} {} {} {} some command --here",
+        style("C:/Users/joelc/Desktop/belle").bright(),
+        style("main").true_color(241, 184, 12),
+        style("").bold(),
+        style("belle").yellow()
+    );
+
     // Parse command-line arguments and dispatch to the appropriate action
     let args = cli::Cli::parse();
     let backtrace_errors = args.global_args.backtrace;
@@ -54,10 +62,10 @@ async fn main() {
     }
 }
 
-// todo warn if no isabelle version linked matching package
-
 // todo error hints
 // todo consistent CLI + Errors output
+// todo use VersqionReq instead of option where possible
+// todo can i autodetect and strip colours if required
 
 // todo unit testing
 // todo integration testing

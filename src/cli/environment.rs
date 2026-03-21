@@ -5,21 +5,34 @@ use indicatif::ProgressBar;
 use pubgrub::SemanticVersion;
 
 use crate::{
-    cli::{environment, error::CliError, theming::ProgressBarTheme},
+    cli::{
+        core::{DisplayVersion, ProgressBarTheme, print_blank_ln, print_ln, print_success_ln, print_warning_ln},
+        environment,
+        error::CliError,
+    },
     config::BelleConfig,
-    environment::{Environment, error::EnvironmentError, manager},
+    environment::{Environment, LOCKFILE_NAME, VersionReq, error::EnvironmentError, manager},
     error::{AppError, CustomErrorContext, IoErrorContext},
     registry::{PackageIdentifier, error::RegistryNotExistContext},
+    resolver::ISABELLE_PACKAGE,
     util::get_isabelle_name,
 };
 
+#[derive(PartialEq, Eq)]
+pub enum FinalizeStrategy {
+    /// Resolve lockfile and fetch
+    ResolveAndApply,
+    /// Fetch only
+    ApplyOnly,
+}
+
 /// Apply any changes made to environment files, with logging
-pub async fn finalise_env(env: &mut Environment, include_resolve: bool) -> Result<(), AppError> {
+pub async fn finalise_env(env: &mut Environment, strategy: FinalizeStrategy) -> Result<(), AppError> {
     // Don't resolve if we want to skip it
-    if include_resolve {
+    if strategy == FinalizeStrategy::ResolveAndApply {
         let pb = ProgressBar::new_spinner();
         pb.enable_steady_tick(Duration::from_millis(100));
-        pb.set_message("Resolving dependency list".to_string());
+        pb.set_message("Resolving dependency tree".to_string());
 
         // Resolve lockfile dependencies
         env.resolve_lock()?;
@@ -39,7 +52,7 @@ pub async fn finalise_env(env: &mut Environment, include_resolve: bool) -> Resul
         let pb = ProgressBar::new(missing_packages.len() as u64).with_belle_style();
 
         for package in &missing_packages {
-            pb.set_message(format!("Fetching{}", style(&package).cyan()));
+            pb.set_message(format!("Fetching {}", style(&package).cyan()));
 
             let package_meta = package
                 .get_resolved_package_manifest()?
@@ -50,10 +63,12 @@ pub async fn finalise_env(env: &mut Environment, include_resolve: bool) -> Resul
             pb.inc(1);
         }
 
-        pb.finish_with_message(format!(
-            "Fetched '{}' new packages",
-            style(missing_packages.len()).bold()
-        ));
+        pb.finish_and_clear();
+
+        print_success_ln(
+            "Fetched",
+            format_args!("{} new packages", style(missing_packages.len()).bold()),
+        );
     }
 
     // Save environment back to file once this has completed, if any errors occur we will not reach this state
@@ -66,22 +81,18 @@ pub async fn finalise_env(env: &mut Environment, include_resolve: bool) -> Resul
     Ok(())
 }
 
+/// Display a warning if there is no linked isabelle matching the active environment
 fn warn_no_isabelle() -> Result<(), AppError> {
     let active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
 
-    if let Some(version) = active_env.get_isabelle_version() {
-        if !BelleConfig::read_config(|c| c.isabelles.contains_key(&version)) {
-            println!(
-                "{}",
-                style(format!(
-                    "Warning: This environment expects Isabelle {} [{}], but that version is not linked",
-                    get_isabelle_name(&version),
-                    &version
-                ))
-                .dim()
-                .yellow()
-            )
-        }
+    if let Some(version) = active_env.get_isabelle_version()
+        && !BelleConfig::read_config(|c| c.isabelles.contains_key(&version))
+    {
+        print_warning_ln(format_args!(
+            "This environment uses Isabelle {} [{}], but that version is not linked.",
+            get_isabelle_name(&version),
+            &version
+        ));
     }
 
     Ok(())
@@ -92,28 +103,39 @@ pub fn switch_env(name: Option<String>) -> Result<(), AppError> {
         Some(n) => n,
         None => {
             let frozen_env = Environment::frozen()?
-                .report_custom("No name was given, and no lockfile is found in workspace to infer from.")?;
+                .report_custom("No name was provided, and no lockfile was found to infer from.")?;
             frozen_env.name
         }
     };
 
     manager::switch_env(&name)?;
 
-    println!("Switched to environment {}.", style(name).cyan().bold());
+    print_success_ln("Switched", format_args!("to environment {}", style(name).cyan()));
+
+    // Warn if this environment doesn't have a linked isabelle version
+    warn_no_isabelle()?;
+
     Ok(())
 }
 
-pub async fn create_env(name: String, isabelle: Option<SemanticVersion>) -> Result<(), AppError> {
-    let mut new_env = Environment::new(name.clone(), isabelle.into())?;
+pub fn create_env(name: String, isabelle: Option<SemanticVersion>) -> Result<(), AppError> {
+    let new_env = Environment::new(name.clone(), isabelle.into())?;
 
-    finalise_env(&mut new_env, true).await?;
+    // Save the new environment
+    new_env.save()?;
 
-    println!("Created new environment: {}.", style(&name).cyan().bold());
+    // Create empty roots file
+    new_env.create_roots_file()?;
+
+    print_success_ln("Created", format_args!("environment {}", style(&name).cyan().bright()));
 
     // Switch into the newly created environment, qol
     manager::switch_env(&name)?;
 
-    println!("Switched to environment {}.", style(&name).cyan().bold());
+    print_success_ln(
+        "Switched",
+        format_args!("to environment {}", style(&name).cyan().bright()),
+    );
 
     Ok(())
 }
@@ -123,22 +145,17 @@ pub fn list_envs() -> Result<(), AppError> {
 
     let mut env_count = 0;
     for env in manager::iter_envs() {
-        let env_line = if active_env.as_deref() == Some(env.as_str()) {
-            format!(
-                "{} {:<9} {}",
-                style("*").cyan().bold(),
-                style(&env).cyan().bold(),
-                style("[active]").dim()
-            )
+        if active_env.as_ref() == Some(&env) {
+            // If this is the active environment then highlight it
+            print_ln("Active", console::Color::Cyan, env);
         } else {
-            format!("  {:<9}", &env)
-        };
-        println!("{}", env_line);
+            print_blank_ln(&env);
+        }
 
         env_count += 1;
     }
 
-    println!("Found {} Environments.", style(env_count).bold());
+    print_success_ln("Total", format_args!("{} environments", style(env_count).bold()));
 
     Ok(())
 }
@@ -157,7 +174,8 @@ pub fn remove_env(name: &str) -> Result<(), AppError> {
         environment::manager::set_env_none()?;
     }
 
-    println!("Removed environment: {}.", style(name).cyan().bold());
+    print_success_ln("Removed", format_args!("environment {}", style(&name).cyan().bright()));
+
     Ok(())
 }
 
@@ -165,7 +183,8 @@ pub fn freeze_env() -> Result<(), AppError> {
     let active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
     active_env.freeze()?;
 
-    println!("Frozen environment to belle file.");
+    print_success_ln("Frozen", format_args!("to {}", style(LOCKFILE_NAME).cyan().bright()));
+
     Ok(())
 }
 
@@ -174,9 +193,13 @@ pub async fn sync_env() -> Result<(), AppError> {
 
     active_env.sync()?;
     // Don't resolve as we want to keep the lockfile identical
-    finalise_env(&mut active_env, false).await?;
+    finalise_env(&mut active_env, FinalizeStrategy::ApplyOnly).await?;
 
-    println!("Synced environment from belle file.");
+    print_success_ln("Synced", format_args!("from {}", style(LOCKFILE_NAME).cyan().bright()));
+
+    // Warn if this new environment doesn't have a linked isabelle version
+    warn_no_isabelle()?;
+
     Ok(())
 }
 
@@ -184,36 +207,36 @@ pub async fn migrate_isabelle(version: Option<SemanticVersion>, unpin_existing: 
     let mut active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
 
     active_env.migrate_isabelle(version.into(), unpin_existing);
-    finalise_env(&mut active_env, true).await?;
+    finalise_env(&mut active_env, FinalizeStrategy::ResolveAndApply).await?;
 
-    // todo should version ungiven but found via lock be dimmed?
-    // todo this default temporary
-    let isabelle_version = active_env.get_isabelle_version().unwrap_or_else(SemanticVersion::one);
-
-    let mut formatted_version = style(isabelle_version);
-    formatted_version = if true {
-        formatted_version.green()
-    } else {
-        formatted_version.dim()
+    let new_isabelle_version = match &active_env.isabelle {
+        VersionReq::Given(v) => Some(DisplayVersion::Pinned(v)),
+        VersionReq::Any => active_env.lock.get(ISABELLE_PACKAGE).map(DisplayVersion::Resolved),
     };
 
-    println!(
-        "Migrated Isabelle to {} {}{}{}.",
-        style(get_isabelle_name(&isabelle_version)).cyan().bold(),
-        style("[").dim(),
-        formatted_version,
-        style("]").dim()
-    );
+    let line = match new_isabelle_version {
+        Some(v) => format!("to {} {}", style(get_isabelle_name(v.get_version())).cyan().bright(), v),
+        None => format!("to {}", style("latest").cyan().bright()),
+    };
+
+    print_success_ln("Migrated", line);
+
+    // Warn if this environment doesn't have a linked isabelle version
+    warn_no_isabelle()?;
 
     Ok(())
 }
 
-pub async fn refetch() -> Result<(), AppError> {
+pub async fn restore() -> Result<(), AppError> {
     let mut active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
 
-    finalise_env(&mut active_env, false).await?;
+    // Don't resolve as we want to keep environment identical
+    finalise_env(&mut active_env, FinalizeStrategy::ApplyOnly).await?;
 
-    println!("All packages exist locally");
+    print_success_ln("Restored", "all packages");
+
+    // Warn if this environment doesn't have a linked isabelle version
+    warn_no_isabelle()?;
 
     Ok(())
 }

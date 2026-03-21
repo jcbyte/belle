@@ -5,7 +5,7 @@ use indicatif::ProgressBar;
 use url::Url;
 
 use crate::{
-    cli::theming::ProgressBarTheme,
+    cli::core::ProgressBarTheme,
     error::{AppError, CustomErrorContext},
     fetch::{BelleClient, RepoMetadata, ReturnedPackages, get_local_package_meta},
     registry::{Package, PackageIdentifier, RegistrablePackage},

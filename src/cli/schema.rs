@@ -61,7 +61,7 @@ pub enum Commands {
     Remove(RemoveArgs),
 
     /// Restore all missing packages for the current environment
-    Fetch,
+    Restore,
 
     /// Migrate to a different isabelle version
     Migrate(MigrateArgs),
