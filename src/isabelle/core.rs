@@ -8,6 +8,7 @@ use crate::{
     config::BelleConfig,
     error::{AppError, IoPathErrorContext},
     isabelle::{
+        IsabellePathContext,
         error::{IsabelleCommandFailedContext, IsabelleError, IsabelleInvalidOutputContext},
         types::Isabelle,
     },
@@ -18,14 +19,14 @@ impl Isabelle {
     pub fn locate(path: impl Into<PathBuf>) -> Result<Self, IsabelleError> {
         let path = path.into();
 
-        let version_res = Self::exec_with_isabelle_from_path(&path, "isabelle version")?;
+        let version_res = Self::exec_with_isabelle_from_path(&path, "version")?;
         let version = get_isabelle_version(&version_res);
 
         Ok(Self { version, path })
     }
 
-    pub fn exec_with_isabelle_from_path(isabelle_root: &Path, cmd: &str) -> Result<String, IsabelleError> {
-        let isabelle_bin = isabelle_root.join("bin");
+    pub fn exec_with_isabelle_from_path(isabelle_root: &Path, args: &str) -> Result<String, IsabelleError> {
+        let isabelle_bin_dir = isabelle_root.join("bin");
 
         let mut command = if cfg!(windows) {
             let bash = isabelle_root.join("contrib").join("cygwin").join("bin").join("bash.exe");
@@ -36,31 +37,30 @@ impl Isabelle {
                 .env("HOME", env::var("USERPROFILE").unwrap_or_default())
                 .env(
                     "PATH",
-                    format!("{};{}", isabelle_bin.display(), env::var("PATH").unwrap_or_default()),
+                    format!(
+                        "{};{}",
+                        isabelle_bin_dir.display(),
+                        env::var("PATH").unwrap_or_default()
+                    ),
                 )
                 .env("LANG", "en_US.UTF-8")
                 .env("CHERE_INVOKING", "true")
                 .arg("--login")
                 .arg("-c")
-                .arg(cmd);
+                .arg(format!("isabelle {}", args));
 
             command
         } else {
-            // Create a command using the shell, with access to the Isabelle executable
-            let mut command = Command::new("sh");
-            command
-                .env(
-                    "PATH",
-                    format!("{}:{}", isabelle_bin.display(), env::var("PATH").unwrap_or_default()),
-                )
-                .arg("-c")
-                .arg(cmd);
+            // Execute the isabelle binary directly
+            let isabelle_bin = isabelle_bin_dir.join("isabelle");
+            let mut command = Command::new(isabelle_bin);
+            command.arg(args);
 
             command
         };
 
-        let res = command.output().report_failed_command(cmd)?;
-        let res_str = String::from_utf8(res.stdout).report_invalid_output(cmd)?;
+        let res = command.output().report_failed_isabelle_command(args)?;
+        let res_str = String::from_utf8(res.stdout).report_invalid_isabelle_command_output(args)?;
 
         Ok(res_str)
     }
@@ -69,23 +69,13 @@ impl Isabelle {
         Self::exec_with_isabelle_from_path(&self.path, cmd)
     }
 
-    pub fn get_isabelle_path(&self, path: &Path) -> Result<String, AppError> {
-        if cfg!(windows) {
-            let path_res = self.exec_with_isabelle(&format!("cygpath -u \"{}\"", path.display()))?;
-            Ok(path_res.trim().to_string())
-        } else {
-            let path_str = path.to_str().report_path(path)?;
-            Ok(path_str.trim().to_string())
-        }
-    }
-
     fn manage_component(&self, add: bool) -> Result<(), AppError> {
         let active_env_dir = BelleConfig::get_active_env_link();
-        let isabelle_path = self.get_isabelle_path(&active_env_dir)?;
+        let isabelle_path = active_env_dir.to_isabelle_path().report_path(&active_env_dir)?;
 
         // Add or remove the active environment directory as a component to isabelle
         let flag = if add { "-u" } else { "-x" };
-        self.exec_with_isabelle(&format!("isabelle components {} {}", flag, isabelle_path))?;
+        self.exec_with_isabelle(&format!("components {} {}", flag, isabelle_path))?;
 
         Ok(())
     }

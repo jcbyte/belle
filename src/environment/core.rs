@@ -206,6 +206,8 @@ impl Environment {
     }
 
     pub fn create_roots_file(&self) -> Result<(), AppError> {
+        todo!("rework this with new path system");
+
         let packages_src = self
             .iter_user_packages()
             .map(|(name, version)| PackageIdentifier::new(name, *version))

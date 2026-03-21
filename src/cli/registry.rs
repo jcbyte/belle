@@ -298,7 +298,7 @@ pub fn purge_packages() -> Result<(), AppError> {
         }
     }
 
-    println!("Removed {} PAckages.", style(removed).bold());
+    println!("Removed {} Packages.", style(removed).bold());
 
     Ok(())
 }

@@ -100,6 +100,7 @@ pub async fn create_env(name: String, isabelle: Option<SemanticVersion>) -> Resu
 pub fn list_envs() -> Result<(), AppError> {
     let active_env = Environment::active()?.map(|active_env| active_env.name);
 
+    let mut env_count = 0;
     for env in manager::iter_envs() {
         let env_line = if active_env.as_deref() == Some(env.as_str()) {
             format!(
@@ -112,7 +113,11 @@ pub fn list_envs() -> Result<(), AppError> {
             format!("  {:<9}", &env)
         };
         println!("{}", env_line);
+
+        env_count += 1;
     }
+
+    println!("Found {} Environments.", style(env_count).bold());
 
     Ok(())
 }

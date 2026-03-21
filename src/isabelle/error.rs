@@ -3,16 +3,16 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum IsabelleError {
-    #[error("Isabelle failed to execute '{command}'.")]
+    #[error("Failed to execute 'isabelle {args}'.")]
     CommandFailed {
-        command: String,
+        args: String,
         #[source]
         source: std::io::Error,
     },
 
-    #[error("Isabelle command '{command}' produced invalid UTF-8 output.")]
+    #[error("Command 'isabelle {args}' produced invalid UTF-8 output.")]
     InvalidCommandOutput {
-        command: String,
+        args: String,
         #[source]
         source: std::string::FromUtf8Error,
     },
@@ -22,26 +22,26 @@ pub enum IsabelleError {
 }
 
 pub trait IsabelleCommandFailedContext<T> {
-    fn report_failed_command(self, command: impl Into<String>) -> Result<T, IsabelleError>;
+    fn report_failed_isabelle_command(self, args: impl Into<String>) -> Result<T, IsabelleError>;
 }
 
 impl<T> IsabelleCommandFailedContext<T> for std::io::Result<T> {
-    fn report_failed_command(self, command: impl Into<String>) -> Result<T, IsabelleError> {
+    fn report_failed_isabelle_command(self, args: impl Into<String>) -> Result<T, IsabelleError> {
         self.map_err(|e| IsabelleError::CommandFailed {
-            command: command.into(),
+            args: args.into(),
             source: e,
         })
     }
 }
 
 pub trait IsabelleInvalidOutputContext<T> {
-    fn report_invalid_output(self, command: impl Into<String>) -> Result<T, IsabelleError>;
+    fn report_invalid_isabelle_command_output(self, args: impl Into<String>) -> Result<T, IsabelleError>;
 }
 
 impl<T> IsabelleInvalidOutputContext<T> for Result<T, std::string::FromUtf8Error> {
-    fn report_invalid_output(self, command: impl Into<String>) -> Result<T, IsabelleError> {
+    fn report_invalid_isabelle_command_output(self, args: impl Into<String>) -> Result<T, IsabelleError> {
         self.map_err(|e| IsabelleError::InvalidCommandOutput {
-            command: command.into(),
+            args: args.into(),
             source: e,
         })
     }
