@@ -1,19 +1,26 @@
-use std::{env, path::PathBuf};
+use std::{
+    env,
+    path::{Path, PathBuf},
+    sync::OnceLock,
+};
 
 use crate::config::BelleConfig;
 
-pub fn get_home_dir() -> PathBuf {
-    if cfg!(debug_assertions) {
-        // Use a local version of home if we are running in dev
-        return PathBuf::from("belle_home");
-    }
+static HOME_DIR: OnceLock<PathBuf> = OnceLock::new();
 
-    // Use a belle home location at environment variable or default to directory under the user's application data
-    let home_dir = env::var("BELLE_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| dirs::data_dir().expect("Could not get users data folder").join("belle"));
+pub fn get_home_dir() -> &'static Path {
+    // Use a cached home directory, as this could be called many times and performs system calls/lookups
+    HOME_DIR.get_or_init(|| {
+        if cfg!(debug_assertions) {
+            // Use a local version of home if we are running in dev
+            return PathBuf::from("belle_home");
+        }
 
-    home_dir
+        // Use a belle home location at environment variable or default to directory under the user's application data
+        env::var("BELLE_HOME")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| dirs::data_dir().expect("Could not get users data folder").join("belle"))
+    })
 }
 
 impl BelleConfig {
