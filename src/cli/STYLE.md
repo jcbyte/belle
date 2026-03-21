@@ -20,21 +20,21 @@ The status verb should be right-aligned with a fixed width for a clean vertical 
 
 ### Errors & Warnings
 
-Errors and warnings should use a bold, uncapitalised coloured title at the start of lines.
-
-A colon should be placed at the end of the title and content directly afterwards using the specified colour.
+Errors and warnings should follow the same suit with prefix listed as always "Error" or "Warning" respectively.
 
 Traces must follow standard indentation level (for each trace).
 
 ## Grammar
 
-Full stops should not be used within status, success and summary messages.
+Full stops should never be placed at the end of lines.
 
-They should however be used with errors and warnings.
+They may be placed within the same line, for multiple sentences.
 
 ## Summary Blocks
 
 Commands with lists/long outputs should print a summary line giving ideally numerical output of changes.
+
+Numerical data in summary commands should be bold.
 
 ## Progress Bars
 
@@ -42,9 +42,9 @@ A standardised style and colour theme should be used for progress bars and spinn
 
 ## Packages and Versions
 
-Version numbers should be printed using dimmed square brackets ([2019.2.17]).
+Version numbers should be printed using square brackets ([2019.2.17]).
 
-If the version number is given it should be green, else uncoloured.
+If the version number is explicit it should be fully coloured, else dimmed.
 
 When referencing an AFP/Isabelle the given Isabelle name should also be used (2025-2 [2025.2.0]).
 
@@ -54,7 +54,7 @@ When nothing needs to be changed (i.e. switching into the current environment) a
 
 ## Lists
 
-Lists should use a dimmed bullet, '•'.
+Lists should use the same indentation as regular commands with the prefix used sparingly to mark certain elements in cyan.
 
 ## Interactivity
 
