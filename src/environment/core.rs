@@ -100,6 +100,13 @@ impl Environment {
         self.get_env_dir().join("ROOTS")
     }
 
+    pub fn get_isabelle_version(&self) -> Option<SemanticVersion> {
+        self.lock
+            .get(ISABELLE_PACKAGE)
+            .copied()
+            .or_else(|| self.isabelle.clone().into())
+    }
+
     fn load(env_file: &Path) -> Result<Self, AppError> {
         if !env_file.is_file() {
             return Err(EnvironmentError::FileDoesNotExist {

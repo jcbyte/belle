@@ -21,7 +21,7 @@ fn overwrite_link(original: &Path, link: &Path) -> Result<(), IoError> {
     // Create a temporary symlink and overwrite to avoid `AlreadyExists` errors
     let temp_link = link.with_added_extension("tmp");
     symlink(original, &temp_link).report_save("active environment symlink", &temp_link)?;
-    fs::rename(temp_link, &link).report_save("active environment symlink", &link)?;
+    fs::rename(temp_link, link).report_save("active environment symlink", link)?;
 
     Ok(())
 }

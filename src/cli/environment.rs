@@ -6,10 +6,10 @@ use pubgrub::SemanticVersion;
 
 use crate::{
     cli::{environment, error::CliError, theming::ProgressBarTheme},
-    environment::{Environment, VersionReq, error::EnvironmentError, manager},
+    config::BelleConfig,
+    environment::{Environment, error::EnvironmentError, manager},
     error::{AppError, CustomErrorContext, IoErrorContext},
     registry::{PackageIdentifier, error::RegistryNotExistContext},
-    resolver::ISABELLE_PACKAGE,
     util::get_isabelle_name,
 };
 
@@ -62,6 +62,27 @@ pub async fn finalise_env(env: &mut Environment, include_resolve: bool) -> Resul
 
     // Update the ROOTS file to match new environment
     env.create_roots_file()?;
+
+    Ok(())
+}
+
+fn warn_no_isabelle() -> Result<(), AppError> {
+    let active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
+
+    if let Some(version) = active_env.get_isabelle_version() {
+        if !BelleConfig::read_config(|c| c.isabelles.contains_key(&version)) {
+            println!(
+                "{}",
+                style(format!(
+                    "Warning: This environment expects Isabelle {} [{}], but that version is not linked",
+                    get_isabelle_name(&version),
+                    &version
+                ))
+                .dim()
+                .yellow()
+            )
+        }
+    }
 
     Ok(())
 }
@@ -165,20 +186,12 @@ pub async fn migrate_isabelle(version: Option<SemanticVersion>, unpin_existing: 
     active_env.migrate_isabelle(version.into(), unpin_existing);
     finalise_env(&mut active_env, true).await?;
 
-    let (isabelle_version, given) = match active_env.isabelle {
-        VersionReq::Given(version) => (version, true),
-        VersionReq::Any => {
-            let version = active_env
-                .lock
-                .get(ISABELLE_PACKAGE)
-                // todo if no packages this could fail
-                .ok_or(EnvironmentError::NoIsabelleVersion)?;
-            (*version, false)
-        }
-    };
+    // todo should version ungiven but found via lock be dimmed?
+    // todo this default temporary
+    let isabelle_version = active_env.get_isabelle_version().unwrap_or_else(SemanticVersion::one);
 
     let mut formatted_version = style(isabelle_version);
-    formatted_version = if given {
+    formatted_version = if true {
         formatted_version.green()
     } else {
         formatted_version.dim()
@@ -191,6 +204,7 @@ pub async fn migrate_isabelle(version: Option<SemanticVersion>, unpin_existing: 
         formatted_version,
         style("]").dim()
     );
+
     Ok(())
 }
 
