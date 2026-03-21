@@ -20,35 +20,28 @@ type SemVS = Ranges<SemanticVersion>;
 pub struct BelleDependencyProvider {
     root_packages: HashMap<String, VersionReq>,
 
+    /// Whether to update the list of valid isabelle versions as we resolve dependencies
+    update_isabelle_versions: bool,
     /// List of seen isabelle versions from packages
-    isabelle_versions: HashSet<SemanticVersion>,
+    isabelle_versions: RefCell<HashSet<SemanticVersion>>,
     /// Cache for package versions
     package_versions: RefCell<HashMap<String, HashSet<SemanticVersion>>>,
 }
 
 impl BelleDependencyProvider {
     fn new(isabelle_version: VersionReq, root_packages: HashMap<String, VersionReq>) -> Result<Self, IsabelleError> {
-        let linked_versions: HashSet<SemanticVersion> =
-            BelleConfig::read_config(|c| c.isabelles.keys().cloned().collect());
-
         let isabelle_versions = match isabelle_version {
             // If an isabelle version is given, only allow this to be the available version
             // All packages will eventually reference an isabelle package
-            VersionReq::Given(version) => {
-                // If the given version of isabelle is not linked then throw
-                if !linked_versions.contains(&version) {
-                    return Err(IsabelleError::VersionNotLinked { version });
-                }
-
-                HashSet::from([version])
-            }
-            // If any version is given, use all registered versions
-            VersionReq::Any => linked_versions,
+            VersionReq::Given(version) => HashSet::from([version]),
+            // If any version is given, use all possible seen versions
+            VersionReq::Any => HashSet::new(),
         };
 
         Ok(Self {
             root_packages,
-            isabelle_versions,
+            update_isabelle_versions: isabelle_version.is_any(),
+            isabelle_versions: RefCell::new(isabelle_versions),
             package_versions: RefCell::new(HashMap::new()),
         })
     }
@@ -76,7 +69,8 @@ impl DependencyProvider for BelleDependencyProvider {
         let versions =
             if package == ISABELLE_PACKAGE || BelleConfig::read_config(|c| c.isabelle_packages.contains(package)) {
                 // If this is an isabelle package (the global isabelle package or, a defined one from config) then pick a version from the available isabelle versions
-                self.isabelle_versions.clone()
+                let isabelle_versions = self.isabelle_versions.borrow();
+                isabelle_versions.clone()
             } else {
                 // Else pick from the list of the packages versions
                 self.get_package_versions(package)
@@ -101,6 +95,7 @@ impl DependencyProvider for BelleDependencyProvider {
         }
 
         // Process isabelle packages last
+        // This ensure that all 3rd party packages have been seen, and all versions of isabelle have been included
         if package == ISABELLE_PACKAGE || BelleConfig::read_config(|c| c.isabelle_packages.contains(package)) {
             return Reverse(usize::MAX);
         }
@@ -130,7 +125,8 @@ impl DependencyProvider for BelleDependencyProvider {
                         match version {
                             // Only allow the specific version of a package if it is explicitly given
                             VersionReq::Given(v) => SemVS::singleton(v),
-                            // Else allow any version (other packages will have tighter requirements)
+                            // Else allow any version
+                            // THe individual packages will have tighter requirements causing conflicts, etc
                             VersionReq::Any => SemVS::full(),
                         },
                     )
@@ -152,7 +148,6 @@ impl DependencyProvider for BelleDependencyProvider {
         }
 
         let package = PackageIdentifier::new(package, version);
-
         let manifest = package.get_package_manifest()?.report_package_nonexistent(package)?;
 
         let mut deps: HashMap<String, SemVS, rustc_hash::FxBuildHasher> = HashMap::with_hasher(FxBuildHasher);
@@ -162,17 +157,17 @@ impl DependencyProvider for BelleDependencyProvider {
                 // If this package is an alias then just add its aliases package as a version
                 deps.insert(alias.alias.name, SemVS::singleton(alias.alias.version));
             }
-            RegisteredPackage::Package(manifest) => {
+            RegisteredPackage::Package(meta) => {
                 // Get list of isabelle versions allowed for this package
-                let isabelle_versions = manifest
-                    .isabelles
+                let isabelle_versions = meta.isabelles;
+                let isabelle_versions_range = isabelle_versions
                     .iter()
                     .fold(SemVS::empty(), |acc, version| acc.union(&SemVS::singleton(version)));
 
-                for (name, version) in manifest.dependencies {
-                    // If the dependency is an isabelle package then, we can accept any versions of isabelle that this package accepts
+                for (name, version) in meta.dependencies {
+                    // If the dependency is an isabelle package then, we can accept any versions of isabelle which this package accepts
                     if BelleConfig::read_config(|c| c.isabelle_packages.contains(&name)) {
-                        deps.insert(name, isabelle_versions.clone());
+                        deps.insert(name, isabelle_versions_range.clone());
                         continue;
                     }
 
@@ -183,7 +178,13 @@ impl DependencyProvider for BelleDependencyProvider {
                 }
 
                 // Add isabelle itself as a dependency
-                deps.insert(ISABELLE_PACKAGE.to_string(), isabelle_versions);
+                deps.insert(ISABELLE_PACKAGE.to_string(), isabelle_versions_range);
+
+                // If we must collect all possible isabelle versions, then add this packages possible versions here
+                if self.update_isabelle_versions {
+                    let mut isabelle_version_list = self.isabelle_versions.borrow_mut();
+                    isabelle_version_list.extend(isabelle_versions);
+                }
             }
         }
 

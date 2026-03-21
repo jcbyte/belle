@@ -6,7 +6,7 @@ use pubgrub::SemanticVersion;
 use crate::{
     config::BelleConfig,
     error::AppError,
-    isabelle::{Isabelle, error::IsabelleError},
+    isabelle::{Isabelle, error::IsabelleVersionLinkedContext},
     util::get_isabelle_name,
 };
 
@@ -35,7 +35,7 @@ pub fn unlink(version: SemanticVersion) -> Result<(), AppError> {
             path: path.clone(),
         })
     })
-    .ok_or(IsabelleError::VersionNotLinked { version })?;
+    .report_not_linked(version)?;
 
     isabelle.unlink()?;
     BelleConfig::write_config(|c| c.isabelles.remove(&version));
