@@ -36,6 +36,13 @@ impl Environment {
         Ok(env)
     }
 
+    pub fn has_active() -> bool {
+        let active_env = BelleConfig::get_active_env_link();
+        let env_file = Self::join_env_file(active_env);
+
+        env_file.is_file()
+    }
+
     /// Get the active environment, if any
     pub fn active() -> Result<Option<Self>, AppError> {
         let active_env = BelleConfig::get_active_env_link();
@@ -216,7 +223,9 @@ impl Environment {
         let mut writer = BufWriter::new(roots_file);
 
         for package_src in packages_src {
-            let package_root_str = package_src.to_isabelle_path().report_path(&package_src)?;
+            let full_package_src =
+                dunce::canonicalize(&package_src).report_read("package source directory", &package_src)?;
+            let package_root_str = full_package_src.to_isabelle_path().report_path(&package_src)?;
             writeln!(writer, "{}", package_root_str).report_save("root file", &roots_file_path)?;
         }
 

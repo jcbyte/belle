@@ -54,7 +54,6 @@ async fn main() {
     }
 }
 
-// todo if env/active doesn't exist then the components cannot be added
 // todo warn if no isabelle version linked matching package
 
 // todo error hints

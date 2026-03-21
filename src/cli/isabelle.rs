@@ -5,12 +5,19 @@ use pubgrub::SemanticVersion;
 
 use crate::{
     config::BelleConfig,
+    environment::{self, Environment},
     error::AppError,
     isabelle::{Isabelle, error::IsabelleVersionLinkedContext},
     util::get_isabelle_name,
 };
 
 pub fn link(path: PathBuf) -> Result<(), AppError> {
+    // If there is not an active environment then switch to the null environment
+    // So that isabelle can register correctly to the env/active symlink
+    if !Environment::has_active() {
+        environment::manager::set_env_none()?;
+    }
+
     let isabelle = Isabelle::locate(path)?;
 
     isabelle.link()?;

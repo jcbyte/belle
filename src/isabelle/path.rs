@@ -6,8 +6,7 @@ pub trait IsabellePathContext {
 
 impl IsabellePathContext for Path {
     fn to_isabelle_path(&self) -> Option<String> {
-        let full_path = dunce::canonicalize(self).ok()?;
-        let path_str = full_path.to_str()?;
+        let path_str = self.to_str()?;
 
         if cfg!(windows) {
             // On windows we must convert to a cygpath

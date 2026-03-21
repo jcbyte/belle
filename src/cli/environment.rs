@@ -5,7 +5,7 @@ use indicatif::ProgressBar;
 use pubgrub::SemanticVersion;
 
 use crate::{
-    cli::{error::CliError, theming::ProgressBarTheme},
+    cli::{environment, error::CliError, theming::ProgressBarTheme},
     environment::{Environment, VersionReq, error::EnvironmentError, manager},
     error::{AppError, CustomErrorContext, IoErrorContext},
     registry::{PackageIdentifier, error::RegistryNotExistContext},
@@ -130,6 +130,11 @@ pub fn remove_env(name: &str) -> Result<(), AppError> {
     }
 
     fs::remove_dir_all(&env_dir).report_delete("environment directory", &env_dir)?;
+
+    // If we deleted our active environment then explicitly revert back to the null environment (so isabelle is happy)
+    if !Environment::has_active() {
+        environment::manager::set_env_none()?;
+    }
 
     println!("Removed environment: {}.", style(name).cyan().bold());
     Ok(())

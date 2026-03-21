@@ -1,5 +1,5 @@
 use std::{
-    env,
+    env, fs,
     path::{Path, PathBuf},
     sync::OnceLock,
 };
@@ -13,7 +13,9 @@ pub fn get_home_dir() -> &'static Path {
     HOME_DIR.get_or_init(|| {
         if cfg!(debug_assertions) {
             // Use a local version of home if we are running in dev
-            return PathBuf::from("belle_home");
+            let home_path = PathBuf::from("belle_home");
+            fs::create_dir_all(&home_path).expect("Debug `belle_home` directory cannot be created");
+            return dunce::canonicalize(&home_path).expect("Debug `belle_home` cannot be canonicalised");
         }
 
         // Use a belle home location at environment variable or default to directory under the user's application data
@@ -46,5 +48,10 @@ impl BelleConfig {
     /// Get folder for environments
     pub fn get_active_env_link() -> PathBuf {
         Self::get_root_env_dir().join("active")
+    }
+
+    /// Get folder for a null/placeholder environment
+    pub fn get_none_env() -> PathBuf {
+        Self::get_root_env_dir().join(".none")
     }
 }
