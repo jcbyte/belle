@@ -9,7 +9,9 @@ use pubgrub::SemanticVersion;
 
 use crate::{
     config::BelleConfig,
-    environment::{Environment, PackageListing, PackageType, error::EnvironmentError, types::VersionReq},
+    environment::{
+        Environment, LOCKFILE_NAME, PackageListing, PackageType, error::EnvironmentError, types::VersionReq,
+    },
     error::{AppError, IoErrorContext, IoPathErrorContext, ParseErrorContext},
     isabelle::IsabellePathContext,
     registry::PackageIdentifier,
@@ -67,7 +69,7 @@ impl Environment {
 
     /// Get the environment in the freeze file, if any
     pub fn frozen() -> Result<Option<Self>, AppError> {
-        let freeze_file = Self::get_freeze_file();
+        let freeze_file = Self::get_lockfile();
 
         if !freeze_file.is_file() {
             return Ok(None);
@@ -131,15 +133,15 @@ impl Environment {
         Ok(())
     }
 
-    pub fn get_freeze_file() -> PathBuf {
-        PathBuf::from(".").join("belle.toml")
+    pub fn get_lockfile() -> PathBuf {
+        PathBuf::from(".").join(LOCKFILE_NAME)
     }
 
     pub fn freeze(&self) -> Result<(), AppError> {
-        let freeze_file = Self::get_freeze_file();
+        let lockfile = Self::get_lockfile();
 
-        let content = toml::to_string(self).report_file("environment", &freeze_file)?;
-        fs::write(&freeze_file, content).report_save("environment lockfile", &freeze_file)?;
+        let content = toml::to_string(self).report_file("environment", &lockfile)?;
+        fs::write(&lockfile, content).report_save("environment lockfile", &lockfile)?;
 
         Ok(())
     }
@@ -147,7 +149,7 @@ impl Environment {
     /// Sync the contents of the freeze file into this environment
     pub fn sync(&mut self) -> Result<(), AppError> {
         let frozen_env = Self::frozen()?.ok_or(EnvironmentError::NoLockFile {
-            path: Self::get_freeze_file(),
+            path: Self::get_lockfile(),
         })?;
 
         // Set the active packages to the ones from freeze file and save it back

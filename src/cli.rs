@@ -6,6 +6,7 @@ use crate::{
     error::AppError,
 };
 
+mod core;
 mod environment;
 pub mod error;
 mod fetch;
@@ -13,7 +14,6 @@ mod isabelle;
 mod package;
 mod registry;
 mod schema;
-mod theming;
 mod types;
 
 use pubgrub::SemanticVersion;
@@ -51,14 +51,12 @@ pub async fn run(args: Cli) -> Result<(), AppError> {
         Commands::Search(args) => registry::search_registry(args.query),
         Commands::Switch(args) | Commands::Env(EnvAction::Switch(args)) => environment::switch_env(args.name)?,
         Commands::Env(action) => match action {
-            EnvAction::Create(args) => {
-                environment::create_env(args.name, args.isabelle.map(SemanticVersion::from)).await?
-            }
+            EnvAction::Create(args) => environment::create_env(args.name, args.isabelle.map(SemanticVersion::from))?,
             EnvAction::List => environment::list_envs()?,
             EnvAction::Remove(args) => environment::remove_env(&args.name)?,
-            EnvAction::Switch(_args) => unreachable!(),
             EnvAction::Freeze => environment::freeze_env()?,
             EnvAction::Sync => environment::sync_env().await?,
+            EnvAction::Switch(_args) => unreachable!(),
         },
         Commands::Migrate(args) => {
             environment::migrate_isabelle(args.version.map(SemanticVersion::from), args.unpin).await?
@@ -66,7 +64,7 @@ pub async fn run(args: Cli) -> Result<(), AppError> {
         Commands::Add(args) => package::add_package(args.name, args.version).await?,
         Commands::Remove(args) => package::remove_package(&args.name).await?,
         Commands::List(args) => package::list_packages(args.all)?,
-        Commands::Fetch => environment::refetch().await?,
+        Commands::Restore => environment::restore().await?,
     }
 
     Ok(())
