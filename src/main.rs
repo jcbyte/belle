@@ -54,9 +54,9 @@ async fn main() {
     }
 }
 
+// todo allow resolving with no isabelle versions??
 // todo needs to be a way to refetch packages, in case cache clean is performed
 // todo if env/active doesn't exist then the components cannot be added
-// todo warnings about no isabelle version selected everywhere, unnecessarily?
 
 // todo error hints
 // todo consistent CLI + Errors output

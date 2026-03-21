@@ -11,7 +11,7 @@ use crate::{
     config::BelleConfig,
     environment::{Environment, PackageListing, PackageType, error::EnvironmentError, types::VersionReq},
     error::{AppError, IoErrorContext, IoPathErrorContext, ParseErrorContext},
-    isabelle::{Isabelle, error::IsabelleVersionLinkedContext},
+    isabelle::IsabellePathContext,
     registry::PackageIdentifier,
     resolver::{BelleDependencyProvider, ISABELLE_PACKAGE},
     util::create_parent_dirs,
@@ -206,50 +206,21 @@ impl Environment {
     }
 
     pub fn create_roots_file(&self) -> Result<(), AppError> {
-        todo!("rework this with new path system");
-
         let packages_src = self
             .iter_user_packages()
             .map(|(name, version)| PackageIdentifier::new(name, *version))
             .map(|p| p.get_package_location());
 
-        let mut written_roots_file = self.get_roots_file();
-        // On windows place these paths in a temporary file, to convert later
-        if cfg!(windows) {
-            written_roots_file.add_extension("tmp");
-        }
-
-        let roots_file = File::create(&written_roots_file).report_save("root file", &written_roots_file)?;
+        let roots_file_path = self.get_roots_file();
+        let roots_file = File::create(&roots_file_path).report_save("root file", &roots_file_path)?;
         let mut writer = BufWriter::new(roots_file);
 
         for package_src in packages_src {
-            let package_root_normal = dunce::canonicalize(&package_src).report_read("package root", &package_src)?;
-            let package_root_str = package_root_normal.to_str().report_path(&package_root_normal)?;
-            writeln!(writer, "{}", package_root_str).report_save("root file", &written_roots_file)?;
+            let package_root_str = package_src.to_isabelle_path().report_path(&package_src)?;
+            writeln!(writer, "{}", package_root_str).report_save("root file", &roots_file_path)?;
         }
 
-        writer.flush().report_save("root file", &written_roots_file)?;
-
-        // On windows convert our temporary list of paths into cygwin ones
-        if cfg!(windows) {
-            let env_isabelle = self.lock.get(ISABELLE_PACKAGE).ok_or(EnvironmentError::NoIsabelleVersion)?;
-
-            let isabelle =
-                BelleConfig::read_config(|c| c.isabelles.get(env_isabelle).report_not_linked(env_isabelle).cloned())?;
-
-            // Convert written paths
-            Isabelle::exec_with_isabelle_from_path(
-                &isabelle,
-                &format!(
-                    "cygpath -f \"{}\" > \"{}\"",
-                    written_roots_file.display(),
-                    self.get_roots_file().display()
-                ),
-            )?;
-
-            // Remove the temporary ROOT file
-            fs::remove_file(&written_roots_file).report_delete("temporary root file", &written_roots_file)?;
-        }
+        writer.flush().report_save("root file", &roots_file_path)?;
 
         Ok(())
     }

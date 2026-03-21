@@ -25,7 +25,7 @@ impl Isabelle {
         Ok(Self { version, path })
     }
 
-    pub fn exec_with_isabelle_from_path(isabelle_root: &Path, args: &str) -> Result<String, IsabelleError> {
+    fn exec_with_isabelle_from_path(isabelle_root: &Path, args: &str) -> Result<String, IsabelleError> {
         let isabelle_bin_dir = isabelle_root.join("bin");
 
         let mut command = if cfg!(windows) {
