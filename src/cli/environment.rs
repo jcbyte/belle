@@ -2,15 +2,10 @@ use std::{fs, time::Duration};
 
 use console::style;
 use indicatif::ProgressBar;
+use tokio::time::sleep;
 
 use crate::{
-    cli::{
-        core::{
-            DisplayVersion, ProgressBarTheme, pluralise, print_blank_ln, print_ln, print_success_ln, print_warning_ln,
-        },
-        environment,
-        error::CliError,
-    },
+    cli::{CliLine, DisplayVersion, ProgressBarTheme, environment, error::CliError, pluralise},
     config::BelleConfig,
     environment::{Environment, LOCKFILE_NAME, VersionReq, error::EnvironmentError, manager},
     error::{AppError, CustomErrorContext, IoErrorContext},
@@ -31,12 +26,15 @@ pub enum FinalizeStrategy {
 pub async fn finalise_env(env: &mut Environment, strategy: FinalizeStrategy) -> Result<(), AppError> {
     // Don't resolve if we want to skip it
     if strategy == FinalizeStrategy::ResolveAndApply {
-        let pb = ProgressBar::new_spinner();
+        let pb = ProgressBar::new_spinner().with_belle_spinner_style();
         pb.enable_steady_tick(Duration::from_millis(100));
-        pb.set_message("Resolving dependency tree".to_string());
+        pb.set_prefix(CliLine::style_focus_prefix("Resolving").to_string());
+        pb.set_message("dependencies".to_string());
 
         // Resolve lockfile dependencies
         env.resolve_lock()?;
+
+        sleep(Duration::from_secs(10)).await;
 
         pb.finish_and_clear();
     }
@@ -50,10 +48,11 @@ pub async fn finalise_env(env: &mut Environment, strategy: FinalizeStrategy) -> 
         .collect();
 
     if !missing_packages.is_empty() {
-        let pb = ProgressBar::new(missing_packages.len() as u64).with_belle_style();
+        let pb = ProgressBar::new(missing_packages.len() as u64).with_belle_bar_style();
+        pb.set_prefix(CliLine::style_focus_prefix("Fetching").to_string());
 
         for package in &missing_packages {
-            pb.set_message(format!("Fetching {}", package.styled()));
+            pb.set_message(format!("{}", package.styled()));
 
             let package_meta = package
                 .get_resolved_package_manifest()?
@@ -66,14 +65,15 @@ pub async fn finalise_env(env: &mut Environment, strategy: FinalizeStrategy) -> 
 
         pb.finish_and_clear();
 
-        print_success_ln(
-            "Fetched",
-            format_args!(
+        CliLine::new()
+            .prefix("Fetched")
+            .line(format!(
                 "{} new {}",
                 style(missing_packages.len()).bold(),
                 pluralise(missing_packages.len(), "package", "packages")
-            ),
-        );
+            ))
+            .as_success()
+            .print();
     }
 
     // Save environment back to file once this has completed, if any errors occur we will not reach this state
@@ -93,11 +93,14 @@ pub fn warn_no_isabelle() -> Result<(), AppError> {
     if let VersionReq::Given(v) = active_env.get_isabelle_version()
         && !BelleConfig::read_config(|c| c.isabelles.contains_key(&v))
     {
-        print_warning_ln(format_args!(
-            "This environment uses Isabelle {} {}, but that version is not linked",
-            get_isabelle_name(&v),
-            DisplayVersion::Explicit(&v)
-        ));
+        CliLine::new()
+            .line(format!(
+                "This environment uses Isabelle {} {}, but that version is not linked",
+                get_isabelle_name(&v),
+                DisplayVersion::Explicit(&v)
+            ))
+            .as_warning()
+            .print();
     }
 
     Ok(())
@@ -122,7 +125,11 @@ pub fn switch_env(name: Option<String>) -> Result<(), AppError> {
 
     manager::switch_env(&name)?;
 
-    print_success_ln("Switched", format_args!("to environment {}", style(name).cyan()));
+    CliLine::new()
+        .prefix("Switched")
+        .line(format!("to environment {}", style(name).cyan()))
+        .as_success()
+        .print();
 
     // Warn if this environment doesn't have a linked isabelle version
     warn_no_isabelle()?;
@@ -139,15 +146,20 @@ pub fn create_env(name: String, isabelle: VersionReq) -> Result<(), AppError> {
     // Create empty roots file
     new_env.create_roots_file()?;
 
-    print_success_ln("Created", format_args!("environment {}", style(&name).cyan().bright()));
+    CliLine::new()
+        .prefix("Created")
+        .line(format!("environment {}", style(&name).cyan().bright()))
+        .as_success()
+        .print();
 
     // Switch into the newly created environment, qol
     manager::switch_env(&name)?;
 
-    print_success_ln(
-        "Switched",
-        format_args!("to environment {}", style(&name).cyan().bright()),
-    );
+    CliLine::new()
+        .prefix("Switched")
+        .line(format!("to environment {}", style(&name).cyan().bright()))
+        .as_success()
+        .print();
 
     Ok(())
 }
@@ -159,22 +171,24 @@ pub fn list_envs() -> Result<(), AppError> {
     for env in manager::iter_envs() {
         if active_env.as_ref() == Some(&env) {
             // If this is the active environment then highlight it
-            print_ln("Active", console::Color::Cyan, env);
+            CliLine::new().prefix("Active").line(env).as_focus()
         } else {
-            print_blank_ln(&env);
+            CliLine::new().line(&env)
         }
+        .print();
 
         env_count += 1;
     }
 
-    print_success_ln(
-        "Total",
-        format_args!(
+    CliLine::new()
+        .prefix("Total")
+        .line(format!(
             "{} {}",
             style(env_count).bold(),
             pluralise(env_count, "environment", "environments")
-        ),
-    );
+        ))
+        .as_success()
+        .print();
 
     Ok(())
 }
@@ -193,7 +207,11 @@ pub fn remove_env(name: &str) -> Result<(), AppError> {
         environment::manager::set_env_none()?;
     }
 
-    print_success_ln("Removed", format_args!("environment {}", style(&name).cyan().bright()));
+    CliLine::new()
+        .prefix("Removed")
+        .line(format!("environment {}", style(&name).cyan().bright()))
+        .as_success()
+        .print();
 
     Ok(())
 }
@@ -202,7 +220,11 @@ pub fn freeze_env() -> Result<(), AppError> {
     let active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
     active_env.freeze()?;
 
-    print_success_ln("Frozen", format_args!("to {}", style(LOCKFILE_NAME).cyan().bright()));
+    CliLine::new()
+        .prefix("Frozen")
+        .line(format!("to {}", style(LOCKFILE_NAME).cyan().bright()))
+        .as_success()
+        .print();
 
     Ok(())
 }
@@ -214,7 +236,11 @@ pub async fn sync_env() -> Result<(), AppError> {
     // Don't resolve as we want to keep the lockfile identical
     finalise_env(&mut active_env, FinalizeStrategy::ApplyOnly).await?;
 
-    print_success_ln("Synced", format_args!("from {}", style(LOCKFILE_NAME).cyan().bright()));
+    CliLine::new()
+        .prefix("Synced")
+        .line(format!("from {}", style(LOCKFILE_NAME).cyan().bright()))
+        .as_success()
+        .print();
 
     // Warn if this new environment doesn't have a linked isabelle version
     warn_no_isabelle()?;
@@ -233,7 +259,7 @@ pub async fn migrate_isabelle(version: VersionReq, unpin_existing: bool) -> Resu
         None => format!("to {}", style("latest").cyan().bright()),
     };
 
-    print_success_ln("Migrated", line);
+    CliLine::new().prefix("Migrated").line(line).as_success().print();
 
     // Warn if this environment doesn't have a linked isabelle version
     warn_no_isabelle()?;
@@ -247,7 +273,7 @@ pub async fn restore() -> Result<(), AppError> {
     // Don't resolve as we want to keep environment identical
     finalise_env(&mut active_env, FinalizeStrategy::ApplyOnly).await?;
 
-    print_success_ln("Restored", "all packages");
+    CliLine::new().prefix("Restored").line("all packages").as_success().print();
 
     // Warn if this environment doesn't have a linked isabelle version
     warn_no_isabelle()?;

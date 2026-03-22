@@ -16,6 +16,8 @@ mod registry;
 mod schema;
 mod types;
 
+use core::{CliLine, DisplayVersion, ProgressBarTheme, pluralise};
+
 use pubgrub::SemanticVersion;
 pub use schema::Cli;
 use types::{IsabelleVersion, PackageVersion};

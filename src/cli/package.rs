@@ -4,7 +4,7 @@ use console::style;
 
 use crate::{
     cli::{
-        core::{DisplayVersion, pluralise, print_blank_ln, print_ln, print_success_ln},
+        core::{CliLine, DisplayVersion, pluralise},
         environment::{FinalizeStrategy, finalise_env, get_isabelle_version, warn_no_isabelle},
         error::CliError,
     },
@@ -30,10 +30,11 @@ pub async fn add_package(name: String, version: VersionReq) -> Result<(), AppErr
         _ => unreachable!(),
     };
 
-    print_success_ln(
-        "Added",
-        format_args!("package {} {}", style(name).cyan().bright(), package_version),
-    );
+    CliLine::new()
+        .prefix("Added")
+        .line(format!("package {} {}", style(name).cyan().bright(), package_version))
+        .as_success()
+        .print();
 
     warn_no_isabelle()?;
 
@@ -46,7 +47,11 @@ pub async fn remove_package(name: &str) -> Result<(), AppError> {
     active_env.remove_package(name)?;
     finalise_env(&mut active_env, FinalizeStrategy::ResolveAndApply).await?;
 
-    print_success_ln("Removed", format_args!("package {}", style(name).cyan().bright()));
+    CliLine::new()
+        .prefix("Removed")
+        .line(format!("package {}", style(name).cyan().bright()))
+        .as_success()
+        .print();
 
     warn_no_isabelle()?;
 
@@ -102,7 +107,11 @@ pub fn list_packages(all: bool) -> Result<(), AppError> {
         ),
         None => "unspecified version".to_string(),
     };
-    print_ln("Isabelle", console::Color::Cyan, formatted_isabelle_str);
+    CliLine::new()
+        .prefix("Isabelle")
+        .line(formatted_isabelle_str)
+        .as_focus()
+        .print();
 
     for package in &dependencies {
         let styled_version = match package.kind {
@@ -110,31 +119,37 @@ pub fn list_packages(all: bool) -> Result<(), AppError> {
             _ => DisplayVersion::Implicit(&package.version),
         };
 
-        print_blank_ln(format_args!(
-            "{:padding$} {}",
-            package.name,
-            styled_version,
-            padding = largest_dependency_name
-        ));
+        CliLine::new()
+            .line(format!(
+                "{:padding$} {}",
+                package.name,
+                styled_version,
+                padding = largest_dependency_name
+            ))
+            .print();
     }
 
     if all {
         for package in &transitive_dependencies {
-            print_blank_ln(format_args!(
-                "{:padding$} {}",
-                style(&package.name).dim(),
-                DisplayVersion::Implicit(&package.version),
-                padding = largest_dependency_name,
-            ));
+            CliLine::new()
+                .line(format!(
+                    "{:padding$} {}",
+                    style(&package.name).dim(),
+                    DisplayVersion::Implicit(&package.version),
+                    padding = largest_dependency_name,
+                ))
+                .print();
         }
 
         for package in &isabelle_dependencies {
-            print_blank_ln(format_args!(
-                "{:padding$} {}",
-                style(&package.name).dim().italic(),
-                DisplayVersion::Implicit(&package.version),
-                padding = largest_dependency_name,
-            ));
+            CliLine::new()
+                .line(format!(
+                    "{:padding$} {}",
+                    style(&package.name).dim().italic(),
+                    DisplayVersion::Implicit(&package.version),
+                    padding = largest_dependency_name,
+                ))
+                .print();
         }
     }
 
@@ -157,7 +172,7 @@ pub fn list_packages(all: bool) -> Result<(), AppError> {
             style(active_env.name).cyan().bright()
         )
     };
-    print_success_ln("Listed", line);
+    CliLine::new().prefix("Listed").line(line).as_success().print();
 
     Ok(())
 }

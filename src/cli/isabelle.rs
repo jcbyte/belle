@@ -4,7 +4,7 @@ use console::style;
 use pubgrub::SemanticVersion;
 
 use crate::{
-    cli::core::{DisplayVersion, print_success_ln},
+    cli::core::{CliLine, DisplayVersion},
     config::BelleConfig,
     environment::{self, Environment},
     error::AppError,
@@ -24,17 +24,18 @@ pub fn link(path: &Path) -> Result<(), AppError> {
     isabelle.link()?;
     BelleConfig::write_config(|c| c.isabelles.insert(isabelle.version, isabelle.path));
 
-    print_success_ln(
-        "Linked",
-        format_args!(
+    CliLine::new()
+        .prefix("Linked")
+        .line(format!(
             "Isabelle {} {} {}{}{}",
             style(get_isabelle_name(&isabelle.version)).cyan().bright(),
             DisplayVersion::Implicit(&isabelle.version),
             style("(").dim(),
             style(path.display()).dim(),
             style(")").dim()
-        ),
-    );
+        ))
+        .as_success()
+        .print();
 
     Ok(())
 }
@@ -51,14 +52,15 @@ pub fn unlink(version: SemanticVersion) -> Result<(), AppError> {
     isabelle.unlink()?;
     BelleConfig::write_config(|c| c.isabelles.remove(&version));
 
-    print_success_ln(
-        "Unlinked",
-        format_args!(
+    CliLine::new()
+        .prefix("Unlinked")
+        .line(format!(
             "Isabelle {} {}",
             style(get_isabelle_name(&isabelle.version)).cyan().bright(),
             DisplayVersion::Implicit(&isabelle.version),
-        ),
-    );
+        ))
+        .as_success()
+        .print();
 
     Ok(())
 }

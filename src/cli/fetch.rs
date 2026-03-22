@@ -5,7 +5,7 @@ use indicatif::ProgressBar;
 use url::Url;
 
 use crate::{
-    cli::core::{DisplayVersion, ProgressBarTheme, pluralise, print_blank_ln, print_ln, print_success_ln},
+    cli::core::{CliLine, DisplayVersion, ProgressBarTheme, pluralise},
     error::{AppError, CustomErrorContext},
     fetch::{AfpRepo, BelleClient, RepoMetadata, ReturnedPackages, get_local_package_meta},
     registry::{Package, PackageIdentifier, RegistrablePackage},
@@ -13,7 +13,7 @@ use crate::{
 
 /// List AFP repositories and print them in a simple table
 pub async fn list_afp_repositories(limit: usize) -> Result<(), AppError> {
-    let pb = ProgressBar::new_spinner();
+    let pb = ProgressBar::new_spinner().with_belle_spinner_style();
     pb.enable_steady_tick(Duration::from_millis(100));
     pb.set_message("Fetching repository list".to_string());
 
@@ -29,19 +29,20 @@ pub async fn list_afp_repositories(limit: usize) -> Result<(), AppError> {
         let render = |repo: &AfpRepo| format!("{:<11} {}", &repo.name, DisplayVersion::Implicit(repo.get_version()));
 
         for afp_repo in other_repos {
-            print_blank_ln(render(afp_repo));
+            CliLine::new().line(render(afp_repo)).print();
         }
-        print_ln("Latest", console::Color::Cyan, render(latest_repo));
+        CliLine::new().prefix("Latest").line(render(latest_repo)).as_focus().print();
     }
 
-    print_success_ln(
-        "Found",
-        format_args!(
+    CliLine::new()
+        .prefix("Found")
+        .line(format!(
             "{} AFP {}",
             style(afp_repos.len()).bold(),
             pluralise(afp_repos.len(), "repository", "repositories")
-        ),
-    );
+        ))
+        .as_success()
+        .print();
 
     Ok(())
 }
@@ -70,7 +71,7 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
         }
     };
 
-    let pb = ProgressBar::new_spinner();
+    let pb = ProgressBar::new_spinner().with_belle_spinner_style();
     pb.enable_steady_tick(Duration::from_millis(100));
     pb.set_message(format!(
         "Fetching package manifests from {} {}",
@@ -83,18 +84,19 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
     let repo_packages = repo_metadata.all_packages();
 
     pb.finish_and_clear();
-    print_success_ln(
-        "Found",
-        format_args!(
+    CliLine::new()
+        .prefix("Found")
+        .line(format!(
             "{} {} from {} {}",
             style(repo_packages.len()).bold(),
             pluralise(repo_packages.len(), "package", "packages"),
             style(format!("AFP {}", &repo.get_formatted_name())).cyan().bright(),
             DisplayVersion::Implicit(repo.get_version())
-        ),
-    );
+        ))
+        .as_success()
+        .print();
 
-    let pb = ProgressBar::new(repo_packages.len() as u64).with_belle_style();
+    let pb = ProgressBar::new(repo_packages.len() as u64).with_belle_bar_style();
 
     let mut unresolved_packages: Vec<Package> = Vec::new();
 
@@ -180,23 +182,24 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
     } else {
         "".to_string()
     };
-    print_success_ln(
-        "Synced",
-        format_args!(
+    CliLine::new()
+        .prefix("Synced")
+        .line(format!(
             "{} {} from {} {} {}",
             style(repo_packages.len() - failed).bold(),
             pluralise(repo_packages.len() - failed, "package", "packages"),
             style(format!("AFP {}", &repo.get_formatted_name())).cyan().bright(),
             DisplayVersion::Implicit(repo.get_version()),
             failed_str
-        ),
-    );
+        ))
+        .as_success()
+        .print();
 
     Ok(())
 }
 
 pub async fn source_remote_repo(url: &Url, branch: &str) -> Result<(), AppError> {
-    let pb = ProgressBar::new_spinner();
+    let pb = ProgressBar::new_spinner().with_belle_spinner_style();
     pb.enable_steady_tick(Duration::from_millis(100));
     pb.set_message("Fetching package manifest".to_string());
 
@@ -213,16 +216,17 @@ pub async fn source_remote_repo(url: &Url, branch: &str) -> Result<(), AppError>
 
     pb.finish_and_clear();
 
-    print_success_ln(
-        "Sourced",
-        format_args!(
+    CliLine::new()
+        .prefix("Sourced")
+        .line(format!(
             "remote package {} {}{}{}",
             package_id.styled(),
             style("(").dim(),
             style(url).dim(),
             style(")").dim(),
-        ),
-    );
+        ))
+        .as_success()
+        .print();
 
     Ok(())
 }
@@ -238,16 +242,17 @@ pub fn source_local_package(path: &Path) -> Result<(), AppError> {
         alias.register()?;
     }
 
-    print_success_ln(
-        "Sourced",
-        format_args!(
+    CliLine::new()
+        .prefix("Sourced")
+        .line(format!(
             "local package {} {}{}{}",
             package_id.styled(),
             style("(").dim(),
             style(path.display()).dim(),
             style(")").dim(),
-        ),
-    );
+        ))
+        .as_success()
+        .print();
 
     Ok(())
 }

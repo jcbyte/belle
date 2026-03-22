@@ -1,9 +1,9 @@
 use std::{borrow::Cow, collections::HashSet, fmt::Display, fs};
 
-use console::{Color, style};
+use console::style;
 
 use crate::{
-    cli::core::{DisplayVersion, pluralise, print_blank_ln, print_ln, print_skipped_ln, print_success_ln},
+    cli::core::{CliLine, DisplayVersion, pluralise},
     config::BelleConfig,
     environment::{Environment, VersionReq, manager::iter_envs},
     error::{AppError, IoErrorContext},
@@ -27,10 +27,15 @@ pub fn clean_packages() -> Result<(), AppError> {
         .count();
     fs::remove_dir_all(&package_dir).report_delete("packages source", &package_dir)?;
 
-    print_success_ln(
-        "Cleaned",
-        format_args!("{} {}", style(count).bold(), pluralise(count, "package", "packages")),
-    );
+    CliLine::new()
+        .prefix("Cleaned")
+        .line(format!(
+            "{} {}",
+            style(count).bold(),
+            pluralise(count, "package", "packages")
+        ))
+        .as_success()
+        .print();
 
     Ok(())
 }
@@ -50,7 +55,11 @@ pub fn clean_metadata() -> Result<(), AppError> {
     fs::remove_dir_all(&manifest_dir).report_delete("packages manifests", &manifest_dir)?;
 
     // Pluralise does not make sense for this line
-    print_success_ln("Cleaned", format_args!("{} packages metadata", style(count).bold()));
+    CliLine::new()
+        .prefix("Cleaned")
+        .line(format!("{} packages metadata", style(count).bold()))
+        .as_success()
+        .print();
 
     Ok(())
 }
@@ -68,23 +77,25 @@ pub fn list_versions(name: &str) -> Result<(), AppError> {
         for version in &versions {
             let line = format!("{}", DisplayVersion::Explicit(&version.version));
             if version.exists_locally() {
-                print_ln("Installed", Color::Cyan, line);
                 installed_count += 1;
+                CliLine::new().prefix("Installed").line(line).as_focus()
             } else {
-                print_blank_ln(line);
+                CliLine::new().line(line)
             }
+            .print();
         }
 
-        print_success_ln(
-            "Listed",
-            format_args!(
+        CliLine::new()
+            .prefix("Listed")
+            .line(format!(
                 "{} {} for {} ({} installed).",
                 style(versions.len()).bold(),
                 pluralise(versions.len(), "version", "versions"),
                 style(name).cyan().bright(),
                 style(installed_count).bold(),
-            ),
-        );
+            ))
+            .as_success()
+            .print();
     }
 
     Ok(())
@@ -290,17 +301,18 @@ pub fn search_registry(search: String) {
 
     // Print list of results
     for package in &results {
-        print_blank_ln(format_args!("{}", highlight_match(package, &search)));
+        CliLine::new().line(format!("{}", highlight_match(package, &search))).print();
     }
-    print_success_ln(
-        "Found",
-        format_args!(
+    CliLine::new()
+        .prefix("Found")
+        .line(format!(
             "{} {} for '{}'",
             style(results.len()).bold(),
             pluralise(results.len(), "result", "results"),
             style(search).cyan().bright()
-        ),
-    );
+        ))
+        .as_success()
+        .print();
 }
 
 pub fn purge_packages() -> Result<(), AppError> {
@@ -321,14 +333,15 @@ pub fn purge_packages() -> Result<(), AppError> {
         }
     }
 
-    print_success_ln(
-        "Cleaned",
-        format_args!(
+    CliLine::new()
+        .prefix("Cleaned")
+        .line(format!(
             "{} {}",
             style(removed).bold(),
             pluralise(removed, "package", "packages")
-        ),
-    );
+        ))
+        .as_success()
+        .print();
 
     Ok(())
 }
