@@ -11,12 +11,33 @@ use crate::{
     config::BelleConfig,
     environment::{Environment, PackageType, VersionReq},
     error::AppError,
+    registry::PackageIdentifier,
     resolver::ISABELLE_PACKAGE,
     util::get_isabelle_name,
 };
 
 pub async fn add_package(name: String, version: VersionReq) -> Result<(), AppError> {
     let mut active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
+
+    // Assume no-op for specific-specific or any-any, as updates should be performed differently
+    if active_env
+        .packages
+        .get(&name)
+        .map(|existing_version| *existing_version == version)
+        .unwrap_or(false)
+    {
+        CliLine::new()
+            .line(format!(
+                "package {} already exists in environment",
+                match version {
+                    VersionReq::Any => style(name).cyan().bright().to_string(),
+                    VersionReq::Given(v) => PackageIdentifier::new(name, v).styled(),
+                }
+            ))
+            .as_skipped()
+            .print();
+        return Ok(());
+    };
 
     active_env.add_package(name.clone(), version)?;
     finalise_env(&mut active_env, FinalizeStrategy::ResolveAndApply).await?;
@@ -43,6 +64,17 @@ pub async fn add_package(name: String, version: VersionReq) -> Result<(), AppErr
 
 pub async fn remove_package(name: &str) -> Result<(), AppError> {
     let mut active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
+
+    if !active_env.packages.contains_key(name) {
+        CliLine::new()
+            .line(format!(
+                "package '{}' is not in this environment; nothing to remove",
+                style(name).cyan().bright()
+            ))
+            .as_skipped()
+            .print();
+        return Ok(());
+    };
 
     active_env.remove_package(name)?;
     finalise_env(&mut active_env, FinalizeStrategy::ResolveAndApply).await?;

@@ -40,10 +40,10 @@ pub fn iter_packages() -> impl Iterator<Item = String> {
 }
 
 /// Scan for all versions for a specific package
-pub fn get_package_versions(name: &str) -> Vec<PackageIdentifier> {
+pub fn get_package_versions(name: &str) -> Option<Vec<PackageIdentifier>> {
     let package_manifests = BelleConfig::get_manifest_dir().join(name);
 
-    WalkDir::new(package_manifests)
+    let versions: Vec<PackageIdentifier> = WalkDir::new(package_manifests)
         .min_depth(1)
         .max_depth(1)
         .into_iter()
@@ -53,5 +53,7 @@ pub fn get_package_versions(name: &str) -> Vec<PackageIdentifier> {
             SemanticVersion::from_str(stem).ok()
         })
         .map(|version| PackageIdentifier::new(name, version))
-        .collect()
+        .collect();
+
+    if versions.is_empty() { None } else { Some(versions) }
 }

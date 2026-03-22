@@ -17,6 +17,8 @@ use crate::{
 
 type SemVS = Ranges<SemanticVersion>;
 
+// todo include configs isabelles as a starting point
+
 pub struct BelleDependencyProvider {
     root_packages: HashMap<String, VersionReq>,
 
@@ -52,7 +54,10 @@ impl BelleDependencyProvider {
         }
 
         let mut cache = self.package_versions.borrow_mut();
-        let fetched: HashSet<SemanticVersion> = get_package_versions(name).into_iter().map(|v| v.version).collect();
+        let fetched: HashSet<SemanticVersion> = get_package_versions(name)
+            .map(|versions| versions.into_iter().map(|v| v.version).collect())
+            // If this package cannot be found then give no versions
+            .unwrap_or_default();
         cache.insert(name.to_string(), fetched.clone());
 
         fetched

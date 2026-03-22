@@ -66,39 +66,32 @@ pub fn clean_metadata() -> Result<(), AppError> {
 
 /// List versions of a package in our local metadata
 pub fn list_versions(name: &str) -> Result<(), AppError> {
-    let versions = registry::get_package_versions(name);
+    let versions = registry::get_package_versions(name).report_package_name_nonexistent(name)?;
 
-    if versions.is_empty() {
-        CliLine::new()
-            .line(format!("No versions of package {} installed", name))
-            .as_skipped()
-            .print();
-    } else {
-        let mut installed_count = 0;
+    let mut installed_count = 0;
 
-        for version in &versions {
-            let line = format!("{}", DisplayVersion::Explicit(&version.version));
-            if version.exists_locally() {
-                installed_count += 1;
-                CliLine::new().prefix("Installed").line(line).as_focus()
-            } else {
-                CliLine::new().line(line)
-            }
-            .print();
+    for version in &versions {
+        let line = format!("{}", DisplayVersion::Explicit(&version.version));
+        if version.exists_locally() {
+            installed_count += 1;
+            CliLine::new().prefix("Installed").line(line).as_focus()
+        } else {
+            CliLine::new().line(line)
         }
-
-        CliLine::new()
-            .prefix("Listed")
-            .line(format!(
-                "{} {} for {} ({} installed).",
-                style(versions.len()).bold(),
-                pluralise(versions.len(), "version", "versions"),
-                style(name).cyan().bright(),
-                style(installed_count).bold(),
-            ))
-            .as_success()
-            .print();
+        .print();
     }
+
+    CliLine::new()
+        .prefix("Listed")
+        .line(format!(
+            "{} {} for {} ({} installed).",
+            style(versions.len()).bold(),
+            pluralise(versions.len(), "version", "versions"),
+            style(name).cyan().bright(),
+            style(installed_count).bold(),
+        ))
+        .as_success()
+        .print();
 
     Ok(())
 }
@@ -254,11 +247,11 @@ pub fn print_package_meta(name: String, version: VersionReq) -> Result<(), AppEr
     let package = match version {
         VersionReq::Given(v) => PackageIdentifier::new(name, v),
         VersionReq::Any => {
-            let versions = registry::get_package_versions(&name);
+            let versions = registry::get_package_versions(&name).report_package_name_nonexistent(name)?;
             versions
                 .into_iter()
                 .max_by_key(|package_id| package_id.version)
-                .report_no_package_versions(name)?
+                .expect("Package versions were given, but the list is empty")
         }
     };
 

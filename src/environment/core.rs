@@ -126,6 +126,13 @@ impl Environment {
     pub fn save(&self) -> Result<(), AppError> {
         let env_file = self.get_env_file();
 
+        if env_file.is_file() {
+            return Err(EnvironmentError::AlreadyExists {
+                name: self.name.clone(),
+            }
+            .into());
+        }
+
         create_parent_dirs(&env_file).report_save(format!("{} environment directories", self.name), &env_file)?;
         let content = toml::to_string(self).report_file("environment", &env_file)?;
         fs::write(&env_file, content).report_save(format!("{} environment directories", self.name), &env_file)?;

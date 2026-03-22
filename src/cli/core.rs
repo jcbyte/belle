@@ -59,6 +59,7 @@ pub struct CliLine {
     prefix: String,
     line: String,
     intent: CliLineIntent,
+    custom_prefix: bool,
 }
 
 impl CliLine {
@@ -67,11 +68,28 @@ impl CliLine {
             prefix: String::new(),
             line: String::new(),
             intent: CliLineIntent::Default,
+            custom_prefix: false,
         }
     }
 
     pub fn get(&self) -> String {
-        let padded_prefix = format!("{:>width$}", self.prefix, width = GUTTER_WIDTH);
+        let prefix_value = if !self.custom_prefix {
+            // Replace prefix with hardcoded values for certain intents
+            match self.intent {
+                CliLineIntent::Error => "Error",
+                CliLineIntent::Warning => "Warning",
+                CliLineIntent::Skipped => "Skipped",
+                _ => &self.prefix,
+            }
+        } else {
+            // Do not replaced custom prefixes
+            &self.prefix
+        };
+
+        // Ensure gutter space
+        let padded_prefix = format!("{:>width$}", prefix_value, width = GUTTER_WIDTH);
+
+        // Format the prefix and line according to intent
         format!(
             "{} {}",
             Self::style_prefix(padded_prefix, self.intent),
@@ -101,7 +119,7 @@ impl CliLine {
             CliLineIntent::Focus => Cow::Borrowed(line),
             CliLineIntent::Warning => Cow::Owned(style(console::strip_ansi_codes(line)).yellow().to_string()),
             CliLineIntent::Error => Cow::Owned(style(console::strip_ansi_codes(line)).red().to_string()),
-            CliLineIntent::Skipped => console::strip_ansi_codes(line),
+            CliLineIntent::Skipped => Cow::Borrowed(line),
             CliLineIntent::Default => Cow::Borrowed(line),
         }
     }
@@ -112,6 +130,7 @@ impl CliLine {
 
     pub fn prefix(mut self, prefix: impl Into<String>) -> Self {
         self.prefix = prefix.into();
+        self.custom_prefix = true;
         self
     }
 

@@ -6,7 +6,7 @@ use indicatif::ProgressBar;
 use crate::{
     cli::{CliLine, DisplayVersion, ProgressBarTheme, environment, error::CliError, pluralise},
     config::BelleConfig,
-    environment::{Environment, LOCKFILE_NAME, VersionReq, error::EnvironmentError, manager},
+    environment::{Environment, LOCKFILE_NAME, VersionReq, manager},
     error::{AppError, CustomErrorContext, IoErrorContext},
     registry::{PackageIdentifier, error::RegistryNotExistContext},
     resolver::ISABELLE_PACKAGE,
@@ -60,17 +60,16 @@ pub async fn finalise_env(env: &mut Environment, strategy: FinalizeStrategy) -> 
             pb.inc(1);
         }
 
-        pb.finish_with_message(
-            CliLine::new()
-                .prefix("Fetched")
-                .line(format!(
-                    "{} new {}",
-                    style(missing_packages.len()).bold(),
-                    pluralise(missing_packages.len(), "package", "packages")
-                ))
-                .as_success()
-                .get(),
-        );
+        pb.finish_and_clear();
+        CliLine::new()
+            .prefix("Fetched")
+            .line(format!(
+                "{} new {}",
+                style(missing_packages.len()).bold(),
+                pluralise(missing_packages.len(), "package", "packages")
+            ))
+            .as_success()
+            .print();
     }
 
     // Save environment back to file once this has completed, if any errors occur we will not reach this state
@@ -119,6 +118,16 @@ pub fn switch_env(name: Option<String>) -> Result<(), AppError> {
             frozen_env.name
         }
     };
+
+    if let Some(active_env) = Environment::active()? {
+        if active_env.name == name {
+            CliLine::new()
+                .line(format!("environment {} is already active", name))
+                .as_skipped()
+                .print();
+            return Ok(());
+        }
+    }
 
     manager::switch_env(&name)?;
 
@@ -194,12 +203,19 @@ pub fn remove_env(name: &str) -> Result<(), AppError> {
     let env_dir = Environment::env_dir_for_name(name);
 
     if !env_dir.is_dir() {
-        return Err(EnvironmentError::DoesNotExist { name: name.to_string() }.into());
+        CliLine::new()
+            .line(format!(
+                "environment '{}' is not found; nothing to remove",
+                style(name).cyan().bright()
+            ))
+            .as_skipped()
+            .print();
+        return Ok(());
     }
 
     fs::remove_dir_all(&env_dir).report_delete("environment directory", &env_dir)?;
 
-    // If we deleted our active environment then explicitly revert back to the null environment (so isabelle is happy)
+    // If we deleted our active environment then explicitly revert back to the null environment (so that isabelle is happy)
     if !Environment::has_active() {
         environment::manager::set_env_none()?;
     }
@@ -247,6 +263,21 @@ pub async fn sync_env() -> Result<(), AppError> {
 
 pub async fn migrate_isabelle(version: VersionReq, unpin_existing: bool) -> Result<(), AppError> {
     let mut active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
+
+    // Do not assume this is a no-op if a version is not given
+    // As there could be a new latest to migrate too
+    if let VersionReq::Given(target_version) = &version {
+        if version == active_env.isabelle {
+            CliLine::new()
+                .line(format!(
+                    "environment already matches {} {}",
+                    style(format!("Isabelle {}", get_isabelle_name(target_version))).cyan().bright(),
+                    DisplayVersion::Explicit(target_version)
+                ))
+                .as_skipped()
+                .print();
+        };
+    };
 
     active_env.migrate_isabelle(version, unpin_existing);
     finalise_env(&mut active_env, FinalizeStrategy::ResolveAndApply).await?;

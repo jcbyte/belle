@@ -247,18 +247,20 @@ impl RepoMetadata {
 
             // If there was no seen alias check the registry for the alias
             // Go though each version in case there are multiple connected to different packages
-            for package in get_package_versions(dep_name) {
-                let resolved_package = package
-                    .get_resolved_package_manifest()?
-                    .expect("Package version listed, but not cannot be found");
-                // If the alias points to a package in the repo then this is the correct package
-                if let Some(meta) = self.entries.get(&resolved_package.name) {
-                    // Use the version of the original package, as the alias points to the same version number
-                    *dep_version = date_to_version(&meta.date);
+            if let Some(versions) = get_package_versions(dep_name) {
+                for package in versions {
+                    let resolved_package = package
+                        .get_resolved_package_manifest()?
+                        .expect("Package version listed, but not cannot be found");
+                    // If the alias points to a package in the repo then this is the correct package
+                    if let Some(meta) = self.entries.get(&resolved_package.name) {
+                        // Use the version of the original package, as the alias points to the same version number
+                        *dep_version = date_to_version(&meta.date);
 
-                    // Update the seen aliases in case the appears again
-                    seen_aliases.insert(dep_name.clone(), resolved_package.name.clone());
-                    break;
+                        // Update the seen aliases in case the appears again
+                        seen_aliases.insert(dep_name.clone(), resolved_package.name.clone());
+                        break;
+                    }
                 }
             }
         }

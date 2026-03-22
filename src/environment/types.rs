@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use pubgrub::SemanticVersion;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum VersionReq {
     Given(SemanticVersion),
     #[serde(rename = "*")]

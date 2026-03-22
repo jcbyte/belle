@@ -85,19 +85,18 @@ pub async fn source_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
     let repo_metadata = RepoMetadata::get(&repo, client).await?;
     let repo_packages = repo_metadata.all_packages();
 
-    pb.finish_with_message(
-        CliLine::new()
-            .prefix("Found")
-            .line(format!(
-                "{} {} from {} {}",
-                style(repo_packages.len()).bold(),
-                pluralise(repo_packages.len(), "package", "packages"),
-                style(format!("AFP {}", &repo.get_formatted_name())).cyan().bright(),
-                DisplayVersion::Implicit(repo.get_version())
-            ))
-            .as_success()
-            .get(),
-    );
+    pb.finish_and_clear();
+    CliLine::new()
+        .prefix("Found")
+        .line(format!(
+            "{} {} from {} {}",
+            style(repo_packages.len()).bold(),
+            pluralise(repo_packages.len(), "package", "packages"),
+            style(format!("AFP {}", &repo.get_formatted_name())).cyan().bright(),
+            DisplayVersion::Implicit(repo.get_version())
+        ))
+        .as_success()
+        .print();
 
     let pb = ProgressBar::new(repo_packages.len() as u64).with_belle_bar_style();
     pb.set_belle_prefix("Syncing");
@@ -133,11 +132,13 @@ pub async fn source_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
                         package_meta.register()?;
                     } else {
                         // Add the package to be resolved later
-                        // todo display properly
-                        pb.println(format!(
-                            "{}",
-                            style(format!("Deferred resolving {} due to unseen dependencies", package)).dim()
-                        ));
+                        pb.println(
+                            CliLine::new()
+                                .prefix("Differing")
+                                .line(style(format!("{} until dependencies are resolved", package)).dim().to_string())
+                                .as_skipped()
+                                .get(),
+                        );
 
                         // Increase the progress bar count, as these must be handled afterwards
                         pb.inc_length(1);
@@ -179,22 +180,21 @@ pub async fn source_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
         pb.inc(1);
     }
 
-    pb.finish_with_message(
-        CliLine::new()
-            .prefix("Sourced")
-            .line(format!(
-                "{} {} from {} {} {}",
-                style(repo_packages.len() - failed).bold(),
-                pluralise(repo_packages.len() - failed, "package", "packages"),
-                style(format!("AFP {}", &repo.get_formatted_name())).cyan().bright(),
-                DisplayVersion::Implicit(repo.get_version()),
-                (failed > 0)
-                    .then(|| format!(", {} failed", style(failed).bold()))
-                    .unwrap_or_default()
-            ))
-            .as_success()
-            .get(),
-    );
+    pb.finish_and_clear();
+    CliLine::new()
+        .prefix("Sourced")
+        .line(format!(
+            "{} {} from {} {} {}",
+            style(repo_packages.len() - failed).bold(),
+            pluralise(repo_packages.len() - failed, "package", "packages"),
+            style(format!("AFP {}", &repo.get_formatted_name())).cyan().bright(),
+            DisplayVersion::Implicit(repo.get_version()),
+            (failed > 0)
+                .then(|| format!(", {} failed", style(failed).bold()))
+                .unwrap_or_default()
+        ))
+        .as_success()
+        .print();
 
     Ok(())
 }
@@ -216,19 +216,18 @@ pub async fn source_remote_repo(url: &Url, branch: &str) -> Result<(), AppError>
         alias.register()?;
     }
 
-    pb.finish_with_message(
-        CliLine::new()
-            .prefix("Sourced")
-            .line(format!(
-                "remote package {} {}{}{}",
-                package_id.styled(),
-                style("(").dim(),
-                style(url).dim(),
-                style(")").dim(),
-            ))
-            .as_success()
-            .get(),
-    );
+    pb.finish_and_clear();
+    CliLine::new()
+        .prefix("Sourced")
+        .line(format!(
+            "remote package {} {}{}{}",
+            package_id.styled(),
+            style("(").dim(),
+            style(url).dim(),
+            style(")").dim(),
+        ))
+        .as_success()
+        .print();
 
     Ok(())
 }
