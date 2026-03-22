@@ -1,8 +1,8 @@
 use indicatif::{ProgressBar, ProgressStyle};
 use pubgrub::SemanticVersion;
-use std::fmt::Display;
+use std::{borrow::Cow, fmt::Display};
 
-use console::{Color, StyledObject, style};
+use console::{StyledObject, style};
 
 const GUTTER_WIDTH: usize = 12;
 
@@ -40,9 +40,20 @@ impl ProgressBarTheme for ProgressBar {
     }
 }
 
+#[derive(Copy, Clone)]
+pub enum CliLineIntent {
+    Success,
+    Focus,
+    Warning,
+    Error,
+    Skipped,
+    Default,
+}
+
 pub struct CliLine {
     prefix: String,
     line: String,
+    intent: CliLineIntent,
 }
 
 impl CliLine {
@@ -50,11 +61,44 @@ impl CliLine {
         Self {
             prefix: String::new(),
             line: String::new(),
+            intent: CliLineIntent::Default,
         }
     }
 
     pub fn get(&self) -> String {
-        format!("{:>width$} {}", self.prefix, self.line, width = GUTTER_WIDTH)
+        let padded_prefix = format!("{:>width$}", self.prefix, width = GUTTER_WIDTH);
+        format!(
+            "{} {}",
+            Self::style_prefix(padded_prefix, self.intent),
+            Self::style_line(&self.line, self.intent)
+        )
+    }
+
+    pub fn style_prefix<P>(prefix: P, intent: CliLineIntent) -> StyledObject<P>
+    where
+        P: Display,
+    {
+        let styled_prefix = style(prefix).bold();
+
+        match intent {
+            CliLineIntent::Success => styled_prefix.green(),
+            CliLineIntent::Focus => styled_prefix.cyan(),
+            CliLineIntent::Warning => styled_prefix.yellow(),
+            CliLineIntent::Error => styled_prefix.red(),
+            CliLineIntent::Skipped => styled_prefix.dim(),
+            CliLineIntent::Default => styled_prefix,
+        }
+    }
+
+    pub fn style_line<'a>(line: &'a str, intent: CliLineIntent) -> Cow<'a, str> {
+        match intent {
+            CliLineIntent::Success => Cow::Borrowed(line),
+            CliLineIntent::Focus => Cow::Borrowed(line),
+            CliLineIntent::Warning => Cow::Owned(style(console::strip_ansi_codes(line)).yellow().to_string()),
+            CliLineIntent::Error => Cow::Owned(style(console::strip_ansi_codes(line)).red().to_string()),
+            CliLineIntent::Skipped => console::strip_ansi_codes(line),
+            CliLineIntent::Default => Cow::Borrowed(line),
+        }
     }
 
     pub fn print(&self) {
@@ -71,37 +115,32 @@ impl CliLine {
         self
     }
 
-    pub fn style_prefix<T: Display>(prefix: T, color: console::Color) -> StyledObject<T> {
-        style(prefix).fg(color).bold()
-    }
-
-    pub fn style_success_prefix<T: Display>(prefix: T) -> StyledObject<T> {
-        Self::style_prefix(prefix, Color::Green)
-    }
-
-    pub fn style_focus_prefix<T: Display>(prefix: T) -> StyledObject<T> {
-        Self::style_prefix(prefix, Color::Cyan)
-    }
-
     pub fn as_success(mut self) -> Self {
-        self.prefix = Self::style_success_prefix(self.prefix).to_string();
+        self.intent = CliLineIntent::Success;
+
         self
     }
 
     pub fn as_focus(mut self) -> Self {
-        self.prefix = Self::style_focus_prefix(self.prefix).to_string();
+        self.intent = CliLineIntent::Focus;
+
         self
     }
 
     pub fn as_error(mut self) -> Self {
-        self.prefix = Self::style_prefix(self.prefix, Color::Red).to_string();
-        self.line = style(self.line).red().to_string();
+        self.intent = CliLineIntent::Error;
+
         self
     }
 
     pub fn as_warning(mut self) -> Self {
-        self.prefix = Self::style_prefix(self.prefix, Color::Yellow).to_string();
-        self.line = style(self.line).yellow().to_string();
+        self.intent = CliLineIntent::Warning;
+        self
+    }
+
+    pub fn as_skipped(mut self) -> Self {
+        self.intent = CliLineIntent::Skipped;
+
         self
     }
 }

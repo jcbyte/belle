@@ -18,7 +18,7 @@ use crate::{
 pub fn clean_packages() -> Result<(), AppError> {
     let package_dir = BelleConfig::get_package_dir();
     if !package_dir.is_dir() {
-        print_skipped_ln("package cache is already empty");
+        CliLine::new().line("package cache is already empty").as_skipped().print();
         return Ok(());
     }
 
@@ -45,7 +45,7 @@ pub fn clean_metadata() -> Result<(), AppError> {
     let manifest_dir = BelleConfig::get_manifest_dir();
 
     if !manifest_dir.is_dir() {
-        print_skipped_ln("metadata is already empty");
+        CliLine::new().line("metadata is already empty").as_skipped().print();
         return Ok(());
     }
 
@@ -69,8 +69,10 @@ pub fn list_versions(name: &str) -> Result<(), AppError> {
     let versions = registry::get_package_versions(name);
 
     if versions.is_empty() {
-        print_skipped_ln("line");
-        println!("No versions of package {} installed", name)
+        CliLine::new()
+            .line(format!("No versions of package {} installed", name))
+            .as_skipped()
+            .print();
     } else {
         let mut installed_count = 0;
 
