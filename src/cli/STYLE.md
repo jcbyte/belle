@@ -2,12 +2,12 @@
 
 ## Colours
 
-| Element | Color  | Intent                                           |
-| ------- | ------ | ------------------------------------------------ |
-| Success | Green  | Success action i.e. "Switched" prefix.           |
-| Warning | Yellow | Non-fatal errors, potential mistakes.            |
-| Error   | Red    | Fatal errors, unrecoverable/unresolvable.        |
-| Focus   | Cyan   | Highlight of line i.e. environment/package name. |
+| Element | Color         | Intent                                           |
+| ------- | ------------- | ------------------------------------------------ |
+| Success | Green         | Success action i.e. "Switched" prefix.           |
+| Warning | Yellow        | Non-fatal errors, potential mistakes.            |
+| Error   | Red           | Fatal errors, unrecoverable/unresolvable.        |
+| Focus   | Cyan (Bright) | Highlight of line i.e. environment/package name. |
 
 ## Prefixing
 
@@ -41,6 +41,8 @@ Numerical data in summary commands should be bold.
 A standardised style and colour theme should be used for progress bars and spinners across the application.
 
 ## Packages and Versions
+
+When printing packages, always print the name and version together where possible.
 
 Version numbers should be printed using square brackets ([2019.2.17]).
 

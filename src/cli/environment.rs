@@ -88,7 +88,7 @@ fn warn_no_isabelle() -> Result<(), AppError> {
         && !BelleConfig::read_config(|c| c.isabelles.contains_key(&v))
     {
         print_warning_ln(format_args!(
-            "This environment uses Isabelle {} [{}], but that version is not linked.",
+            "This environment uses Isabelle {} [{}], but that version is not linked",
             get_isabelle_name(&v),
             &v
         ));
@@ -102,7 +102,7 @@ pub fn switch_env(name: Option<String>) -> Result<(), AppError> {
         Some(n) => n,
         None => {
             let frozen_env = Environment::frozen()?
-                .report_custom("No name was provided, and no lockfile was found to infer from.")?;
+                .report_custom("No name was provided, and no lockfile was found to infer from")?;
             frozen_env.name
         }
     };
@@ -209,8 +209,8 @@ pub async fn migrate_isabelle(version: VersionReq, unpin_existing: bool) -> Resu
     finalise_env(&mut active_env, FinalizeStrategy::ResolveAndApply).await?;
 
     let new_isabelle_version = match &active_env.isabelle {
-        VersionReq::Given(v) => Some(DisplayVersion::Pinned(v)),
-        VersionReq::Any => active_env.lock.get(ISABELLE_PACKAGE).map(DisplayVersion::Resolved),
+        VersionReq::Given(v) => Some(DisplayVersion::Explicit(v)),
+        VersionReq::Any => active_env.lock.get(ISABELLE_PACKAGE).map(DisplayVersion::Implicit),
     };
 
     let line = match new_isabelle_version {

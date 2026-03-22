@@ -4,6 +4,7 @@ use belle::{cli, config::BelleConfig, error::AppError};
 use clap::Parser;
 use console::style;
 
+// todo format errors
 fn display_errors(e: &AppError, backtrace: bool) {
     eprintln!("{} {}", style("Error:").bold().red(), style(e).bright().red());
 

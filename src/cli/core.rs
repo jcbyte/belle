@@ -45,9 +45,9 @@ pub fn print_warning_ln<T: Display>(line: T) {
 
 pub enum DisplayVersion<'a> {
     /// User explicitly defined version
-    Pinned(&'a SemanticVersion),
+    Explicit(&'a SemanticVersion),
     /// System inferred though resolving
-    Resolved(&'a SemanticVersion),
+    Implicit(&'a SemanticVersion),
 }
 
 use std::fmt;
@@ -55,8 +55,8 @@ use std::fmt;
 impl<'a> fmt::Display for DisplayVersion<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            DisplayVersion::Pinned(v) => write!(f, "[{}]", v),
-            DisplayVersion::Resolved(v) => write!(f, "{}", style(format!("[*{}]", v)).dim()),
+            DisplayVersion::Explicit(v) => write!(f, "[{}]", v),
+            DisplayVersion::Implicit(v) => write!(f, "{}", style(format!("[{}]", v)).dim()),
         }
     }
 }
@@ -64,8 +64,8 @@ impl<'a> fmt::Display for DisplayVersion<'a> {
 impl<'a> DisplayVersion<'a> {
     pub fn get_version(&self) -> &'a SemanticVersion {
         match self {
-            DisplayVersion::Pinned(v) => v,
-            DisplayVersion::Resolved(v) => v,
+            DisplayVersion::Explicit(v) => v,
+            DisplayVersion::Implicit(v) => v,
         }
     }
 }

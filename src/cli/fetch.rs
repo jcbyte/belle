@@ -5,7 +5,7 @@ use indicatif::ProgressBar;
 use url::Url;
 
 use crate::{
-    cli::core::ProgressBarTheme,
+    cli::core::{DisplayVersion, ProgressBarTheme, print_blank_ln, print_success_ln},
     error::{AppError, CustomErrorContext},
     fetch::{BelleClient, RepoMetadata, ReturnedPackages, get_local_package_meta},
     registry::{Package, PackageIdentifier, RegistrablePackage},
@@ -25,17 +25,17 @@ pub async fn list_afp_repositories(limit: usize) -> Result<(), AppError> {
     pb.finish_and_clear();
 
     // Print list of AFPs
-    println!("AFP Repositories Listing:");
     for afp_repo in &afp_repos {
-        println!(
-            " {:<11} {}{}{}",
-            style(&afp_repo.name).bold(),
-            style("[").dim(),
-            style(afp_repo.get_version().to_string()).green(),
-            style("]").dim(),
-        )
+        print_blank_ln(format_args!(
+            "{:<11} {}",
+            &afp_repo.name,
+            DisplayVersion::Implicit(afp_repo.get_version())
+        ));
     }
-    println!("Found {} AFP repositories.", style(afp_repos.len()).bold());
+    print_success_ln(
+        "Found",
+        format_args!("{} AFP repositories", style(afp_repos.len()).bold()),
+    );
 
     Ok(())
 }
@@ -52,7 +52,7 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
                 .get_afp_repo(name)
                 .await?
                 // Warn if the repo does not exist
-                .report_custom(format!("Could not find repo with name '{}'", name))?
+                .report_custom(format!("Could not find AFP with name '{}'", name))?
         }
         None => {
             // Get the most recent repo if none specified
@@ -60,32 +60,32 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
             latest_repo_collection
                 .into_iter()
                 .next()
-                .report_custom("Failed to find the latest repo")?
+                .report_custom("Could not find the latest repo")?
         }
     };
 
     let pb = ProgressBar::new_spinner();
     pb.enable_steady_tick(Duration::from_millis(100));
     pb.set_message(format!(
-        "Fetching packages list from {} {}{}{}",
-        style(&repo.name).cyan().bold(),
-        style("[").dim(),
-        style(repo.get_version()).green(),
-        style("]").dim()
+        "Fetching package manifests from {} {}",
+        style(&repo.name).cyan().bright(),
+        DisplayVersion::Implicit(repo.get_version())
     ));
 
     // Get the metadata from the repo, and then create our metadata struct from this
     let repo_metadata = RepoMetadata::get(&repo, client).await?;
     let repo_packages = repo_metadata.all_packages();
 
-    pb.finish_with_message(format!(
-        "Found {} packages from {} {}{}{}.",
-        style(repo_packages.len()).bold(),
-        style(&repo.name).cyan().bold(),
-        style("[").dim(),
-        style(repo.get_version()).green(),
-        style("]").dim(),
-    ));
+    pb.finish_and_clear();
+    print_success_ln(
+        "Found",
+        format_args!(
+            "{} packages from {} {}",
+            style(repo_packages.len()).bold(),
+            style(&repo.name).cyan().bright(),
+            DisplayVersion::Implicit(repo.get_version())
+        ),
+    );
 
     let pb = ProgressBar::new(repo_packages.len() as u64).with_belle_style();
 
@@ -93,10 +93,10 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
 
     let mut failed = 0;
     for package in repo_metadata.all_packages() {
-        pb.set_message(format!("Syncing {}", style(&package).cyan()));
+        pb.set_message(format!("Syncing {}", style(&package).cyan().bright()));
 
         if package.package_exists() {
-            // If the package already exists, we must ensure that we have this isabelle version listed
+            // If the package already exists, ensure that we have this isabelle version listed
             let mut package_meta = package
                 .get_resolved_package_manifest()?
                 .expect("Package exists, but its manifest could not be found");
@@ -107,23 +107,27 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
         } else {
             // Create the package metadata and register it
             // Creating metadata will require network, so this could take some time
-            let package_meta = repo_metadata.create_package_meta(&package.name, client).await;
-            match package_meta {
-                Ok((ReturnedPackages { package, aliases }, fully_resolved)) => {
+            let package_meta_res = repo_metadata.create_package_meta(&package.name, client).await;
+            match package_meta_res {
+                Ok((
+                    ReturnedPackages {
+                        package: package_meta,
+                        aliases,
+                    },
+                    fully_resolved,
+                )) => {
                     if fully_resolved {
-                        package.register()?;
+                        package_meta.register()?;
                     } else {
                         // Add the package to be resolved later
                         pb.println(format!(
                             "{}",
-                            style(format!(
-                                "Deferred resolving {} due to unseen dependencies",
-                                &package.name
-                            ))
-                            .dim()
+                            style(format!("Deferred resolving {} due to unseen dependencies", package)).dim()
                         ));
+
+                        // Increase the progress bar count, as these must be handled afterwards
                         pb.inc_length(1);
-                        unresolved_packages.push(package);
+                        unresolved_packages.push(package_meta);
                     }
 
                     for alias in aliases {
@@ -132,6 +136,7 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
                 }
                 // If this produces an error then don't crash the entire fetch process
                 Err(e) => {
+                    // todo error handling better
                     pb.println(format!("{} {}", style("Error:").bold().red(), style(e).bright().red()));
                     failed += 1
                 }
@@ -143,8 +148,8 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
 
     for mut unresolved_package in unresolved_packages {
         pb.set_message(format!(
-            "Resolving dependencies for {}",
-            style(&unresolved_package.name).cyan()
+            "Resolving {}",
+            style(PackageIdentifier::from(&unresolved_package)).cyan().bright()
         ));
 
         match repo_metadata.resolve_package_meta(&mut unresolved_package) {
@@ -152,26 +157,31 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
                 unresolved_package.register()?;
             }
             Err(e) => {
+                // todo error handling better
                 pb.println(format!("{} {}", style("Error:").bold().red(), style(e).bright().red()));
                 failed += 1
             }
         };
+
+        pb.inc(1);
     }
 
     pb.finish_and_clear();
-    println!(
-        "Synced {} packages from {} {}{}{}. {}",
-        style(repo_packages.len() - failed).bold(),
-        style(&repo.name).cyan().bold(),
-        style("[").dim(),
-        style(repo.get_version()).yellow(),
-        style("]").dim(),
-        style(if failed > 0 {
-            format!("({} failed)", failed)
-        } else {
-            String::new()
-        })
-        .red()
+
+    let failed_str = if failed > 0 {
+        format!(", {} failed", style(failed).bold())
+    } else {
+        "".to_string()
+    };
+    print_success_ln(
+        "Synced",
+        format_args!(
+            "{} packages from {} {} {}",
+            style(repo_packages.len() - failed).bold(),
+            style(&repo.name).cyan().bright(),
+            DisplayVersion::Implicit(repo.get_version()),
+            failed_str
+        ),
     );
 
     Ok(())
@@ -192,7 +202,17 @@ pub async fn source_remote_repo(url: &Url, branch: &str) -> Result<(), AppError>
     }
 
     pb.finish_and_clear();
-    println!("Sourced: {}", style(package_identifier).cyan());
+
+    print_success_ln(
+        "Sourced",
+        format_args!(
+            "remote package {} {}{}{}",
+            style(&package_identifier).cyan().bright(),
+            style("(").dim(),
+            style(url).dim(),
+            style(")").dim(),
+        ),
+    );
 
     Ok(())
 }
@@ -206,7 +226,16 @@ pub fn source_local_package(path: &Path) -> Result<(), AppError> {
         alias.register()?;
     }
 
-    println!("Sourced: {}", style(package_identifier).cyan());
+    print_success_ln(
+        "Sourced",
+        format_args!(
+            "local package {} {}{}{}",
+            style(package_identifier).cyan().bright(),
+            style("(").dim(),
+            style(path.display()).dim(),
+            style(")").dim(),
+        ),
+    );
 
     Ok(())
 }
