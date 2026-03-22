@@ -2,33 +2,42 @@ use indicatif::{ProgressBar, ProgressStyle};
 use pubgrub::SemanticVersion;
 use std::fmt::Display;
 
-use console::{Color, style};
-
-pub trait ProgressBarTheme {
-    fn with_belle_style(self) -> Self;
-}
-
-impl ProgressBarTheme for ProgressBar {
-    fn with_belle_style(self) -> Self {
-        self.set_style(
-            ProgressStyle::default_bar()
-                .template("{spinner} [{bar:40.cyan/blue}] {pos}/{len} {msg}")
-                .expect("Invalid hardcoded spinner template")
-                .progress_chars("#>-"),
-        );
-        self
-    }
-}
+use console::{Color, StyledObject, style};
 
 const GUTTER_WIDTH: usize = 12;
 
-pub fn print_ln<T: Display>(prefix: &str, color: console::Color, line: T) {
-    println!(
-        "{:>width$} {}",
-        style(prefix).fg(color).bold(),
-        line,
-        width = GUTTER_WIDTH
-    );
+pub trait ProgressBarTheme {
+    fn with_belle_bar_style(self) -> Self;
+    fn with_belle_spinner_style(self) -> Self;
+}
+
+impl ProgressBarTheme for ProgressBar {
+    fn with_belle_bar_style(self) -> Self {
+        self.set_style(
+            ProgressStyle::default_bar()
+                .template(&format!(
+                    "{{prefix:>{}}} [{{bar:40.cyan/blue}}] {{pos}}/{{len}}: {{msg}}",
+                    GUTTER_WIDTH
+                ))
+                .expect("Invalid hardcoded progressbar template")
+                .progress_chars("=> "),
+        );
+        self
+    }
+
+    fn with_belle_spinner_style(self) -> Self {
+        self.set_style(
+            ProgressStyle::default_spinner()
+                .template(&format!(
+                    "{{spinner}} {{prefix:>{}}} {{msg}}",
+                    // Giving space for: spinner + space
+                    GUTTER_WIDTH - 2
+                ))
+                .expect("Invalid hardcoded spinner template"),
+        );
+
+        self
+    }
 }
 
 pub fn print_blank_ln<T: Display>(line: T) {
