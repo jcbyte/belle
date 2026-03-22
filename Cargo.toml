@@ -24,3 +24,4 @@ junction = "1.4.2"
 url = { version = "2.5.8", features = ["serde"] }
 dunce = "1.0.5"
 thiserror = "2.0.18"
+html2text = "0.16.7"

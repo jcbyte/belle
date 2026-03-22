@@ -63,10 +63,11 @@ async fn main() {
     }
 }
 
-// todo there is inconsistency between "pkg [version]" and "pkg@version"
-// todo error hints
-// todo consistent CLI + Errors output
 // todo can i autodetect and strip colours if required
-
+// todo singularise words (environments -> environment) when there is 1
+// todo there is inconsistency between "pkg [version]" and "pkg@version"
+// todo no-op commands
+// todo consistent errors output
+// todo error hints
 // todo unit testing
-// todo integration testing
+// todo manual testing

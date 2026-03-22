@@ -1,8 +1,9 @@
-use std::{collections::HashSet, fs};
+use std::{borrow::Cow, collections::HashSet, fmt::Display, fs};
 
-use console::style;
+use console::{Color, style};
 
 use crate::{
+    cli::core::{DisplayVersion, print_blank_ln, print_ln, print_skipped_ln, print_success_ln},
     config::BelleConfig,
     environment::{Environment, VersionReq, manager::iter_envs},
     error::{AppError, IoErrorContext},
@@ -17,12 +18,16 @@ use crate::{
 pub fn clean_packages() -> Result<(), AppError> {
     let package_dir = BelleConfig::get_package_dir();
     if !package_dir.is_dir() {
-        println!("No packages found in cache");
+        print_skipped_ln("package cache is already empty");
         return Ok(());
     }
 
+    let count = std::fs::read_dir(&package_dir)
+        .report_read("packages source", &package_dir)?
+        .count();
     fs::remove_dir_all(&package_dir).report_delete("packages source", &package_dir)?;
-    println!("Cleaned {} packages from cache.", style("all").bold());
+
+    print_success_ln("Cleaned", format_args!("{} packages", style(count).bold()));
 
     Ok(())
 }
@@ -32,12 +37,16 @@ pub fn clean_metadata() -> Result<(), AppError> {
     let manifest_dir = BelleConfig::get_manifest_dir();
 
     if !manifest_dir.is_dir() {
-        println!("No metadata found in cache");
+        print_skipped_ln("metadata is already empty");
         return Ok(());
     }
 
+    let count = std::fs::read_dir(&manifest_dir)
+        .report_read("packages manifests", &manifest_dir)?
+        .count();
     fs::remove_dir_all(&manifest_dir).report_delete("packages manifests", &manifest_dir)?;
-    println!("Cleaned metadata for {} packages.", style("all").bold());
+
+    print_success_ln("Cleaned", format_args!("{} packages metadata", style(count).bold()));
 
     Ok(())
 }
@@ -47,24 +56,29 @@ pub fn list_versions(name: &str) -> Result<(), AppError> {
     let versions = registry::get_package_versions(name);
 
     if versions.is_empty() {
+        print_skipped_ln("line");
         println!("No versions of package {} installed", name)
     } else {
         let mut installed_count = 0;
 
-        println!("Version listing for {}:", style(name).cyan());
         for version in &versions {
-            print!(" - {:<9}", style(version.version.to_string()).green(),);
+            let line = format!("{}", &version.version);
             if version.exists_locally() {
+                print_ln("Installed", Color::Cyan, line);
                 installed_count += 1;
-                print!("{}", style(" [installed]").dim());
+            } else {
+                print_blank_ln(line);
             }
-            println!();
         }
-        println!(
-            "Found {} versions for {} {}.",
-            style(versions.len()).bold(),
-            style(name).cyan(),
-            style(format!("({} installed)", installed_count)).dim(),
+
+        print_success_ln(
+            "Listed",
+            format_args!(
+                "{} versions for {} ({} installed).",
+                style(versions.len()).bold(),
+                style(name).cyan().bright(),
+                style(installed_count).bold(),
+            ),
         );
     }
 
@@ -73,30 +87,31 @@ pub fn list_versions(name: &str) -> Result<(), AppError> {
 
 /// Prints nicely formatted metadata for a package to the console
 fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
-    let header = format!(
-        "{} {} {}{}{}",
-        style(&meta.name).cyan().bold(),
-        style(&meta.title).bold(),
-        style("[").dim(),
-        style(meta.version).green(),
-        style("]").dim()
-    );
-    println!("{}", header);
-
     if let Some(alias) = alias {
         println!(
-            "{} {}{}{} {}",
-            style(&alias.name).cyan().dim(),
-            style("[").dim(),
-            style(alias.version).green().dim(),
-            style("]").dim(),
-            style("[Alias]").dim(),
+            "{} {} {}",
+            style("Alias").dim().bold(),
+            &alias.name,
+            DisplayVersion::Implicit(&alias.version),
         )
     }
 
+    let header = format!(
+        "{} {} {}",
+        style(&meta.name).cyan().bold(),
+        style(&meta.title).bold(),
+        DisplayVersion::Explicit(&meta.version)
+    );
+    println!("{}", header);
+
     println!("{}", style("─".repeat(console::measure_text_width(&header))).dim());
 
-    println!("{}", style(&meta.r#abstract).italic());
+    // Try to parse HTML and display nicely
+    let formatted_abstract = html2text::from_read(meta.r#abstract.as_bytes(), 80)
+        .map(Cow::Owned)
+        // Fallback to just displaying raw text
+        .unwrap_or(Cow::Borrowed(&meta.r#abstract));
+    println!("{}", formatted_abstract);
 
     if let Some(note) = &meta.note {
         println!("{} {}", style("Note:").yellow().bold(), note);
@@ -104,36 +119,44 @@ fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
 
     println!();
 
-    println!("{:<10} {}", style("Date:").bold(), meta.date);
-    if !meta.topics.is_empty() {
-        println!("{:<10} {}", style("Topics:").bold(), meta.topics.join(", "));
+    fn print_heading<T: Display>(heading: T) {
+        println!("{}", style(format!("{}:", heading)).bold());
     }
-    println!("{:<10} {}", style("License:").bold(), meta.licence);
+
+    fn print_attribute<K: Display, V: Display>(key: K, value: V) {
+        println!("{:<8} {}", style(key).bold(), value);
+    }
+
+    print_attribute("Date", &meta.date);
+    if !meta.topics.is_empty() {
+        print_attribute("Topics", &meta.topics.join(", "));
+    }
+    print_attribute("License", &meta.licence);
+
     let source_str = match &meta.source {
-        PackageSource::Afp(repo) => format!(
-            "{} {}{}{}",
-            repo.name,
-            style("[").dim(),
-            style(repo.get_version()).green(),
-            style("]").dim()
-        ),
+        PackageSource::Afp(repo) => format!("{} {}", repo.name, DisplayVersion::Explicit(repo.get_version())),
         PackageSource::Remote { url } => format!("Remote: {}", url),
-        PackageSource::Local { path } => format!("Local: {}", path.to_string_lossy()),
-        _ => String::new(),
+        PackageSource::Local { path } => format!("Local: {}", path.display()),
+        _ => "Unknown Source".to_string(),
     };
-    println!("{:<10} {}", style("Source:").bold(), source_str);
+    print_attribute("Source", source_str);
 
     println!();
 
     if !meta.authors.is_empty() {
-        println!("{}", style("Authors:").bold());
+        print_heading("Authors");
         for author in &meta.authors {
-            print!(" - {}", author.name);
+            print!(" {} {}", style("•").dim(), author.name);
             if let Some(email) = &author.email {
                 print!(" {}", style(format!("<{}>", email)).dim());
             }
             if let Some(orcid) = &author.orcid {
                 print!(" {}", style(format!("(ORCID:{})", orcid)).dim());
+            }
+            if let Some(homepages) = &author.homepages {
+                for homepage in homepages {
+                    print!(" {}", style(format!("{}", homepage)).dim().underlined());
+                }
             }
             println!()
         }
@@ -141,21 +164,20 @@ fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
 
     println!();
 
-    println!("{}", style("Isabelle Versions:").bold());
+    print_heading("Isabelle Versions");
     for isabelle_version in &meta.isabelles {
         println!(
-            "- {:<6} {}{}{}",
+            " {} {:<6} {}",
+            style("•").dim(),
             style(get_isabelle_name(isabelle_version)),
-            style("[").dim(),
-            style(isabelle_version).green(),
-            style("]").dim()
+            DisplayVersion::Explicit(isabelle_version),
         )
     }
 
     println!();
 
     if !meta.dependencies.is_empty() {
-        println!("{}", style("Dependencies:").bold());
+        print_heading("Dependencies");
 
         let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
 
@@ -171,32 +193,25 @@ fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
         }
 
         for (name, version) in dependencies {
-            println!(
-                "- {} {}{}{}",
-                style(name),
-                style("[").dim(),
-                style(version).dim(),
-                style("]").dim()
-            )
+            println!(" {} {} {}", style("•").dim(), name, DisplayVersion::Explicit(&version))
         }
 
         for name in isabelle_dependencies {
-            println!("- {}", style(name).dim().italic(),)
+            println!(" {} {}", style("•").dim(), style(name).dim().italic(),)
         }
     }
 
     println!();
 
     if !meta.provides.is_empty() {
-        println!("{}", style("Provides Packages:").bold());
+        print_heading("Provides Packages:");
 
         for alias in &meta.provides {
             println!(
-                "- {} {}{}{}",
+                " {} {} {}",
+                style("•").dim(),
                 style(alias),
-                style("[").dim(),
-                style(meta.version).dim(),
-                style("]").dim()
+                DisplayVersion::Explicit(&meta.version),
             )
         }
     }
@@ -204,10 +219,10 @@ fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
     println!();
 
     if !meta.extra.is_empty() {
-        println!("{}", style("Extra Information:").bold());
+        print_heading("Extra Information:");
 
-        for extra in &meta.extra {
-            println!("{:<10} {}", style(format!("{}:", extra.0)).dim(), extra.1);
+        for (key, value) in &meta.extra {
+            println!(" {} {:<10} {}", style("•").dim(), style(format!("{}", key)), value);
         }
     }
 }
@@ -264,26 +279,25 @@ pub fn search_registry(search: String) {
         }
     }
 
-    if results.is_empty() {
-        println!("Found {} Results for '{}'.", style("0").bold(), style(search).cyan());
-
-        return;
-    }
-
     // Print list of results
-    println!("Search results for '{}':", style(&search).cyan());
-
     for package in &results {
-        println!("{} {}", style("-").dim(), highlight_match(package, &search));
+        print_blank_ln(format_args!("{}", highlight_match(package, &search)));
     }
-    println!("Found {} Results.", style(results.len()).bold());
+    print_success_ln(
+        "Found",
+        format_args!(
+            "{} results for '{}'",
+            style(results.len()).bold(),
+            style(search).cyan().bright()
+        ),
+    );
 }
 
 pub fn purge_packages() -> Result<(), AppError> {
     let mut used_packages: HashSet<PackageIdentifier> = HashSet::new();
 
     for env_name in iter_envs() {
-        let env = Environment::get(&env_name)?.expect("Environment listed, but could not be gotten");
+        let env = Environment::get(&env_name)?.expect("Environment listed, but failed to be got");
         for (name, version) in env.lock {
             used_packages.insert(PackageIdentifier::new(name, version));
         }
@@ -297,7 +311,7 @@ pub fn purge_packages() -> Result<(), AppError> {
         }
     }
 
-    println!("Removed {} Packages.", style(removed).bold());
+    print_success_ln("Cleaned", format_args!("{} packages", style(removed).bold()));
 
     Ok(())
 }

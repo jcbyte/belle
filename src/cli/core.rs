@@ -2,7 +2,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use pubgrub::SemanticVersion;
 use std::fmt::Display;
 
-use console::style;
+use console::{Color, style};
 
 pub trait ProgressBarTheme {
     fn with_belle_style(self) -> Self;
@@ -36,11 +36,15 @@ pub fn print_blank_ln<T: Display>(line: T) {
 }
 
 pub fn print_success_ln<T: Display>(prefix: &str, line: T) {
-    print_ln(prefix, console::Color::Green, line);
+    print_ln(prefix, Color::Green, line);
 }
 
 pub fn print_warning_ln<T: Display>(line: T) {
-    print_ln("Warning", console::Color::Yellow, style(line).yellow());
+    print_ln("Warning", Color::Yellow, style(line).yellow());
+}
+
+pub fn print_skipped_ln<T: Display>(line: T) {
+    print_ln("Skipped", Color::White, style(line).dim());
 }
 
 pub enum DisplayVersion<'a> {
