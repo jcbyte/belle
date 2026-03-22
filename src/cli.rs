@@ -18,7 +18,7 @@ mod types;
 
 use pubgrub::SemanticVersion;
 pub use schema::Cli;
-use types::IsabelleVersion;
+use types::{IsabelleVersion, PackageVersion};
 
 pub async fn run(args: Cli) -> Result<(), AppError> {
     match args.command {
@@ -45,7 +45,7 @@ pub async fn run(args: Cli) -> Result<(), AppError> {
             if args.versions {
                 cli::registry::list_versions(&args.name)?;
             } else {
-                cli::registry::print_package_meta(args.name, args.version.into())?;
+                cli::registry::print_package_meta(args.name, args.version.map(SemanticVersion::from).into())?;
             }
         }
         Commands::Search(args) => registry::search_registry(args.query),
@@ -63,7 +63,7 @@ pub async fn run(args: Cli) -> Result<(), AppError> {
         Commands::Migrate(args) => {
             environment::migrate_isabelle(args.version.map(SemanticVersion::from).into(), args.unpin).await?
         }
-        Commands::Add(args) => package::add_package(args.name, args.version.into()).await?,
+        Commands::Add(args) => package::add_package(args.name, args.version.map(SemanticVersion::from).into()).await?,
         Commands::Remove(args) => package::remove_package(&args.name).await?,
         Commands::List(args) => package::list_packages(args.all)?,
         Commands::Restore => environment::restore().await?,

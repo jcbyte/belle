@@ -1,10 +1,9 @@
 use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
-use pubgrub::SemanticVersion;
 use url::Url;
 
-use crate::cli::IsabelleVersion;
+use crate::cli::{IsabelleVersion, PackageVersion};
 
 #[derive(Parser)]
 #[command(name = "belle")]
@@ -158,7 +157,7 @@ pub struct InspectArgs {
 
     /// Inspect a specific version (defaults to latest)
     #[arg(conflicts_with = "versions")]
-    pub version: Option<SemanticVersion>,
+    pub version: Option<PackageVersion>,
 
     /// List all available versions for this package instead
     #[arg(short, long)]
@@ -220,7 +219,7 @@ pub struct AddArgs {
     pub name: String,
 
     /// Specific version to add (defaults to latest)
-    pub version: Option<SemanticVersion>,
+    pub version: Option<PackageVersion>,
 }
 
 #[derive(Args)]

@@ -38,6 +38,7 @@ fn display_errors(e: &AppError, backtrace: bool) {
 
 #[tokio::main]
 async fn main() {
+    // todo remove this, this is for CLI prettyness debugging
     println!(
         "\n\n{} {} {} {} some command --here",
         style("C:/Users/joelc/Desktop/belle").bright(),
@@ -63,7 +64,6 @@ async fn main() {
     }
 }
 
-// todo allow v in cli schema versions?
 // todo progress bar and line drawing "consistency+styling"
 // todo no-op commands
 // todo consistent errors output
