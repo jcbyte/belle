@@ -8,7 +8,7 @@ mod types;
 
 pub use afp_metadata::RepoMetadata;
 pub use client::BelleClient;
-pub use types::{AFPRepo, ReturnedPackages};
+pub use types::{AfpRepo, ReturnedPackages};
 
 pub use local::get_local_package_meta;
 

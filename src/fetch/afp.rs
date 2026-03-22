@@ -4,18 +4,18 @@ use url::Url;
 use crate::{
     config::BelleConfig,
     fetch::{
-        AFPRepo, BelleClient,
+        AfpRepo, BelleClient,
         error::{FetchError, FetchErrorContext, FetchUrlContext},
     },
 };
 
 impl BelleClient {
     /// Retrieve all repos within the AFP repository up to given limit
-    pub async fn get_afp_repos(&self, limit: usize) -> Result<Vec<AFPRepo>, FetchError> {
+    pub async fn get_afp_repos(&self, limit: usize) -> Result<Vec<AfpRepo>, FetchError> {
         // Regex to match an AFP repos name
         let re = Regex::new(r"^afp-[\d-]+$").expect("Invalid hardcoded regex expression");
 
-        let mut afp_repos: Vec<AFPRepo> = Vec::new();
+        let mut afp_repos: Vec<AfpRepo> = Vec::new();
         let mut page = 1;
 
         let per_page: usize = 25;
@@ -31,7 +31,7 @@ impl BelleClient {
             ))
             .report_invalid_url("Hetapod afp list")?;
 
-            let repos: Vec<AFPRepo> = self
+            let repos: Vec<AfpRepo> = self
                 .client
                 .get(afp_repo_list_url.clone())
                 .send()
@@ -48,7 +48,7 @@ impl BelleClient {
 
             let received_count = repos.len();
             // Only keep repos which match the name of the AFP
-            let retrieved_repos: Vec<AFPRepo> = repos.into_iter().filter(|p| re.is_match(&p.name)).collect();
+            let retrieved_repos: Vec<AfpRepo> = repos.into_iter().filter(|p| re.is_match(&p.name)).collect();
 
             // Add the found repos into our collecting list
             afp_repos.extend(retrieved_repos);
@@ -69,7 +69,7 @@ impl BelleClient {
     }
 
     /// Get a singular repo (id) from its name, or `None` is it does not exist
-    pub async fn get_afp_repo(&self, name: &str) -> Result<Option<AFPRepo>, FetchError> {
+    pub async fn get_afp_repo(&self, name: &str) -> Result<Option<AfpRepo>, FetchError> {
         let mut page = 1;
 
         let afp_group = BelleConfig::read_config(|c| c.afp_group.clone());
@@ -82,7 +82,7 @@ impl BelleClient {
             ))
             .report_invalid_url("Hetapod project data")?;
 
-            let repo_collection: Vec<AFPRepo> = self
+            let repo_collection: Vec<AfpRepo> = self
                 .client
                 .get(afp_repo_details_url.clone())
                 .send()
@@ -110,7 +110,7 @@ impl BelleClient {
     }
 
     /// Retrieve the metadata archive for a given repo
-    pub async fn get_afp_metadata_archive(&self, repo: &AFPRepo) -> Result<bytes::Bytes, FetchError> {
+    pub async fn get_afp_metadata_archive(&self, repo: &AfpRepo) -> Result<bytes::Bytes, FetchError> {
         // Retrieve the bytes for the archive at `/metadata` for the given repo
         let meta_archive_url = Url::parse(&format!(
             "https://foss.heptapod.net/api/v4/projects/{}/repository/archive.zip?path=metadata",
@@ -132,7 +132,7 @@ impl BelleClient {
     }
 
     /// Retrieve the ROOT file for a given entry
-    pub async fn get_afp_entry_root(&self, repo: &AFPRepo, entry: &str) -> Result<String, FetchError> {
+    pub async fn get_afp_entry_root(&self, repo: &AfpRepo, entry: &str) -> Result<String, FetchError> {
         // Retrieve the raw string of the ROOT file at `/thys/$thy/ROOT` for the given entry and repo
         let root_file_url = Url::parse(&format!(
             "https://foss.heptapod.net/api/v4/projects/{}/repository/files/thys%2F{}%2FROOT/raw",
@@ -153,7 +153,7 @@ impl BelleClient {
         Ok(file_content)
     }
 
-    pub async fn get_afp_package(&self, entry: &str, repo: &AFPRepo) -> Result<bytes::Bytes, FetchError> {
+    pub async fn get_afp_package(&self, entry: &str, repo: &AfpRepo) -> Result<bytes::Bytes, FetchError> {
         let package_archive_url = Url::parse(&format!(
             "https://foss.heptapod.net/api/v4/projects/{}/repository/archive.zip?path=thys%2F{}",
             repo.id, entry

@@ -8,7 +8,7 @@ use pubgrub::SemanticVersion;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::fetch::AFPRepo;
+use crate::fetch::AfpRepo;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "_type")]
@@ -31,7 +31,7 @@ pub struct PackageAuthor {
 #[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(tag = "type")]
 pub enum PackageSource {
-    Afp(AFPRepo),
+    Afp(AfpRepo),
     Remote {
         url: Url,
     },
@@ -98,7 +98,7 @@ impl From<&Package> for PackageIdentifier {
 
 impl fmt::Display for PackageIdentifier {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}@{}", self.name, self.version)
+        write!(f, "{} v{}", self.name, self.version)
     }
 }
 

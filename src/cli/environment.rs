@@ -94,9 +94,9 @@ pub fn warn_no_isabelle() -> Result<(), AppError> {
         && !BelleConfig::read_config(|c| c.isabelles.contains_key(&v))
     {
         print_warning_ln(format_args!(
-            "This environment uses Isabelle {} [{}], but that version is not linked",
+            "This environment uses Isabelle {} {}, but that version is not linked",
             get_isabelle_name(&v),
-            &v
+            DisplayVersion::Explicit(&v)
         ));
     }
 

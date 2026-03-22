@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use thiserror::Error;
 use url::Url;
 
-use crate::fetch::AFPRepo;
+use crate::fetch::AfpRepo;
 
 #[derive(Error, Debug)]
 pub enum FetchError {
@@ -49,7 +49,7 @@ pub enum FetchError {
     },
 
     #[error("{repo} is a legacy AFP repository, the metadata cannot be fetched automatically.")]
-    LegacyAfp { repo: AFPRepo },
+    LegacyAfp { repo: AfpRepo },
 
     #[error("No package manifest found at '{path}'.")]
     NoLocalManifest { path: PathBuf },

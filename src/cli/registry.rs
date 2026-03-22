@@ -11,7 +11,7 @@ use crate::{
         self, AliasPackage, Package, PackageIdentifier, PackageSource, RegisteredPackage,
         error::RegistryNotExistContext, iter_installed_packages, iter_packages,
     },
-    util::get_isabelle_name,
+    util::{get_isabelle_name, strip_isabelle_name},
 };
 
 /// Remove all packages from disk
@@ -66,7 +66,7 @@ pub fn list_versions(name: &str) -> Result<(), AppError> {
         let mut installed_count = 0;
 
         for version in &versions {
-            let line = format!("{}", &version.version);
+            let line = format!("{}", DisplayVersion::Explicit(&version.version));
             if version.exists_locally() {
                 print_ln("Installed", Color::Cyan, line);
                 installed_count += 1;
@@ -139,7 +139,11 @@ fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
     print_attribute("License", &meta.licence);
 
     let source_str = match &meta.source {
-        PackageSource::Afp(repo) => format!("{} {}", repo.name, DisplayVersion::Explicit(repo.get_version())),
+        PackageSource::Afp(repo) => format!(
+            "AFP {} {}",
+            strip_isabelle_name(&repo.name),
+            DisplayVersion::Implicit(repo.get_version())
+        ),
         PackageSource::Remote { url } => format!("Remote: {}", url),
         PackageSource::Local { path } => format!("Local: {}", path.display()),
         _ => "Unknown Source".to_string(),

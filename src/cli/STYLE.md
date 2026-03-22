@@ -36,19 +36,19 @@ Commands with lists/long outputs should print a summary line giving ideally nume
 
 Numerical data in summary commands should be bold.
 
-## Progress Bars
-
-A standardised style and colour theme should be used for progress bars and spinners across the application.
-
 ## Packages and Versions
 
 When printing packages, always print the name and version together where possible.
 
-Version numbers should be printed using square brackets ([2019.2.17]).
+Version numbers should be printed with a space and prefixed with 'v': (Z_Toolkit v2019.2.17).
 
-If the version number is explicit it should be fully coloured, else dimmed.
+If the version number is implicit it should be dimmed.
 
-When referencing an AFP/Isabelle the given Isabelle name should also be used (2025-2 [2025.2.0]).
+When referencing an AFP/Isabelle the given Isabelle name should also be used, with no string prefix (i.e. stripping "afp-" from "afp-2025"): (Isabelle 2025-2 v2025.2.0, AFP 2025-2 v2025.2.0).
+
+## Progress Bars
+
+A standardised style and colour theme should be used for progress bars and spinners across the application.
 
 ## No-Ops
 

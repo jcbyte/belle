@@ -157,11 +157,11 @@ pub struct InspectArgs {
     pub name: String,
 
     /// Inspect a specific version (defaults to latest)
-    #[arg(short, long, conflicts_with = "versions")]
+    #[arg(conflicts_with = "versions")]
     pub version: Option<SemanticVersion>,
 
     /// List all available versions for this package instead
-    #[arg(long)]
+    #[arg(short, long)]
     pub versions: bool,
 }
 
@@ -220,7 +220,6 @@ pub struct AddArgs {
     pub name: String,
 
     /// Specific version to add (defaults to latest)
-    #[arg(short, long)]
     pub version: Option<SemanticVersion>,
 }
 

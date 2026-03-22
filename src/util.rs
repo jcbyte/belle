@@ -15,16 +15,16 @@ pub fn get_isabelle_version(name: &str) -> SemanticVersion {
     // > 2025-2 -> 2025.2.0
 
     // Filter all non-numeric and non-"-" characters
-    let sanitized: String = name.chars().filter(|c| c.is_ascii_digit() || *c == '-').collect();
+    let sanitized: String = name.chars().filter(|&c| c.is_ascii_digit() || c == '-').collect();
 
     // Split by each "-" removing any unparsable strings (e.g. empty)
     let name_parts: Vec<u32> = sanitized.split('-').filter_map(|s| s.parse::<u32>().ok()).collect();
 
-    let major = name_parts.first().unwrap_or(&0);
-    let minor = name_parts.get(1).unwrap_or(&0);
-    let patch = name_parts.get(2).unwrap_or(&0);
+    let major = name_parts.first().copied().unwrap_or(0);
+    let minor = name_parts.get(1).copied().unwrap_or(0);
+    let patch = name_parts.get(2).copied().unwrap_or(0);
 
-    SemanticVersion::new(*major, *minor, *patch)
+    SemanticVersion::new(major, minor, patch)
 }
 
 /// Convert a SemVer version (e.g. 2025.0.0, 2025.1.0) into an Isabelle version (e.g. 2025, 2025-1)
@@ -41,6 +41,13 @@ pub fn get_isabelle_name(version: &SemanticVersion) -> String {
     }
 
     name
+}
+
+/// Strip any non-numeric characters from an isabelle name
+pub fn strip_isabelle_name(raw_name: &str) -> String {
+    // Converting this into a version and back will produce the intended result.
+    // As this is called infrequently the inefficiency is negligible
+    get_isabelle_name(&get_isabelle_version(raw_name))
 }
 
 /// Create all parent directories for a given file

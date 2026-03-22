@@ -59,8 +59,8 @@ use std::fmt;
 impl<'a> fmt::Display for DisplayVersion<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            DisplayVersion::Explicit(v) => write!(f, "[{}]", v),
-            DisplayVersion::Implicit(v) => write!(f, "{}", style(format!("[{}]", v)).dim()),
+            DisplayVersion::Explicit(v) => write!(f, "v{}", v),
+            DisplayVersion::Implicit(v) => write!(f, "{}", style(format!("v{}", v)).dim()),
         }
     }
 }

@@ -11,13 +11,13 @@ use crate::fetch::afp_metadata::error::MetadataError;
 use crate::fetch::afp_metadata::{AuthorMetadata, EntryMetadata, RepoMetadata, root_parser};
 use crate::fetch::client::BelleClient;
 use crate::fetch::error::FetchError;
-use crate::fetch::{AFPRepo, ReturnedPackages};
+use crate::fetch::{AfpRepo, ReturnedPackages};
 use crate::registry::{AliasPackage, Package, PackageAuthor, PackageIdentifier, PackageSource, get_package_versions};
 use crate::util::date_to_version;
 
 impl RepoMetadata {
     /// Fetch metadata from repo and parse it into interpreted repo metadata
-    pub async fn get(repo: &AFPRepo, client: &BelleClient) -> Result<Self, AppError> {
+    pub async fn get(repo: &AfpRepo, client: &BelleClient) -> Result<Self, AppError> {
         // Download full metadata archive bytes from repo
         let bytes = client.get_afp_metadata_archive(repo).await?;
 

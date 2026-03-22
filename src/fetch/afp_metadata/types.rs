@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashMap};
 
-use crate::{fetch::AFPRepo, registry::PackageAuthor};
+use crate::{fetch::AfpRepo, registry::PackageAuthor};
 
 /// Interpretation of AFP Author metadata
 #[derive(Debug, Clone)]
@@ -28,7 +28,7 @@ pub struct EntryMetadata {
 /// Interpretation of AFP repo metadata
 #[derive(Debug)]
 pub struct RepoMetadata {
-    pub repo: AFPRepo,
+    pub repo: AfpRepo,
     pub authors: HashMap<String, AuthorMetadata>,
     pub licences: HashMap<String, String>,
     pub entries: HashMap<String, EntryMetadata>,

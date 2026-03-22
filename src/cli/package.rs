@@ -88,7 +88,12 @@ pub fn list_packages(all: bool) -> Result<(), AppError> {
     };
 
     let formatted_isabelle_str = match isabelle_version {
-        Some(v) => format!("{} {}", style(get_isabelle_name(v.get_version())).cyan().bright(), v),
+        Some(v) => format!(
+            "{:padding$} {}",
+            style(get_isabelle_name(v.get_version())).cyan().bright(),
+            v,
+            padding = largest_dependency_name
+        ),
         None => "unspecified version".to_string(),
     };
     print_ln("Isabelle", console::Color::Cyan, formatted_isabelle_str);

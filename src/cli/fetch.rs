@@ -5,9 +5,9 @@ use indicatif::ProgressBar;
 use url::Url;
 
 use crate::{
-    cli::core::{DisplayVersion, ProgressBarTheme, pluralise, print_blank_ln, print_success_ln},
+    cli::core::{DisplayVersion, ProgressBarTheme, pluralise, print_blank_ln, print_ln, print_success_ln},
     error::{AppError, CustomErrorContext},
-    fetch::{BelleClient, RepoMetadata, ReturnedPackages, get_local_package_meta},
+    fetch::{AfpRepo, BelleClient, RepoMetadata, ReturnedPackages, get_local_package_meta},
     registry::{Package, PackageIdentifier, RegistrablePackage},
 };
 
@@ -25,13 +25,15 @@ pub async fn list_afp_repositories(limit: usize) -> Result<(), AppError> {
     pb.finish_and_clear();
 
     // Print list of AFPs
-    for afp_repo in &afp_repos {
-        print_blank_ln(format_args!(
-            "{:<11} {}",
-            &afp_repo.name,
-            DisplayVersion::Implicit(afp_repo.get_version())
-        ));
+    if let Some((latest_repo, other_repos)) = afp_repos.split_last() {
+        let render = |repo: &AfpRepo| format!("{:<11} {}", &repo.name, DisplayVersion::Implicit(repo.get_version()));
+
+        for afp_repo in other_repos {
+            print_blank_ln(render(afp_repo));
+        }
+        print_ln("Latest", console::Color::Cyan, render(latest_repo));
     }
+
     print_success_ln(
         "Found",
         format_args!(
@@ -72,7 +74,7 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
     pb.enable_steady_tick(Duration::from_millis(100));
     pb.set_message(format!(
         "Fetching package manifests from {} {}",
-        style(&repo.name).cyan().bright(),
+        style(format!("AFP {}", &repo.get_formatted_name())).cyan().bright(),
         DisplayVersion::Implicit(repo.get_version())
     ));
 
@@ -87,7 +89,7 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
             "{} {} from {} {}",
             style(repo_packages.len()).bold(),
             pluralise(repo_packages.len(), "package", "packages"),
-            style(&repo.name).cyan().bright(),
+            style(format!("AFP {}", &repo.get_formatted_name())).cyan().bright(),
             DisplayVersion::Implicit(repo.get_version())
         ),
     );
@@ -184,7 +186,7 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
             "{} {} from {} {} {}",
             style(repo_packages.len() - failed).bold(),
             pluralise(repo_packages.len() - failed, "package", "packages"),
-            style(&repo.name).cyan().bright(),
+            style(format!("AFP {}", &repo.get_formatted_name())).cyan().bright(),
             DisplayVersion::Implicit(repo.get_version()),
             failed_str
         ),

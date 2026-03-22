@@ -63,7 +63,8 @@ async fn main() {
     }
 }
 
-// todo there is inconsistency between "pkg [version]" and "pkg@version"
+// todo allow v in cli schema versions?
+// todo progress bar and line drawing "consistency+styling"
 // todo no-op commands
 // todo consistent errors output
 // todo error hints
