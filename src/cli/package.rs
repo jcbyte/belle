@@ -5,7 +5,7 @@ use console::style;
 use crate::{
     cli::{
         core::{DisplayVersion, pluralise, print_blank_ln, print_ln, print_success_ln},
-        environment::{FinalizeStrategy, finalise_env, warn_no_isabelle},
+        environment::{FinalizeStrategy, finalise_env, get_isabelle_version, warn_no_isabelle},
         error::CliError,
     },
     config::BelleConfig,
@@ -21,8 +21,19 @@ pub async fn add_package(name: String, version: VersionReq) -> Result<(), AppErr
     active_env.add_package(name.clone(), version)?;
     finalise_env(&mut active_env, FinalizeStrategy::ResolveAndApply).await?;
 
-    // todo should this contain package version too
-    print_success_ln("Added", format_args!("package {}", style(name).cyan().bright()));
+    let package_listing = active_env
+        .get_package_listing(&name)
+        .expect("Package just added, now cannot be found");
+    let package_version = match package_listing.kind {
+        PackageType::ImplicitDirect => DisplayVersion::Implicit(&package_listing.version),
+        PackageType::ExplicitDirect => DisplayVersion::Explicit(&package_listing.version),
+        _ => unreachable!(),
+    };
+
+    print_success_ln(
+        "Added",
+        format_args!("package {} {}", style(name).cyan().bright(), package_version),
+    );
 
     warn_no_isabelle()?;
 
@@ -82,12 +93,7 @@ pub fn list_packages(all: bool) -> Result<(), AppError> {
         largest_dependency_name
     };
 
-    let isabelle_version = match &active_env.isabelle {
-        VersionReq::Given(v) => Some(DisplayVersion::Explicit(v)),
-        VersionReq::Any => active_env.lock.get(ISABELLE_PACKAGE).map(DisplayVersion::Implicit),
-    };
-
-    let formatted_isabelle_str = match isabelle_version {
+    let formatted_isabelle_str = match get_isabelle_version(&active_env) {
         Some(v) => format!(
             "{:padding$} {}",
             style(get_isabelle_name(v.get_version())).cyan().bright(),

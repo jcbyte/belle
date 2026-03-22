@@ -100,7 +100,7 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
 
     let mut failed = 0;
     for package in repo_metadata.all_packages() {
-        pb.set_message(format!("Syncing {}", style(&package).cyan().bright()));
+        pb.set_message(format!("Syncing {}", package.styled()));
 
         if package.package_exists() {
             // If the package already exists, ensure that we have this isabelle version listed
@@ -156,7 +156,7 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
     for mut unresolved_package in unresolved_packages {
         pb.set_message(format!(
             "Resolving {}",
-            style(PackageIdentifier::from(&unresolved_package)).cyan().bright()
+            PackageIdentifier::from(&unresolved_package).styled()
         ));
 
         match repo_metadata.resolve_package_meta(&mut unresolved_package) {
@@ -202,7 +202,9 @@ pub async fn source_remote_repo(url: &Url, branch: &str) -> Result<(), AppError>
 
     let client = BelleClient::get()?;
     let ReturnedPackages { package, aliases } = client.get_github_package_meta(url, branch).await?;
-    let package_identifier = PackageIdentifier::from(&package);
+
+    // Create this now as `package` gets borrowed after
+    let package_id = PackageIdentifier::from(&package);
 
     package.register()?;
     for alias in aliases {
@@ -215,7 +217,7 @@ pub async fn source_remote_repo(url: &Url, branch: &str) -> Result<(), AppError>
         "Sourced",
         format_args!(
             "remote package {} {}{}{}",
-            style(&package_identifier).cyan().bright(),
+            package_id.styled(),
             style("(").dim(),
             style(url).dim(),
             style(")").dim(),
@@ -227,7 +229,9 @@ pub async fn source_remote_repo(url: &Url, branch: &str) -> Result<(), AppError>
 
 pub fn source_local_package(path: &Path) -> Result<(), AppError> {
     let ReturnedPackages { package, aliases } = get_local_package_meta(path)?;
-    let package_identifier = PackageIdentifier::from(&package);
+
+    // Create this now as `package` gets borrowed after
+    let package_id = PackageIdentifier::from(&package);
 
     package.register()?;
     for alias in aliases {
@@ -238,7 +242,7 @@ pub fn source_local_package(path: &Path) -> Result<(), AppError> {
         "Sourced",
         format_args!(
             "local package {} {}{}{}",
-            style(package_identifier).cyan().bright(),
+            package_id.styled(),
             style("(").dim(),
             style(path.display()).dim(),
             style(")").dim(),

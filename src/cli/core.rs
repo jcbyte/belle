@@ -56,6 +56,8 @@ pub enum DisplayVersion<'a> {
 
 use std::fmt;
 
+use crate::registry::PackageIdentifier;
+
 impl<'a> fmt::Display for DisplayVersion<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -71,6 +73,16 @@ impl<'a> DisplayVersion<'a> {
             DisplayVersion::Explicit(v) => v,
             DisplayVersion::Implicit(v) => v,
         }
+    }
+}
+
+impl PackageIdentifier {
+    pub fn styled(&self) -> String {
+        format!(
+            "{} {}",
+            style(&self.name).cyan().bright(),
+            DisplayVersion::Implicit(&self.version)
+        )
     }
 }
 

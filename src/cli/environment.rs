@@ -53,7 +53,7 @@ pub async fn finalise_env(env: &mut Environment, strategy: FinalizeStrategy) -> 
         let pb = ProgressBar::new(missing_packages.len() as u64).with_belle_style();
 
         for package in &missing_packages {
-            pb.set_message(format!("Fetching {}", style(&package).cyan()));
+            pb.set_message(format!("Fetching {}", package.styled()));
 
             let package_meta = package
                 .get_resolved_package_manifest()?
@@ -101,6 +101,13 @@ pub fn warn_no_isabelle() -> Result<(), AppError> {
     }
 
     Ok(())
+}
+
+pub fn get_isabelle_version<'a>(env: &'a Environment) -> Option<DisplayVersion<'a>> {
+    match &env.isabelle {
+        VersionReq::Given(v) => Some(DisplayVersion::Explicit(v)),
+        VersionReq::Any => env.lock.get(ISABELLE_PACKAGE).map(DisplayVersion::Implicit),
+    }
 }
 
 pub fn switch_env(name: Option<String>) -> Result<(), AppError> {
@@ -221,12 +228,7 @@ pub async fn migrate_isabelle(version: VersionReq, unpin_existing: bool) -> Resu
     active_env.migrate_isabelle(version, unpin_existing);
     finalise_env(&mut active_env, FinalizeStrategy::ResolveAndApply).await?;
 
-    let new_isabelle_version = match &active_env.isabelle {
-        VersionReq::Given(v) => Some(DisplayVersion::Explicit(v)),
-        VersionReq::Any => active_env.lock.get(ISABELLE_PACKAGE).map(DisplayVersion::Implicit),
-    };
-
-    let line = match new_isabelle_version {
+    let line = match get_isabelle_version(&active_env) {
         Some(v) => format!("to {} {}", style(get_isabelle_name(v.get_version())).cyan().bright(), v),
         None => format!("to {}", style("latest").cyan().bright()),
     };

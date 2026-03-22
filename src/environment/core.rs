@@ -186,22 +186,29 @@ impl Environment {
         Ok(())
     }
 
-    pub fn iter_packages(&self) -> impl Iterator<Item = PackageListing> {
-        self.lock.iter().map(|(name, version)| match self.packages.get(name) {
-            None => PackageListing {
-                name: name.clone(),
-                version: *version,
-                kind: PackageType::Transitive,
-            },
-            Some(v) => PackageListing {
-                name: name.clone(),
-                version: *version,
-                kind: if v.is_any() {
+    pub fn get_package_listing(&self, name: &str) -> Option<PackageListing> {
+        self.lock.get(name).map(|&locked_version| match self.packages.get(name) {
+            Some(listed_version) => PackageListing {
+                name: name.to_string(),
+                version: locked_version,
+                kind: if listed_version.is_any() {
                     PackageType::ImplicitDirect
                 } else {
                     PackageType::ExplicitDirect
                 },
             },
+            None => PackageListing {
+                name: name.to_string(),
+                version: locked_version,
+                kind: PackageType::Transitive,
+            },
+        })
+    }
+
+    pub fn iter_packages(&self) -> impl Iterator<Item = PackageListing> {
+        self.lock.iter().map(|(name, _version)| {
+            self.get_package_listing(name)
+                .expect("Package known to exist cannot now be found")
         })
     }
 
