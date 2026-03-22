@@ -81,7 +81,7 @@ pub async fn finalise_env(env: &mut Environment, strategy: FinalizeStrategy) -> 
 }
 
 /// Display a warning if there is no linked isabelle matching the active environment
-fn warn_no_isabelle() -> Result<(), AppError> {
+pub fn warn_no_isabelle() -> Result<(), AppError> {
     let active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
 
     if let VersionReq::Given(v) = active_env.get_isabelle_version()

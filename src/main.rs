@@ -63,6 +63,7 @@ async fn main() {
     }
 }
 
+// todo there is inconsistency between "pkg [version]" and "pkg@version"
 // todo error hints
 // todo consistent CLI + Errors output
 // todo can i autodetect and strip colours if required

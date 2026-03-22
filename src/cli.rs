@@ -22,7 +22,7 @@ use types::IsabelleVersion;
 
 pub async fn run(args: Cli) -> Result<(), AppError> {
     match args.command {
-        Commands::Link(args) => isabelle::link(args.path)?,
+        Commands::Link(args) => isabelle::link(&args.path)?,
         Commands::Unlink(args) => isabelle::unlink(args.version.into())?,
         Commands::Source(action) => match action {
             SourceAction::Afp(action) => match action {

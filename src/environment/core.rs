@@ -193,11 +193,13 @@ impl Environment {
                 version: *version,
                 kind: PackageType::Transitive,
             },
-            Some(direct_version) => PackageListing {
+            Some(v) => PackageListing {
                 name: name.clone(),
                 version: *version,
-                kind: PackageType::Direct {
-                    given_version: !direct_version.is_any(),
+                kind: if v.is_any() {
+                    PackageType::ImplicitDirect
+                } else {
+                    PackageType::ExplicitDirect
                 },
             },
         })

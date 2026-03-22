@@ -44,7 +44,8 @@ pub struct Environment {
 
 pub enum PackageType {
     Transitive,
-    Direct { given_version: bool },
+    ExplicitDirect,
+    ImplicitDirect,
 }
 
 pub struct PackageListing {
