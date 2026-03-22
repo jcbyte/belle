@@ -4,7 +4,7 @@ use console::style;
 
 use crate::{
     cli::{
-        core::{DisplayVersion, print_blank_ln, print_ln, print_success_ln},
+        core::{DisplayVersion, pluralise, print_blank_ln, print_ln, print_success_ln},
         environment::{FinalizeStrategy, finalise_env, warn_no_isabelle},
         error::CliError,
     },
@@ -129,14 +129,17 @@ pub fn list_packages(all: bool) -> Result<(), AppError> {
 
     let line = if !all {
         format!(
-            "{} packages in {}",
+            "{} {} in {}",
             style(dependencies.len()).bold(),
+            pluralise(dependencies.len(), "package", "packages"),
             style(active_env.name).cyan().bright()
         )
     } else {
+        let total_packages = dependencies.len() + transitive_dependencies.len() + isabelle_dependencies.len();
         format!(
-            "{} packages ({} direct, {} transitive, {} core) in {}",
-            style(dependencies.len() + transitive_dependencies.len() + isabelle_dependencies.len()).bold(),
+            "{} {} ({} direct, {} transitive, {} core) in {}",
+            style(total_packages).bold(),
+            pluralise(total_packages, "package", "packages"),
             style(dependencies.len()).bold(),
             style(transitive_dependencies.len()).bold(),
             style(isabelle_dependencies.len()).bold(),

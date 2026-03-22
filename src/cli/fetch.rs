@@ -5,7 +5,7 @@ use indicatif::ProgressBar;
 use url::Url;
 
 use crate::{
-    cli::core::{DisplayVersion, ProgressBarTheme, print_blank_ln, print_success_ln},
+    cli::core::{DisplayVersion, ProgressBarTheme, pluralise, print_blank_ln, print_success_ln},
     error::{AppError, CustomErrorContext},
     fetch::{BelleClient, RepoMetadata, ReturnedPackages, get_local_package_meta},
     registry::{Package, PackageIdentifier, RegistrablePackage},
@@ -34,7 +34,11 @@ pub async fn list_afp_repositories(limit: usize) -> Result<(), AppError> {
     }
     print_success_ln(
         "Found",
-        format_args!("{} AFP repositories", style(afp_repos.len()).bold()),
+        format_args!(
+            "{} AFP {}",
+            style(afp_repos.len()).bold(),
+            pluralise(afp_repos.len(), "repository", "repositories")
+        ),
     );
 
     Ok(())
@@ -80,8 +84,9 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
     print_success_ln(
         "Found",
         format_args!(
-            "{} packages from {} {}",
+            "{} {} from {} {}",
             style(repo_packages.len()).bold(),
+            pluralise(repo_packages.len(), "package", "packages"),
             style(&repo.name).cyan().bright(),
             DisplayVersion::Implicit(repo.get_version())
         ),
@@ -176,8 +181,9 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
     print_success_ln(
         "Synced",
         format_args!(
-            "{} packages from {} {} {}",
+            "{} {} from {} {} {}",
             style(repo_packages.len() - failed).bold(),
+            pluralise(repo_packages.len() - failed, "package", "packages"),
             style(&repo.name).cyan().bright(),
             DisplayVersion::Implicit(repo.get_version()),
             failed_str

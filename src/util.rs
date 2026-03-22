@@ -32,7 +32,7 @@ pub fn get_isabelle_name(version: &SemanticVersion) -> String {
     let ver_string = version.to_string();
     let ver_parts: Vec<&str> = ver_string.split('.').collect();
 
-    let name_parts: Vec<&str> = ver_parts.into_iter().filter(|vp| !vp.eq(&"0")).collect();
+    let name_parts: Vec<&str> = ver_parts.into_iter().filter(|&vp| vp != "0").collect();
     let name = name_parts.join("-");
 
     // Use a name of "0" if the version was 0.0.0 and no name is generated

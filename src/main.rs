@@ -63,7 +63,6 @@ async fn main() {
     }
 }
 
-// todo singularise words (environments -> environment) when there is 1
 // todo there is inconsistency between "pkg [version]" and "pkg@version"
 // todo no-op commands
 // todo consistent errors output

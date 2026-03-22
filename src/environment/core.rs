@@ -212,7 +212,7 @@ impl Environment {
         self.lock
             .iter()
             // Remove isabelle packages
-            .filter(move |(name, _version)| !name.eq(&ISABELLE_PACKAGE) && !isabelle_packages.contains(name))
+            .filter(move |&(name, _version)| name != ISABELLE_PACKAGE && !isabelle_packages.contains(name))
     }
 
     pub fn migrate_isabelle(&mut self, version: VersionReq, unpin_existing: bool) {

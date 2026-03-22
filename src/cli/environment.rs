@@ -5,7 +5,9 @@ use indicatif::ProgressBar;
 
 use crate::{
     cli::{
-        core::{DisplayVersion, ProgressBarTheme, print_blank_ln, print_ln, print_success_ln, print_warning_ln},
+        core::{
+            DisplayVersion, ProgressBarTheme, pluralise, print_blank_ln, print_ln, print_success_ln, print_warning_ln,
+        },
         environment,
         error::CliError,
     },
@@ -66,7 +68,11 @@ pub async fn finalise_env(env: &mut Environment, strategy: FinalizeStrategy) -> 
 
         print_success_ln(
             "Fetched",
-            format_args!("{} new packages", style(missing_packages.len()).bold()),
+            format_args!(
+                "{} new {}",
+                style(missing_packages.len()).bold(),
+                pluralise(missing_packages.len(), "package", "packages")
+            ),
         );
     }
 
@@ -154,7 +160,14 @@ pub fn list_envs() -> Result<(), AppError> {
         env_count += 1;
     }
 
-    print_success_ln("Total", format_args!("{} environments", style(env_count).bold()));
+    print_success_ln(
+        "Total",
+        format_args!(
+            "{} {}",
+            style(env_count).bold(),
+            pluralise(env_count, "environment", "environments")
+        ),
+    );
 
     Ok(())
 }
