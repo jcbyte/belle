@@ -65,7 +65,6 @@ async fn main() {
 }
 
 // todo no-op commands
-// todo progress bar and line drawing "consistency+styling"
 // todo consistent errors output
 // todo error hints
 // todo unit testing

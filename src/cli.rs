@@ -29,7 +29,7 @@ pub async fn run(args: Cli) -> Result<(), AppError> {
         Commands::Source(action) => match action {
             SourceAction::Afp(action) => match action {
                 SourceAfpAction::List(args) => fetch::list_afp_repositories(args.limit).await?,
-                SourceAfpAction::Update(args) => fetch::fetch_afp_meta(args.name.as_deref()).await?,
+                SourceAfpAction::Update(args) => fetch::source_afp_meta(args.name.as_deref()).await?,
             },
             SourceAction::Remote(args) => fetch::source_remote_repo(&args.url, &args.branch).await?,
             SourceAction::Local(args) => fetch::source_local_package(&args.directory)?,

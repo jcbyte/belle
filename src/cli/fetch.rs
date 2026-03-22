@@ -15,7 +15,8 @@ use crate::{
 pub async fn list_afp_repositories(limit: usize) -> Result<(), AppError> {
     let pb = ProgressBar::new_spinner().with_belle_spinner_style();
     pb.enable_steady_tick(Duration::from_millis(100));
-    pb.set_message("Fetching repository list".to_string());
+    pb.set_belle_prefix("Fetching".to_string());
+    pb.set_message("repository list");
 
     // Get repositories
     let client = BelleClient::get()?;
@@ -49,7 +50,7 @@ pub async fn list_afp_repositories(limit: usize) -> Result<(), AppError> {
 
 /// Fetch metadata for a specific repository (or the latest if not specified)
 /// Register packages which do not yet exist locally
-pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
+pub async fn source_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
     // Get the repo structure
     let client = BelleClient::get()?;
     let repo = match repo_name {
@@ -73,8 +74,9 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
 
     let pb = ProgressBar::new_spinner().with_belle_spinner_style();
     pb.enable_steady_tick(Duration::from_millis(100));
+    pb.set_belle_prefix("Fetching");
     pb.set_message(format!(
-        "Fetching package manifests from {} {}",
+        "package manifests from {} {}",
         style(format!("AFP {}", &repo.get_formatted_name())).cyan().bright(),
         DisplayVersion::Implicit(repo.get_version())
     ));
@@ -83,26 +85,28 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
     let repo_metadata = RepoMetadata::get(&repo, client).await?;
     let repo_packages = repo_metadata.all_packages();
 
-    pb.finish_and_clear();
-    CliLine::new()
-        .prefix("Found")
-        .line(format!(
-            "{} {} from {} {}",
-            style(repo_packages.len()).bold(),
-            pluralise(repo_packages.len(), "package", "packages"),
-            style(format!("AFP {}", &repo.get_formatted_name())).cyan().bright(),
-            DisplayVersion::Implicit(repo.get_version())
-        ))
-        .as_success()
-        .print();
+    pb.finish_with_message(
+        CliLine::new()
+            .prefix("Found")
+            .line(format!(
+                "{} {} from {} {}",
+                style(repo_packages.len()).bold(),
+                pluralise(repo_packages.len(), "package", "packages"),
+                style(format!("AFP {}", &repo.get_formatted_name())).cyan().bright(),
+                DisplayVersion::Implicit(repo.get_version())
+            ))
+            .as_success()
+            .get(),
+    );
 
     let pb = ProgressBar::new(repo_packages.len() as u64).with_belle_bar_style();
+    pb.set_belle_prefix("Syncing");
 
     let mut unresolved_packages: Vec<Package> = Vec::new();
 
     let mut failed = 0;
     for package in repo_metadata.all_packages() {
-        pb.set_message(format!("Syncing {}", package.styled()));
+        pb.set_message(package.styled());
 
         if package.package_exists() {
             // If the package already exists, ensure that we have this isabelle version listed
@@ -129,6 +133,7 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
                         package_meta.register()?;
                     } else {
                         // Add the package to be resolved later
+                        // todo display properly
                         pb.println(format!(
                             "{}",
                             style(format!("Deferred resolving {} due to unseen dependencies", package)).dim()
@@ -155,11 +160,10 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
         pb.inc(1);
     }
 
+    pb.set_belle_prefix("Resolving");
+
     for mut unresolved_package in unresolved_packages {
-        pb.set_message(format!(
-            "Resolving {}",
-            PackageIdentifier::from(&unresolved_package).styled()
-        ));
+        pb.set_message(PackageIdentifier::from(&unresolved_package).styled());
 
         match repo_metadata.resolve_package_meta(&mut unresolved_package) {
             Ok(_) => {
@@ -175,25 +179,22 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
         pb.inc(1);
     }
 
-    pb.finish_and_clear();
-
-    let failed_str = if failed > 0 {
-        format!(", {} failed", style(failed).bold())
-    } else {
-        "".to_string()
-    };
-    CliLine::new()
-        .prefix("Synced")
-        .line(format!(
-            "{} {} from {} {} {}",
-            style(repo_packages.len() - failed).bold(),
-            pluralise(repo_packages.len() - failed, "package", "packages"),
-            style(format!("AFP {}", &repo.get_formatted_name())).cyan().bright(),
-            DisplayVersion::Implicit(repo.get_version()),
-            failed_str
-        ))
-        .as_success()
-        .print();
+    pb.finish_with_message(
+        CliLine::new()
+            .prefix("Sourced")
+            .line(format!(
+                "{} {} from {} {} {}",
+                style(repo_packages.len() - failed).bold(),
+                pluralise(repo_packages.len() - failed, "package", "packages"),
+                style(format!("AFP {}", &repo.get_formatted_name())).cyan().bright(),
+                DisplayVersion::Implicit(repo.get_version()),
+                (failed > 0)
+                    .then(|| format!(", {} failed", style(failed).bold()))
+                    .unwrap_or_default()
+            ))
+            .as_success()
+            .get(),
+    );
 
     Ok(())
 }
@@ -201,7 +202,8 @@ pub async fn fetch_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
 pub async fn source_remote_repo(url: &Url, branch: &str) -> Result<(), AppError> {
     let pb = ProgressBar::new_spinner().with_belle_spinner_style();
     pb.enable_steady_tick(Duration::from_millis(100));
-    pb.set_message("Fetching package manifest".to_string());
+    pb.set_belle_prefix("Fetching");
+    pb.set_message("package manifest");
 
     let client = BelleClient::get()?;
     let ReturnedPackages { package, aliases } = client.get_github_package_meta(url, branch).await?;
@@ -214,19 +216,19 @@ pub async fn source_remote_repo(url: &Url, branch: &str) -> Result<(), AppError>
         alias.register()?;
     }
 
-    pb.finish_and_clear();
-
-    CliLine::new()
-        .prefix("Sourced")
-        .line(format!(
-            "remote package {} {}{}{}",
-            package_id.styled(),
-            style("(").dim(),
-            style(url).dim(),
-            style(")").dim(),
-        ))
-        .as_success()
-        .print();
+    pb.finish_with_message(
+        CliLine::new()
+            .prefix("Sourced")
+            .line(format!(
+                "remote package {} {}{}{}",
+                package_id.styled(),
+                style("(").dim(),
+                style(url).dim(),
+                style(")").dim(),
+            ))
+            .as_success()
+            .get(),
+    );
 
     Ok(())
 }

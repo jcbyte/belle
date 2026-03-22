@@ -9,6 +9,7 @@ const GUTTER_WIDTH: usize = 12;
 pub trait ProgressBarTheme {
     fn with_belle_bar_style(self) -> Self;
     fn with_belle_spinner_style(self) -> Self;
+    fn set_belle_prefix<P: Display>(&self, prefix: P);
 }
 
 impl ProgressBarTheme for ProgressBar {
@@ -37,6 +38,10 @@ impl ProgressBarTheme for ProgressBar {
         );
 
         self
+    }
+
+    fn set_belle_prefix<P: Display>(&self, prefix: P) {
+        self.set_prefix(CliLine::style_prefix(prefix, CliLineIntent::Focus).to_string());
     }
 }
 

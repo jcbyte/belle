@@ -2,10 +2,9 @@ use std::{fs, time::Duration};
 
 use console::style;
 use indicatif::ProgressBar;
-use tokio::time::sleep;
 
 use crate::{
-    cli::{CliLine, CliLineIntent, DisplayVersion, ProgressBarTheme, environment, error::CliError, pluralise},
+    cli::{CliLine, DisplayVersion, ProgressBarTheme, environment, error::CliError, pluralise},
     config::BelleConfig,
     environment::{Environment, LOCKFILE_NAME, VersionReq, error::EnvironmentError, manager},
     error::{AppError, CustomErrorContext, IoErrorContext},
@@ -28,13 +27,11 @@ pub async fn finalise_env(env: &mut Environment, strategy: FinalizeStrategy) -> 
     if strategy == FinalizeStrategy::ResolveAndApply {
         let pb = ProgressBar::new_spinner().with_belle_spinner_style();
         pb.enable_steady_tick(Duration::from_millis(100));
-        pb.set_prefix(CliLine::style_prefix("Resolving", CliLineIntent::Focus).to_string());
+        pb.set_belle_prefix("Resolving");
         pb.set_message("dependencies".to_string());
 
         // Resolve lockfile dependencies
         env.resolve_lock()?;
-
-        sleep(Duration::from_secs(10)).await;
 
         pb.finish_and_clear();
     }
@@ -49,7 +46,7 @@ pub async fn finalise_env(env: &mut Environment, strategy: FinalizeStrategy) -> 
 
     if !missing_packages.is_empty() {
         let pb = ProgressBar::new(missing_packages.len() as u64).with_belle_bar_style();
-        pb.set_prefix(CliLine::style_prefix("Fetching", CliLineIntent::Focus).to_string());
+        pb.set_belle_prefix("Fetching");
 
         for package in &missing_packages {
             pb.set_message(format!("{}", package.styled()));
@@ -63,17 +60,17 @@ pub async fn finalise_env(env: &mut Environment, strategy: FinalizeStrategy) -> 
             pb.inc(1);
         }
 
-        pb.finish_and_clear();
-
-        CliLine::new()
-            .prefix("Fetched")
-            .line(format!(
-                "{} new {}",
-                style(missing_packages.len()).bold(),
-                pluralise(missing_packages.len(), "package", "packages")
-            ))
-            .as_success()
-            .print();
+        pb.finish_with_message(
+            CliLine::new()
+                .prefix("Fetched")
+                .line(format!(
+                    "{} new {}",
+                    style(missing_packages.len()).bold(),
+                    pluralise(missing_packages.len(), "package", "packages")
+                ))
+                .as_success()
+                .get(),
+        );
     }
 
     // Save environment back to file once this has completed, if any errors occur we will not reach this state
