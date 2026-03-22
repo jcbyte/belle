@@ -1,9 +1,10 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 use console::style;
 use pubgrub::SemanticVersion;
 
 use crate::{
+    cli::core::{DisplayVersion, print_success_ln},
     config::BelleConfig,
     environment::{self, Environment},
     error::AppError,
@@ -11,7 +12,7 @@ use crate::{
     util::get_isabelle_name,
 };
 
-pub fn link(path: PathBuf) -> Result<(), AppError> {
+pub fn link(path: &Path) -> Result<(), AppError> {
     // If there is not an active environment then switch to the null environment
     // So that isabelle can register correctly to the env/active symlink
     if !Environment::has_active() {
@@ -23,13 +24,16 @@ pub fn link(path: PathBuf) -> Result<(), AppError> {
     isabelle.link()?;
     BelleConfig::write_config(|c| c.isabelles.insert(isabelle.version, isabelle.path));
 
-    println!(
-        "Linked {} {} {}{}{}",
-        style("Isabelle").cyan(),
-        style(get_isabelle_name(&isabelle.version)).cyan().bold(),
-        style("[").dim(),
-        style(isabelle.version).green(),
-        style("]").dim()
+    print_success_ln(
+        "Linked",
+        format_args!(
+            "Isabelle {} {} {}{}{}",
+            style(get_isabelle_name(&isabelle.version)).cyan().bright(),
+            DisplayVersion::Implicit(&isabelle.version),
+            style("(").dim(),
+            style(path.display()).dim(),
+            style(")").dim()
+        ),
     );
 
     Ok(())
@@ -47,13 +51,13 @@ pub fn unlink(version: SemanticVersion) -> Result<(), AppError> {
     isabelle.unlink()?;
     BelleConfig::write_config(|c| c.isabelles.remove(&version));
 
-    println!(
-        "Unlinked {} {} {}{}{}",
-        style("Isabelle").cyan(),
-        style(get_isabelle_name(&isabelle.version)).cyan().bold(),
-        style("[").dim(),
-        style(isabelle.version).green(),
-        style("]").dim()
+    print_success_ln(
+        "Unlinked",
+        format_args!(
+            "Isabelle {} {}",
+            style(get_isabelle_name(&isabelle.version)).cyan().bright(),
+            DisplayVersion::Implicit(&isabelle.version),
+        ),
     );
 
     Ok(())
