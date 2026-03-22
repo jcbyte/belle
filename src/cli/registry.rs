@@ -127,9 +127,9 @@ fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
         println!("{:<8} {}", style(key).bold(), value);
     }
 
-    print_attribute("Date", &meta.date);
+    print_attribute("Date", meta.date);
     if !meta.topics.is_empty() {
-        print_attribute("Topics", &meta.topics.join(", "));
+        print_attribute("Topics", meta.topics.join(", "));
     }
     print_attribute("License", &meta.licence);
 
@@ -155,7 +155,7 @@ fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
             }
             if let Some(homepages) = &author.homepages {
                 for homepage in homepages {
-                    print!(" {}", style(format!("{}", homepage)).dim().underlined());
+                    print!(" {}", style(homepage).dim().underlined());
                 }
             }
             println!()
@@ -222,7 +222,7 @@ fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
         print_heading("Extra Information:");
 
         for (key, value) in &meta.extra {
-            println!(" {} {:<10} {}", style("•").dim(), style(format!("{}", key)), value);
+            println!(" {} {:<10} {}", style("•").dim(), style(key), value);
         }
     }
 }
