@@ -24,7 +24,6 @@ async fn main() {
 }
 
 // todo hints on skipped commands
-// todo group isabelle commands and create a show command
 // todo format in place errors
 // todo unit testing
 // todo manual testing

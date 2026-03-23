@@ -234,8 +234,19 @@ pub enum DisplayVersion<'a> {
 impl<'a> fmt::Display for DisplayVersion<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            DisplayVersion::Explicit(v) => write!(f, "v{}", v),
-            DisplayVersion::Implicit(v) => write!(f, "{}", style(format!("v{}", v)).dim()),
+            DisplayVersion::Explicit(v) => {
+                let s = format!("v{}", v);
+                f.pad(&s)
+            }
+            DisplayVersion::Implicit(v) => {
+                let s = format!("v{}", v);
+
+                if let Some(width) = f.width() {
+                    write!(f, "{:width$}", style(s).dim(), width = width)
+                } else {
+                    write!(f, "{}", style(s).dim())
+                }
+            }
         }
     }
 }

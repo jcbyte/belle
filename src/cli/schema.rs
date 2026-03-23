@@ -25,11 +25,9 @@ pub struct GlobalArgs {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Link belle to an Isabelle installation
-    Link(LinkArgs),
-
-    /// Unlink belle from an Isabelle installation
-    Unlink(UnlinkArgs),
+    /// Manage isabelle installations
+    #[command(subcommand)]
+    Isabelle(IsabelleAction),
 
     /// Add packages source (from AFP or externally)
     #[command(subcommand)]
@@ -70,6 +68,18 @@ pub enum Commands {
 
     /// List all packages in the current environment
     List(ListArgs),
+}
+
+#[derive(Subcommand)]
+pub enum IsabelleAction {
+    /// Link belle to an Isabelle installation
+    Link(LinkArgs),
+
+    /// Unlink belle from an Isabelle installation
+    Unlink(UnlinkArgs),
+
+    /// List linked Isabelle versions
+    List,
 }
 
 #[derive(Args)]

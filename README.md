@@ -24,7 +24,7 @@ Download the latest release from the [Releases](https://github.com/jcbyte/belle/
 ### Link to Isabelle/HOL
 
 ```bash
-belle link /path/to/Isabelle2025-2
+belle isabelle link /path/to/Isabelle2025-2
 ```
 
 Replace the path with your actual Isabelle installation directory.
@@ -52,27 +52,27 @@ belle add another-package -v 2026.1.0
 
 ## Common Commands
 
-| Command                     | Description                                 |
-| --------------------------- | ------------------------------------------- |
-| `belle add <package>`       | Add a package to current environment        |
-| `belle remove <package>`    | Remove a package from current environment   |
-| `belle migrate <version>`   | Migrate to a specific Isabelle version      |
-| `belle list`                | List packages in current environment        |
-| `belle env create <name>`   | Create a new environment                    |
-| `belle env list`            | List all environments                       |
-| `belle switch <name>`       | Switch environments                         |
-| `belle env remove <name>`   | Remove an environment                       |
-| `belle env freeze`          | Freeze environment (create lockfile)        |
-| `belle env sync`            | Restore environment from frozen (lockfile)  |
-| `belle source afp list`     | List available AFP repositories             |
-| `belle source afp update`   | Sync the package indexes from the AFP       |
-| `belle source remote <url>` | Add a new remote Git repository as a source |
-| `belle source local <path>` | Add a local directory as a package source   |
-| `belle search <query>`      | Search package registry                     |
-| `belle inspect <package>`   | View package details                        |
-| `belle cache purge`         | Remove all unused package source files      |
-| `belle link <path>`         | Link an Isabelle installation               |
-| `belle unlink <version>`    | Unlink an Isabelle version                  |
+| Command                           | Description                                 |
+| --------------------------------- | ------------------------------------------- |
+| `belle add <package>`             | Add a package to current environment        |
+| `belle remove <package>`          | Remove a package from current environment   |
+| `belle migrate <version>`         | Migrate to a specific Isabelle version      |
+| `belle list`                      | List packages in current environment        |
+| `belle env create <name>`         | Create a new environment                    |
+| `belle env list`                  | List all environments                       |
+| `belle switch <name>`             | Switch environments                         |
+| `belle env remove <name>`         | Remove an environment                       |
+| `belle env freeze`                | Freeze environment (create lockfile)        |
+| `belle env sync`                  | Restore environment from frozen (lockfile)  |
+| `belle source afp list`           | List available AFP repositories             |
+| `belle source afp update`         | Sync the package indexes from the AFP       |
+| `belle source remote <url>`       | Add a new remote Git repository as a source |
+| `belle source local <path>`       | Add a local directory as a package source   |
+| `belle search <query>`            | Search package registry                     |
+| `belle inspect <package>`         | View package details                        |
+| `belle cache purge`               | Remove all unused package source files      |
+| `belle isabelle link <path>`      | Link an Isabelle installation               |
+| `belle isabelle unlink <version>` | Unlink an Isabelle version                  |
 
 Use `--help` with any command to see the full list of options.
 

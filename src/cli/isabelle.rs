@@ -100,3 +100,31 @@ pub fn unlink(version: SemanticVersion, force: bool) -> Result<(), AppError> {
 
     Ok(())
 }
+
+pub fn list() -> Result<(), AppError> {
+    let active_env: Option<SemanticVersion> = Environment::active()?.and_then(|env| env.get_isabelle_version().into());
+
+    BelleConfig::read_config(|c| {
+        for (version, path) in &c.isabelles {
+            let line = format!(
+                "Isabelle {:<8} {:<12} {}",
+                get_isabelle_name(version),
+                DisplayVersion::Implicit(version),
+                style(path.display()).dim(),
+            );
+            if active_env == Some(*version) {
+                CliLine::new().prefix("Environment").line(line).with_focus().print();
+            } else {
+                CliLine::new().line(line).print();
+            }
+        }
+
+        CliLine::new()
+            .prefix("Listed")
+            .line(format!("{} linked Isabelle versions", style(c.isabelles.len()).bold()))
+            .with_success()
+            .print();
+    });
+
+    Ok(())
+}

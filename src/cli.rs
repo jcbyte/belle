@@ -1,7 +1,7 @@
 use crate::{
     cli::{
         self,
-        schema::{CacheAction, Commands, EnvAction, SourceAction, SourceAfpAction},
+        schema::{CacheAction, Commands, EnvAction, IsabelleAction, SourceAction, SourceAfpAction},
     },
     error::AppError,
 };
@@ -26,8 +26,11 @@ use types::{IsabelleVersion, PackageVersion};
 
 pub async fn run(args: Cli) -> Result<(), Hinted<AppError>> {
     match args.command {
-        Commands::Link(args) => isabelle::link(&args.path, args.force)?,
-        Commands::Unlink(args) => isabelle::unlink(args.version.into(), args.force)?,
+        Commands::Isabelle(action) => match action {
+            IsabelleAction::Link(args) => isabelle::link(&args.path, args.force)?,
+            IsabelleAction::Unlink(args) => isabelle::unlink(args.version.into(), args.force)?,
+            IsabelleAction::List => isabelle::list()?,
+        },
         Commands::Source(action) => match action {
             SourceAction::Afp(action) => match action {
                 SourceAfpAction::List(args) => fetch::list_afp_repositories(args.limit).await?,
