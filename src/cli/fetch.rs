@@ -1,4 +1,4 @@
-use std::{borrow::Cow, path::Path, time::Duration};
+use std::{borrow::Cow, path::Path};
 
 use console::style;
 use indicatif::ProgressBar;
@@ -14,7 +14,6 @@ use crate::{
 /// List AFP repositories and print them in a simple table
 pub async fn list_afp_repositories(limit: usize) -> Result<(), AppError> {
     let pb = ProgressBar::new_spinner().with_belle_spinner_style();
-    pb.enable_steady_tick(Duration::from_millis(100));
     pb.set_belle_prefix("Fetching".to_string());
     pb.set_message("repository list");
 
@@ -73,7 +72,6 @@ pub async fn source_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
     };
 
     let pb = ProgressBar::new_spinner().with_belle_spinner_style();
-    pb.enable_steady_tick(Duration::from_millis(100));
     pb.set_belle_prefix("Fetching");
     pb.set_message(format!(
         "package manifests from {} {}",
@@ -203,7 +201,6 @@ pub async fn source_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
 
 pub async fn source_remote_repo(url: &Url, branch: &str) -> Result<(), AppError> {
     let pb = ProgressBar::new_spinner().with_belle_spinner_style();
-    pb.enable_steady_tick(Duration::from_millis(100));
     pb.set_belle_prefix("Fetching");
     pb.set_message("package manifest");
 

@@ -1,4 +1,4 @@
-use std::{fs, time::Duration};
+use std::fs;
 
 use console::style;
 use indicatif::ProgressBar;
@@ -27,7 +27,6 @@ pub async fn finalise_env(env: &mut Environment, strategy: FinalizeStrategy) -> 
     // Don't resolve if we want to skip it
     if strategy == FinalizeStrategy::ResolveAndApply {
         let pb = ProgressBar::new_spinner().with_belle_spinner_style();
-        pb.enable_steady_tick(Duration::from_millis(100));
         pb.set_belle_prefix("Resolving");
         pb.set_message("dependencies".to_string());
 
@@ -272,8 +271,8 @@ pub async fn migrate_isabelle(version: VersionReq, unpin_existing: bool) -> Resu
     {
         CliLine::new()
             .line(format!(
-                "environment already matches {} {}",
-                style(format!("Isabelle {}", get_isabelle_name(target_version))).cyan().bright(),
+                "environment already matches Isabelle {} {}",
+                get_isabelle_name(target_version),
                 DisplayVersion::Explicit(target_version)
             ))
             .with_skipped()
@@ -287,8 +286,8 @@ pub async fn migrate_isabelle(version: VersionReq, unpin_existing: bool) -> Resu
     finalise_env(&mut active_env, FinalizeStrategy::ResolveAndApply).await?;
 
     let line = match get_isabelle_version(&active_env) {
-        Some(v) => format!("to {} {}", style(get_isabelle_name(v.get_version())).cyan().bright(), v),
-        None => format!("to {}", style("latest").cyan().bright()),
+        Some(v) => format!("to {} {}", get_isabelle_name(v.get_version()), v),
+        None => "to latest".to_string(),
     };
 
     CliLine::new().prefix("Migrated").line(line).with_success().print();

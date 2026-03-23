@@ -184,7 +184,7 @@ fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
         println!(
             " {} {:<6} {}",
             style("•").dim(),
-            style(get_isabelle_name(isabelle_version)),
+            get_isabelle_name(isabelle_version),
             DisplayVersion::Explicit(isabelle_version),
         )
     }

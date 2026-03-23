@@ -76,12 +76,20 @@ pub enum Commands {
 pub struct LinkArgs {
     /// Path to the Isabelle installation
     pub path: PathBuf,
+
+    /// Overwrite an existing isabelle version
+    #[arg(long)]
+    pub force: bool,
 }
 
 #[derive(Args)]
 pub struct UnlinkArgs {
     /// Version of Isabelle to unlink
     pub version: IsabelleVersion,
+
+    /// Force removal, even if Isabelle cannot be reached
+    #[arg(long)]
+    pub force: bool,
 }
 
 #[derive(Subcommand)]

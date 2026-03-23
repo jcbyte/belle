@@ -17,6 +17,9 @@ pub enum IsabelleError {
         source: std::string::FromUtf8Error,
     },
 
+    #[error("There already exists a linked Isabelle matching version '{version}'")]
+    AlreadyLinked { version: SemanticVersion },
+
     #[error("Could not find a linked Isabelle matching version '{version}'")]
     VersionNotLinked { version: SemanticVersion },
 }
@@ -43,18 +46,6 @@ impl<T> IsabelleInvalidOutputContext<T> for Result<T, std::string::FromUtf8Error
         self.map_err(|e| IsabelleError::InvalidCommandOutput {
             args: args.into(),
             source: e,
-        })
-    }
-}
-
-pub trait IsabelleVersionLinkedContext<T> {
-    fn report_not_linked(self, version: impl Into<SemanticVersion>) -> Result<T, IsabelleError>;
-}
-
-impl<T> IsabelleVersionLinkedContext<T> for Option<T> {
-    fn report_not_linked(self, version: impl Into<SemanticVersion>) -> Result<T, IsabelleError> {
-        self.ok_or_else(|| IsabelleError::VersionNotLinked {
-            version: version.into(),
         })
     }
 }

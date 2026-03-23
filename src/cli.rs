@@ -24,8 +24,8 @@ use types::{IsabelleVersion, PackageVersion};
 
 pub async fn run(args: Cli) -> Result<(), AppError> {
     match args.command {
-        Commands::Link(args) => isabelle::link(&args.path)?,
-        Commands::Unlink(args) => isabelle::unlink(args.version.into())?,
+        Commands::Link(args) => isabelle::link(&args.path, args.force)?,
+        Commands::Unlink(args) => isabelle::unlink(args.version.into(), args.force)?,
         Commands::Source(action) => match action {
             SourceAction::Afp(action) => match action {
                 SourceAfpAction::List(args) => fetch::list_afp_repositories(args.limit).await?,

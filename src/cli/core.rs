@@ -1,6 +1,6 @@
 use indicatif::{ProgressBar, ProgressStyle};
 use pubgrub::SemanticVersion;
-use std::{borrow::Cow, fmt::Display};
+use std::{borrow::Cow, fmt::Display, time::Duration};
 
 use console::{StyledObject, style};
 
@@ -36,6 +36,7 @@ impl ProgressBarTheme for ProgressBar {
                 ))
                 .expect("Invalid hardcoded spinner template"),
         );
+        self.enable_steady_tick(Duration::from_millis(100));
 
         self
     }
