@@ -16,7 +16,7 @@ mod registry;
 mod schema;
 mod types;
 
-use core::{CliLine, CliLineIntent, DisplayVersion, ProgressBarTheme, pluralise};
+use core::{CliLine, DisplayVersion, ProgressBarTheme, pluralise};
 
 pub use core::display_errors;
 use pubgrub::SemanticVersion;

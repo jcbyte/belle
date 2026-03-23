@@ -7,9 +7,8 @@ use std::{borrow::Cow, error::Error, fmt::Display, time::Duration};
 
 const GUTTER_WIDTH: usize = 12;
 
-// todo format errors
 pub fn display_errors(e: &AppError, backtrace: bool) {
-    CliLine::new().line(e.to_string()).with_error().print();
+    CliLine::error(e).print();
 
     if backtrace {
         let mut current_source = e.source();
@@ -105,6 +104,10 @@ impl CliLine {
             intent: CliLineIntent::Default,
             custom_prefix: false,
         }
+    }
+
+    pub fn error(e: &AppError) -> Self {
+        Self::new().line(e.to_string()).with_error()
     }
 
     pub fn get(&self) -> String {

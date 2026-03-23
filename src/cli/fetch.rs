@@ -149,8 +149,7 @@ pub async fn source_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
                 }
                 // If this produces an error then don't crash the entire fetch process
                 Err(e) => {
-                    // todo error handling better
-                    pb.println(format!("{} {}", style("Error:").bold().red(), style(e).bright().red()));
+                    pb.println(CliLine::error(&e).get());
                     failed += 1
                 }
             }
@@ -169,8 +168,7 @@ pub async fn source_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
                 unresolved_package.register()?;
             }
             Err(e) => {
-                // todo error handling better
-                pb.println(format!("{} {}", style("Error:").bold().red(), style(e).bright().red()));
+                pb.println(CliLine::error(&e).get());
                 failed += 1
             }
         };
