@@ -12,6 +12,7 @@ use crate::{
     resolver::ISABELLE_PACKAGE,
     util::get_isabelle_name,
 };
+use std::fmt::Write;
 
 #[derive(PartialEq, Eq)]
 pub enum FinalizeStrategy {
@@ -279,7 +280,10 @@ pub async fn migrate_isabelle(version: VersionReq, unpin_existing: bool) -> Resu
         };
     };
 
-    active_env.migrate_isabelle(version, unpin_existing);
+    if unpin_existing {
+        active_env.unpin_package_versions();
+    }
+    active_env.migrate_isabelle(version);
     finalise_env(&mut active_env, FinalizeStrategy::ResolveAndApply).await?;
 
     let line = match get_isabelle_version(&active_env) {
@@ -288,6 +292,65 @@ pub async fn migrate_isabelle(version: VersionReq, unpin_existing: bool) -> Resu
     };
 
     CliLine::new().prefix("Migrated").line(line).as_success().print();
+
+    // Warn if this environment doesn't have a linked isabelle version
+    warn_no_isabelle()?;
+
+    Ok(())
+}
+
+pub async fn update(unpin_existing: bool) -> Result<(), AppError> {
+    let mut active_env = Environment::active()?.ok_or(CliError::NoActiveEnvironment)?;
+
+    // Record current statistics, to compare later
+    let previous_isabelle = active_env.get_isabelle_version();
+    let previous_lock = active_env.lock.clone();
+
+    if unpin_existing {
+        active_env.unpin_package_versions();
+    }
+    finalise_env(&mut active_env, FinalizeStrategy::ResolveAndApply).await?;
+
+    // Calculate changed statistics
+    let mut updated = 0;
+    let mut added = 0;
+    let mut up_to_date = 0;
+
+    for (name, version) in &active_env.lock {
+        match previous_lock.get(name) {
+            Some(prev_version) => {
+                if prev_version == version {
+                    up_to_date += 1;
+                } else {
+                    updated += 1;
+                }
+            }
+            // Not seen in previous environment
+            None => added += 1,
+        }
+    }
+
+    let removed = previous_lock.keys().filter(|name| !active_env.lock.contains_key(*name)).count();
+
+    let total_changed = updated + added + removed;
+
+    let mut line = format!(
+        "{} packages changed, {} up to date",
+        style(total_changed).bold(),
+        style(up_to_date).bold()
+    );
+
+    let active_isabelle_version = active_env.get_isabelle_version();
+    // If isabelle has been updated also display
+    if active_isabelle_version != previous_isabelle {
+        let version_str = match active_isabelle_version {
+            VersionReq::Given(v) => format!("{} {}", get_isabelle_name(&v), DisplayVersion::Implicit(&v)),
+            VersionReq::Any => "latest Isabelle".to_string(),
+        };
+        write!(line, "; migrated Isabelle to {}", version_str).expect("Writing to a `String` failed");
+    }
+
+    CliLine::new().prefix("Updated").line(line).as_success().print();
 
     // Warn if this environment doesn't have a linked isabelle version
     warn_no_isabelle()?;

@@ -64,7 +64,6 @@ async fn main() {
     }
 }
 
-// todo add dedicated update command (this is already migrate, ensure unpin? -- alias)
 // todo isabelle linking/unlinking (should there be a force, no ops, etc?)
 // todo consistent errors output
 // todo error hints

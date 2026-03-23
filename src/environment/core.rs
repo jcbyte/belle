@@ -126,13 +126,6 @@ impl Environment {
     pub fn save(&self) -> Result<(), AppError> {
         let env_file = self.get_env_file();
 
-        if env_file.is_file() {
-            return Err(EnvironmentError::AlreadyExists {
-                name: self.name.clone(),
-            }
-            .into());
-        }
-
         create_parent_dirs(&env_file).report_save(format!("{} environment directories", self.name), &env_file)?;
         let content = toml::to_string(self).report_file("environment", &env_file)?;
         fs::write(&env_file, content).report_save(format!("{} environment directories", self.name), &env_file)?;
@@ -229,12 +222,12 @@ impl Environment {
             .filter(move |&(name, _version)| name != ISABELLE_PACKAGE && !isabelle_packages.contains(name))
     }
 
-    pub fn migrate_isabelle(&mut self, version: VersionReq, unpin_existing: bool) {
-        self.isabelle = version;
+    pub fn unpin_package_versions(&mut self) {
+        self.packages = self.packages.keys().map(|name| (name.clone(), VersionReq::Any)).collect();
+    }
 
-        if unpin_existing {
-            self.packages = self.packages.keys().map(|name| (name.clone(), VersionReq::Any)).collect();
-        }
+    pub fn migrate_isabelle(&mut self, version: VersionReq) {
+        self.isabelle = version;
     }
 
     pub fn create_roots_file(&self) -> Result<(), AppError> {

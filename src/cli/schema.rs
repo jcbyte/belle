@@ -65,6 +65,9 @@ pub enum Commands {
     /// Migrate to a different isabelle version
     Migrate(MigrateArgs),
 
+    /// Update packages
+    Update(UpdateArgs),
+
     /// List all packages in the current environment
     List(ListArgs),
 }
@@ -233,6 +236,13 @@ pub struct MigrateArgs {
     /// Isabelle version to migrate to (defaults to unpinned, picking latest)
     pub version: Option<IsabelleVersion>,
 
+    /// Unpin existing dependencies
+    #[arg(short, long)]
+    pub unpin: bool,
+}
+
+#[derive(Args)]
+pub struct UpdateArgs {
     /// Unpin existing dependencies
     #[arg(short, long)]
     pub unpin: bool,
