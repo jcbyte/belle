@@ -17,8 +17,6 @@ use crate::{
 
 type SemVS = Ranges<SemanticVersion>;
 
-// todo include configs isabelles as a starting point
-
 pub struct BelleDependencyProvider {
     root_packages: HashMap<String, VersionReq>,
 
@@ -37,7 +35,12 @@ impl BelleDependencyProvider {
             // All packages will eventually reference an isabelle package
             VersionReq::Given(version) => HashSet::from([version]),
             // If any version is given, use all possible seen versions
-            VersionReq::Any => HashSet::new(),
+            VersionReq::Any => {
+                // Start with the list of known versions from config, versions packages declare will also be added to this set
+                let known_versions: HashSet<SemanticVersion> =
+                    BelleConfig::read_config(|c| c.isabelles.keys().copied().collect());
+                HashSet::from(known_versions)
+            }
         };
 
         Ok(Self {
