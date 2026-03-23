@@ -1,0 +1,13 @@
+[package]
+name = "hinted-derive"
+version = "0.1.0"
+edition = "2024"
+authors = ["Joel Cutler <joelcutler108@gmail.com>"]
+description = "Macro implementing custom hints on enum types (for errors)"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "2.0.117"
+quote = "1.0.45"
