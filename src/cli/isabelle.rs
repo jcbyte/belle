@@ -34,7 +34,7 @@ pub fn link(path: &Path) -> Result<(), AppError> {
             style(path.display()).dim(),
             style(")").dim()
         ))
-        .as_success()
+        .with_success()
         .print();
 
     Ok(())
@@ -59,7 +59,7 @@ pub fn unlink(version: SemanticVersion) -> Result<(), AppError> {
             style(get_isabelle_name(&isabelle.version)).cyan().bright(),
             DisplayVersion::Implicit(&isabelle.version),
         ))
-        .as_success()
+        .with_success()
         .print();
 
     Ok(())

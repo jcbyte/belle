@@ -35,12 +35,8 @@ impl BelleDependencyProvider {
             // All packages will eventually reference an isabelle package
             VersionReq::Given(version) => HashSet::from([version]),
             // If any version is given, use all possible seen versions
-            VersionReq::Any => {
-                // Start with the list of known versions from config, versions packages declare will also be added to this set
-                let known_versions: HashSet<SemanticVersion> =
-                    BelleConfig::read_config(|c| c.isabelles.keys().copied().collect());
-                HashSet::from(known_versions)
-            }
+            // Start with the list of known versions from config, versions packages declare will also be added to this set
+            VersionReq::Any => BelleConfig::read_config(|c| c.isabelles.keys().copied().collect()),
         };
 
         Ok(Self {

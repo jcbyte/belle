@@ -50,7 +50,7 @@ pub async fn finalise_env(env: &mut Environment, strategy: FinalizeStrategy) -> 
         pb.set_belle_prefix("Fetching");
 
         for package in &missing_packages {
-            pb.set_message(format!("{}", package.styled()));
+            pb.set_message(package.styled());
 
             let package_meta = package
                 .get_resolved_package_manifest()?
@@ -69,7 +69,7 @@ pub async fn finalise_env(env: &mut Environment, strategy: FinalizeStrategy) -> 
                 style(missing_packages.len()).bold(),
                 pluralise(missing_packages.len(), "package", "packages")
             ))
-            .as_success()
+            .with_success()
             .print();
     }
 
@@ -96,7 +96,7 @@ pub fn warn_no_isabelle() -> Result<(), AppError> {
                 get_isabelle_name(&v),
                 DisplayVersion::Explicit(&v)
             ))
-            .as_warning()
+            .with_warning()
             .print();
     }
 
@@ -120,22 +120,22 @@ pub fn switch_env(name: Option<String>) -> Result<(), AppError> {
         }
     };
 
-    if let Some(active_env) = Environment::active()? {
-        if active_env.name == name {
-            CliLine::new()
-                .line(format!("environment {} is already active", name))
-                .as_skipped()
-                .print();
-            return Ok(());
-        }
-    }
+    if let Some(active_env) = Environment::active()?
+        && active_env.name == name
+    {
+        CliLine::new()
+            .line(format!("environment {} is already active", name))
+            .with_skipped()
+            .print();
+        return Ok(());
+    };
 
     manager::switch_env(&name)?;
 
     CliLine::new()
         .prefix("Switched")
         .line(format!("to environment {}", style(name).cyan()))
-        .as_success()
+        .with_success()
         .print();
 
     // Warn if this environment doesn't have a linked isabelle version
@@ -156,7 +156,7 @@ pub fn create_env(name: String, isabelle: VersionReq) -> Result<(), AppError> {
     CliLine::new()
         .prefix("Created")
         .line(format!("environment {}", style(&name).cyan().bright()))
-        .as_success()
+        .with_success()
         .print();
 
     // Switch into the newly created environment, qol
@@ -165,7 +165,7 @@ pub fn create_env(name: String, isabelle: VersionReq) -> Result<(), AppError> {
     CliLine::new()
         .prefix("Switched")
         .line(format!("to environment {}", style(&name).cyan().bright()))
-        .as_success()
+        .with_success()
         .print();
 
     Ok(())
@@ -178,7 +178,7 @@ pub fn list_envs() -> Result<(), AppError> {
     for env in manager::iter_envs() {
         if active_env.as_ref() == Some(&env) {
             // If this is the active environment then highlight it
-            CliLine::new().prefix("Active").line(env).as_focus()
+            CliLine::new().prefix("Active").line(env).with_focus()
         } else {
             CliLine::new().line(&env)
         }
@@ -194,7 +194,7 @@ pub fn list_envs() -> Result<(), AppError> {
             style(env_count).bold(),
             pluralise(env_count, "environment", "environments")
         ))
-        .as_success()
+        .with_success()
         .print();
 
     Ok(())
@@ -209,7 +209,7 @@ pub fn remove_env(name: &str) -> Result<(), AppError> {
                 "environment '{}' is not found; nothing to remove",
                 style(name).cyan().bright()
             ))
-            .as_skipped()
+            .with_skipped()
             .print();
         return Ok(());
     }
@@ -224,7 +224,7 @@ pub fn remove_env(name: &str) -> Result<(), AppError> {
     CliLine::new()
         .prefix("Removed")
         .line(format!("environment {}", style(&name).cyan().bright()))
-        .as_success()
+        .with_success()
         .print();
 
     Ok(())
@@ -237,7 +237,7 @@ pub fn freeze_env() -> Result<(), AppError> {
     CliLine::new()
         .prefix("Frozen")
         .line(format!("to {}", style(LOCKFILE_NAME).cyan().bright()))
-        .as_success()
+        .with_success()
         .print();
 
     Ok(())
@@ -253,7 +253,7 @@ pub async fn sync_env() -> Result<(), AppError> {
     CliLine::new()
         .prefix("Synced")
         .line(format!("from {}", style(LOCKFILE_NAME).cyan().bright()))
-        .as_success()
+        .with_success()
         .print();
 
     // Warn if this new environment doesn't have a linked isabelle version
@@ -267,17 +267,17 @@ pub async fn migrate_isabelle(version: VersionReq, unpin_existing: bool) -> Resu
 
     // Do not assume this is a no-op if a version is not given
     // As there could be a new latest to migrate too
-    if let VersionReq::Given(target_version) = &version {
-        if version == active_env.isabelle {
-            CliLine::new()
-                .line(format!(
-                    "environment already matches {} {}",
-                    style(format!("Isabelle {}", get_isabelle_name(target_version))).cyan().bright(),
-                    DisplayVersion::Explicit(target_version)
-                ))
-                .as_skipped()
-                .print();
-        };
+    if let VersionReq::Given(target_version) = &version
+        && version == active_env.isabelle
+    {
+        CliLine::new()
+            .line(format!(
+                "environment already matches {} {}",
+                style(format!("Isabelle {}", get_isabelle_name(target_version))).cyan().bright(),
+                DisplayVersion::Explicit(target_version)
+            ))
+            .with_skipped()
+            .print();
     };
 
     if unpin_existing {
@@ -291,7 +291,7 @@ pub async fn migrate_isabelle(version: VersionReq, unpin_existing: bool) -> Resu
         None => format!("to {}", style("latest").cyan().bright()),
     };
 
-    CliLine::new().prefix("Migrated").line(line).as_success().print();
+    CliLine::new().prefix("Migrated").line(line).with_success().print();
 
     // Warn if this environment doesn't have a linked isabelle version
     warn_no_isabelle()?;
@@ -350,7 +350,7 @@ pub async fn update(unpin_existing: bool) -> Result<(), AppError> {
         write!(line, "; migrated Isabelle to {}", version_str).expect("Writing to a `String` failed");
     }
 
-    CliLine::new().prefix("Updated").line(line).as_success().print();
+    CliLine::new().prefix("Updated").line(line).with_success().print();
 
     // Warn if this environment doesn't have a linked isabelle version
     warn_no_isabelle()?;
@@ -364,7 +364,7 @@ pub async fn restore() -> Result<(), AppError> {
     // Don't resolve as we want to keep environment identical
     finalise_env(&mut active_env, FinalizeStrategy::ApplyOnly).await?;
 
-    CliLine::new().prefix("Restored").line("all packages").as_success().print();
+    CliLine::new().prefix("Restored").line("all packages").with_success().print();
 
     // Warn if this environment doesn't have a linked isabelle version
     warn_no_isabelle()?;

@@ -1,4 +1,4 @@
-use std::{path::Path, time::Duration};
+use std::{borrow::Cow, path::Path, time::Duration};
 
 use console::style;
 use indicatif::ProgressBar;
@@ -32,7 +32,7 @@ pub async fn list_afp_repositories(limit: usize) -> Result<(), AppError> {
         for afp_repo in other_repos {
             CliLine::new().line(render(afp_repo)).print();
         }
-        CliLine::new().prefix("Latest").line(render(latest_repo)).as_focus().print();
+        CliLine::new().prefix("Latest").line(render(latest_repo)).with_focus().print();
     }
 
     CliLine::new()
@@ -42,7 +42,7 @@ pub async fn list_afp_repositories(limit: usize) -> Result<(), AppError> {
             style(afp_repos.len()).bold(),
             pluralise(afp_repos.len(), "repository", "repositories")
         ))
-        .as_success()
+        .with_success()
         .print();
 
     Ok(())
@@ -95,7 +95,7 @@ pub async fn source_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
             style(format!("AFP {}", &repo.get_formatted_name())).cyan().bright(),
             DisplayVersion::Implicit(repo.get_version())
         ))
-        .as_success()
+        .with_success()
         .print();
 
     let pb = ProgressBar::new(repo_packages.len() as u64).with_belle_bar_style();
@@ -136,7 +136,7 @@ pub async fn source_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
                             CliLine::new()
                                 .prefix("Differing")
                                 .line(style(format!("{} until dependencies are resolved", package)).dim().to_string())
-                                .as_skipped()
+                                .with_skipped()
                                 .get(),
                         );
 
@@ -189,11 +189,13 @@ pub async fn source_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
             pluralise(repo_packages.len() - failed, "package", "packages"),
             style(format!("AFP {}", &repo.get_formatted_name())).cyan().bright(),
             DisplayVersion::Implicit(repo.get_version()),
-            (failed > 0)
-                .then(|| format!(", {} failed", style(failed).bold()))
-                .unwrap_or_default()
+            if failed > 0 {
+                Cow::Owned(format!(", {} failed", style(failed).bold()))
+            } else {
+                Cow::Borrowed("")
+            }
         ))
-        .as_success()
+        .with_success()
         .print();
 
     Ok(())
@@ -226,7 +228,7 @@ pub async fn source_remote_repo(url: &Url, branch: &str) -> Result<(), AppError>
             style(url).dim(),
             style(")").dim(),
         ))
-        .as_success()
+        .with_success()
         .print();
 
     Ok(())
@@ -252,7 +254,7 @@ pub fn source_local_package(path: &Path) -> Result<(), AppError> {
             style(path.display()).dim(),
             style(")").dim(),
         ))
-        .as_success()
+        .with_success()
         .print();
 
     Ok(())

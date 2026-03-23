@@ -139,32 +139,31 @@ impl CliLine {
         self
     }
 
-    pub fn as_success(mut self) -> Self {
+    pub fn with_success(mut self) -> Self {
         self.intent = CliLineIntent::Success;
 
         self
     }
 
-    pub fn as_focus(mut self) -> Self {
+    pub fn with_focus(mut self) -> Self {
         self.intent = CliLineIntent::Focus;
 
         self
     }
 
-    pub fn as_error(mut self) -> Self {
+    pub fn with_error(mut self) -> Self {
         self.intent = CliLineIntent::Error;
 
         self
     }
 
-    pub fn as_warning(mut self) -> Self {
+    pub fn with_warning(mut self) -> Self {
         self.intent = CliLineIntent::Warning;
         self
     }
 
-    pub fn as_skipped(mut self) -> Self {
+    pub fn with_skipped(mut self) -> Self {
         self.intent = CliLineIntent::Skipped;
-
         self
     }
 }

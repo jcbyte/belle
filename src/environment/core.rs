@@ -206,7 +206,7 @@ impl Environment {
     }
 
     pub fn iter_packages(&self) -> impl Iterator<Item = PackageListing> {
-        self.lock.iter().map(|(name, _version)| {
+        self.lock.keys().map(|name| {
             self.get_package_listing(name)
                 .expect("Package known to exist cannot now be found")
         })

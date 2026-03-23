@@ -34,7 +34,7 @@ pub async fn add_package(name: String, version: VersionReq) -> Result<(), AppErr
                     VersionReq::Given(v) => PackageIdentifier::new(name, v).styled(),
                 }
             ))
-            .as_skipped()
+            .with_skipped()
             .print();
         return Ok(());
     };
@@ -54,7 +54,7 @@ pub async fn add_package(name: String, version: VersionReq) -> Result<(), AppErr
     CliLine::new()
         .prefix("Added")
         .line(format!("package {} {}", style(name).cyan().bright(), package_version))
-        .as_success()
+        .with_success()
         .print();
 
     warn_no_isabelle()?;
@@ -71,7 +71,7 @@ pub async fn remove_package(name: &str) -> Result<(), AppError> {
                 "package '{}' is not in this environment; nothing to remove",
                 style(name).cyan().bright()
             ))
-            .as_skipped()
+            .with_skipped()
             .print();
         return Ok(());
     };
@@ -82,7 +82,7 @@ pub async fn remove_package(name: &str) -> Result<(), AppError> {
     CliLine::new()
         .prefix("Removed")
         .line(format!("package {}", style(name).cyan().bright()))
-        .as_success()
+        .with_success()
         .print();
 
     warn_no_isabelle()?;
@@ -142,7 +142,7 @@ pub fn list_packages(all: bool) -> Result<(), AppError> {
     CliLine::new()
         .prefix("Isabelle")
         .line(formatted_isabelle_str)
-        .as_focus()
+        .with_focus()
         .print();
 
     for package in &dependencies {
@@ -204,7 +204,7 @@ pub fn list_packages(all: bool) -> Result<(), AppError> {
             style(active_env.name).cyan().bright()
         )
     };
-    CliLine::new().prefix("Listed").line(line).as_success().print();
+    CliLine::new().prefix("Listed").line(line).with_success().print();
 
     Ok(())
 }

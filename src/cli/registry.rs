@@ -18,7 +18,7 @@ use crate::{
 pub fn clean_packages() -> Result<(), AppError> {
     let package_dir = BelleConfig::get_package_dir();
     if !package_dir.is_dir() {
-        CliLine::new().line("package cache is already empty").as_skipped().print();
+        CliLine::new().line("package cache is already empty").with_skipped().print();
         return Ok(());
     }
 
@@ -34,7 +34,7 @@ pub fn clean_packages() -> Result<(), AppError> {
             style(count).bold(),
             pluralise(count, "package", "packages")
         ))
-        .as_success()
+        .with_success()
         .print();
 
     Ok(())
@@ -45,7 +45,7 @@ pub fn clean_metadata() -> Result<(), AppError> {
     let manifest_dir = BelleConfig::get_manifest_dir();
 
     if !manifest_dir.is_dir() {
-        CliLine::new().line("metadata is already empty").as_skipped().print();
+        CliLine::new().line("metadata is already empty").with_skipped().print();
         return Ok(());
     }
 
@@ -58,7 +58,7 @@ pub fn clean_metadata() -> Result<(), AppError> {
     CliLine::new()
         .prefix("Cleaned")
         .line(format!("{} packages metadata", style(count).bold()))
-        .as_success()
+        .with_success()
         .print();
 
     Ok(())
@@ -74,7 +74,7 @@ pub fn list_versions(name: &str) -> Result<(), AppError> {
         let line = format!("{}", DisplayVersion::Explicit(&version.version));
         if version.exists_locally() {
             installed_count += 1;
-            CliLine::new().prefix("Installed").line(line).as_focus()
+            CliLine::new().prefix("Installed").line(line).with_focus()
         } else {
             CliLine::new().line(line)
         }
@@ -90,7 +90,7 @@ pub fn list_versions(name: &str) -> Result<(), AppError> {
             style(name).cyan().bright(),
             style(installed_count).bold(),
         ))
-        .as_success()
+        .with_success()
         .print();
 
     Ok(())
@@ -296,7 +296,7 @@ pub fn search_registry(search: String) {
 
     // Print list of results
     for package in &results {
-        CliLine::new().line(format!("{}", highlight_match(package, &search))).print();
+        CliLine::new().line(highlight_match(package, &search)).print();
     }
     CliLine::new()
         .prefix("Found")
@@ -306,7 +306,7 @@ pub fn search_registry(search: String) {
             pluralise(results.len(), "result", "results"),
             style(search).cyan().bright()
         ))
-        .as_success()
+        .with_success()
         .print();
 }
 
@@ -335,7 +335,7 @@ pub fn purge_packages() -> Result<(), AppError> {
             style(removed).bold(),
             pluralise(removed, "package", "packages")
         ))
-        .as_success()
+        .with_success()
         .print();
 
     Ok(())
