@@ -149,7 +149,7 @@ pub async fn source_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
                 }
                 // If this produces an error then don't crash the entire fetch process
                 Err(e) => {
-                    pb.println(CliLine::error(&e).get());
+                    pb.println(CliLine::new().line(e.to_string()).with_error().get());
                     failed += 1
                 }
             }
@@ -168,7 +168,7 @@ pub async fn source_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
                 unresolved_package.register()?;
             }
             Err(e) => {
-                pb.println(CliLine::error(&e).get());
+                pb.println(CliLine::new().line(e.to_string()).with_error().get());
                 failed += 1
             }
         };

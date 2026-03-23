@@ -19,11 +19,12 @@ mod types;
 use core::{CliLine, DisplayVersion, ProgressBarTheme, pluralise};
 
 pub use core::display_errors;
+use hinted::Hinted;
 use pubgrub::SemanticVersion;
 pub use schema::Cli;
 use types::{IsabelleVersion, PackageVersion};
 
-pub async fn run(args: Cli) -> Result<(), AppError> {
+pub async fn run(args: Cli) -> Result<(), Hinted<AppError>> {
     match args.command {
         Commands::Link(args) => isabelle::link(&args.path, args.force)?,
         Commands::Unlink(args) => isabelle::unlink(args.version.into(), args.force)?,

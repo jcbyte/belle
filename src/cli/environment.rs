@@ -179,7 +179,7 @@ pub fn list_envs() -> Result<(), AppError> {
             // If this is the active environment then highlight it
             CliLine::new().prefix("Active").line(env).with_focus()
         } else {
-            CliLine::new().line(&env)
+            CliLine::new().line(env)
         }
         .print();
 
@@ -346,7 +346,7 @@ pub async fn update(unpin_existing: bool) -> Result<(), AppError> {
             VersionReq::Given(v) => format!("{} {}", get_isabelle_name(&v), DisplayVersion::Implicit(&v)),
             VersionReq::Any => "latest Isabelle".to_string(),
         };
-        write!(line, "; migrated Isabelle to {}", version_str).expect("Writing to a `String` failed");
+        write!(line, "; migrated Isabelle to {}", version_str).expect("Writing to a String failed");
     }
 
     CliLine::new().prefix("Updated").line(line).with_success().print();

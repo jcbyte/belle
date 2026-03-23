@@ -1,5 +1,6 @@
 use crate::{error::AppError, registry::PackageIdentifier};
 use console::{StyledObject, style};
+use hinted::Hinted;
 use indicatif::{ProgressBar, ProgressStyle};
 use pubgrub::SemanticVersion;
 use std::fmt;
@@ -7,15 +8,15 @@ use std::{borrow::Cow, error::Error, fmt::Display, time::Duration};
 
 const GUTTER_WIDTH: usize = 12;
 
-pub fn display_errors(e: &AppError, backtrace: bool) {
-    CliLine::error(e).print();
+pub fn display_errors(e: &Hinted<AppError>, backtrace: bool) {
+    let err = e.source();
+    CliLine::new().line(err.to_string()).with_error().print();
 
     if backtrace {
-        let mut current_source = e.source();
+        let mut current_source = err.source();
         let mut depth = 0;
 
         while let Some(source) = current_source {
-            depth += 1;
             let indent = " ".repeat(GUTTER_WIDTH + depth * 2);
             let msg = source.to_string();
 
@@ -23,18 +24,30 @@ pub fn display_errors(e: &AppError, backtrace: bool) {
             for (i, line) in msg.lines().enumerate() {
                 if i == 0 {
                     // Place arrow on the first line
-                    eprintln!("{}⮡ {}", indent, style(line).red());
+                    eprintln!("{} ⮡ {}", indent, style(line).red());
                 } else {
-                    eprintln!("{}   {}", indent, style(line).red());
+                    eprintln!("{}    {}", indent, style(line).red());
                 }
             }
             current_source = source.source();
+            depth += 1;
         }
-    } else if e.source().is_some() {
+    }
+
+    // Display hint underneath error and trace
+    if let Some(hint) = e.hint() {
+        CliLine::new().line(hint).with_note().print();
+    }
+
+    // If a backtrace is available but not used notify
+    if !backtrace && err.source().is_some() {
         CliLine::new()
-            .prefix("Help")
-            .line(style("use '--backtrace' to see error source chain").dim().italic().to_string())
-            .with_skipped()
+            .line(format!(
+                "{}{} {}",
+                style("help").dim().bold(),
+                style(":").dim(),
+                style("use '--backtrace' to see error source chain").dim().italic()
+            ))
             .print();
     }
 }
@@ -86,12 +99,13 @@ pub enum CliLineIntent {
     Warning,
     Error,
     Skipped,
+    Note,
     Default,
 }
 
 pub struct CliLine {
-    prefix: String,
-    line: String,
+    prefix: Cow<'static, str>,
+    line: Cow<'static, str>,
     intent: CliLineIntent,
     custom_prefix: bool,
 }
@@ -99,15 +113,11 @@ pub struct CliLine {
 impl CliLine {
     pub fn new() -> Self {
         Self {
-            prefix: String::new(),
-            line: String::new(),
+            prefix: Cow::<str>::default(),
+            line: Cow::<str>::default(),
             intent: CliLineIntent::Default,
             custom_prefix: false,
         }
-    }
-
-    pub fn error(e: &AppError) -> Self {
-        Self::new().line(e.to_string()).with_error()
     }
 
     pub fn get(&self) -> String {
@@ -117,6 +127,7 @@ impl CliLine {
                 CliLineIntent::Error => "Error",
                 CliLineIntent::Warning => "Warning",
                 CliLineIntent::Skipped => "Skipped",
+                CliLineIntent::Note => "",
                 _ => &self.prefix,
             }
         } else {
@@ -147,6 +158,7 @@ impl CliLine {
             CliLineIntent::Warning => styled_prefix.yellow(),
             CliLineIntent::Error => styled_prefix.red(),
             CliLineIntent::Skipped => styled_prefix.dim(),
+            CliLineIntent::Note => styled_prefix,
             CliLineIntent::Default => styled_prefix,
         }
     }
@@ -158,6 +170,7 @@ impl CliLine {
             CliLineIntent::Warning => Cow::Owned(style(console::strip_ansi_codes(line)).yellow().to_string()),
             CliLineIntent::Error => Cow::Owned(style(console::strip_ansi_codes(line)).red().bright().to_string()),
             CliLineIntent::Skipped => Cow::Borrowed(line),
+            CliLineIntent::Note => Cow::Owned(format!("{}: {}", style("note").bold().bright(), line)),
             CliLineIntent::Default => Cow::Borrowed(line),
         }
     }
@@ -166,13 +179,13 @@ impl CliLine {
         println!("{}", self.get());
     }
 
-    pub fn prefix(mut self, prefix: impl Into<String>) -> Self {
+    pub fn prefix(mut self, prefix: impl Into<Cow<'static, str>>) -> Self {
         self.prefix = prefix.into();
         self.custom_prefix = true;
         self
     }
 
-    pub fn line(mut self, line: impl Into<String>) -> Self {
+    pub fn line(mut self, line: impl Into<Cow<'static, str>>) -> Self {
         self.line = line.into();
         self
     }
@@ -202,6 +215,11 @@ impl CliLine {
 
     pub fn with_skipped(mut self) -> Self {
         self.intent = CliLineIntent::Skipped;
+        self
+    }
+
+    pub fn with_note(mut self) -> Self {
+        self.intent = CliLineIntent::Note;
         self
     }
 }

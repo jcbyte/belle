@@ -23,6 +23,6 @@ async fn main() {
     }
 }
 
-// todo error hints + todo consistent errors output
+// todo consistent errors + hints
 // todo unit testing
 // todo manual testing

@@ -1,6 +1,5 @@
 use thiserror::Error;
 
-pub mod advice;
 mod custom;
 mod global;
 
@@ -19,7 +18,7 @@ use crate::{
     resolver::error::ResolverError,
 };
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Hint)]
 pub enum AppError {
     #[error(transparent)]
     Custom(#[from] CustomError),
