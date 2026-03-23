@@ -1,0 +1,9 @@
+[package]
+name = "hinted"
+version = "0.1.0"
+edition = "2024"
+authors = ["Joel Cutler <joelcutler108@gmail.com>"]
+description = "Custom hints on enum types (for errors)"
+
+[dependencies]
+hinted-derive = { path = "./hinted-derive" }
