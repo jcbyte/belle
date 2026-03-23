@@ -1,40 +1,9 @@
-use std::error::Error;
-
-use belle::{cli, config::BelleConfig, error::AppError};
+use belle::{
+    cli::{self, display_errors},
+    config::BelleConfig,
+};
 use clap::Parser;
 use console::style;
-
-// todo format errors
-fn display_errors(e: &AppError, backtrace: bool) {
-    eprintln!("{} {}", style("Error:").bold().red(), style(e).bright().red());
-
-    if backtrace {
-        let mut current_source = e.source();
-        let mut depth = 0;
-
-        while let Some(source) = current_source {
-            depth += 1;
-            let indent = " ".repeat(depth * 2);
-            let msg = source.to_string();
-
-            // Split the error message into lines to indent them all
-            for (i, line) in msg.lines().enumerate() {
-                if i == 0 {
-                    // Place arrow on the first line
-                    eprintln!("{}⮡ {}", indent, style(line).red());
-                } else {
-                    eprintln!("{}   {}", indent, style(line).red());
-                }
-            }
-            current_source = source.source();
-        }
-    } else if e.source().is_some() {
-        eprintln!(
-            "{}",
-            style("help: use '--backtrace' to see error source chain").dim().italic()
-        );
-    }
-}
 
 #[tokio::main]
 async fn main() {

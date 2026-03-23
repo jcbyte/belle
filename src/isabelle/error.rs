@@ -1,8 +1,13 @@
+use std::path::PathBuf;
+
 use pubgrub::SemanticVersion;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum IsabelleError {
+    #[error("No Isabelle installation found at {path}")]
+    NoIsabelle { path: PathBuf },
+
     #[error("Failed to execute 'isabelle {args}'.")]
     CommandFailed {
         args: String,

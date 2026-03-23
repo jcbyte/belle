@@ -18,6 +18,7 @@ mod types;
 
 use core::{CliLine, CliLineIntent, DisplayVersion, ProgressBarTheme, pluralise};
 
+pub use core::display_errors;
 use pubgrub::SemanticVersion;
 pub use schema::Cli;
 use types::{IsabelleVersion, PackageVersion};

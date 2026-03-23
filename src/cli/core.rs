@@ -1,10 +1,44 @@
+use crate::{error::AppError, registry::PackageIdentifier};
+use console::{StyledObject, style};
 use indicatif::{ProgressBar, ProgressStyle};
 use pubgrub::SemanticVersion;
-use std::{borrow::Cow, fmt::Display, time::Duration};
-
-use console::{StyledObject, style};
+use std::fmt;
+use std::{borrow::Cow, error::Error, fmt::Display, time::Duration};
 
 const GUTTER_WIDTH: usize = 12;
+
+// todo format errors
+pub fn display_errors(e: &AppError, backtrace: bool) {
+    CliLine::new().line(e.to_string()).with_error().print();
+
+    if backtrace {
+        let mut current_source = e.source();
+        let mut depth = 0;
+
+        while let Some(source) = current_source {
+            depth += 1;
+            let indent = " ".repeat(GUTTER_WIDTH + depth * 2);
+            let msg = source.to_string();
+
+            // Split the error message into lines to indent them all
+            for (i, line) in msg.lines().enumerate() {
+                if i == 0 {
+                    // Place arrow on the first line
+                    eprintln!("{}⮡ {}", indent, style(line).red());
+                } else {
+                    eprintln!("{}   {}", indent, style(line).red());
+                }
+            }
+            current_source = source.source();
+        }
+    } else if e.source().is_some() {
+        CliLine::new()
+            .prefix("Help")
+            .line(style("use '--backtrace' to see error source chain").dim().italic().to_string())
+            .with_skipped()
+            .print();
+    }
+}
 
 pub trait ProgressBarTheme {
     fn with_belle_bar_style(self) -> Self;
@@ -119,7 +153,7 @@ impl CliLine {
             CliLineIntent::Success => Cow::Borrowed(line),
             CliLineIntent::Focus => Cow::Borrowed(line),
             CliLineIntent::Warning => Cow::Owned(style(console::strip_ansi_codes(line)).yellow().to_string()),
-            CliLineIntent::Error => Cow::Owned(style(console::strip_ansi_codes(line)).red().to_string()),
+            CliLineIntent::Error => Cow::Owned(style(console::strip_ansi_codes(line)).red().bright().to_string()),
             CliLineIntent::Skipped => Cow::Borrowed(line),
             CliLineIntent::Default => Cow::Borrowed(line),
         }
@@ -175,10 +209,6 @@ pub enum DisplayVersion<'a> {
     /// System inferred though resolving
     Implicit(&'a SemanticVersion),
 }
-
-use std::fmt;
-
-use crate::registry::PackageIdentifier;
 
 impl<'a> fmt::Display for DisplayVersion<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

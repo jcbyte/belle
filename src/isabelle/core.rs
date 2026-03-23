@@ -31,6 +31,12 @@ impl Isabelle {
         let mut command = if cfg!(windows) {
             let bash = isabelle_root.join("contrib").join("cygwin").join("bin").join("bash.exe");
 
+            if !bash.is_file() {
+                return Err(IsabelleError::NoIsabelle {
+                    path: isabelle_root.to_path_buf(),
+                });
+            }
+
             // Create a command using defaults from `Cygwin-Terminal.bat`
             let mut command = Command::new(bash);
             command
@@ -53,6 +59,13 @@ impl Isabelle {
         } else {
             // Execute the isabelle binary directly
             let isabelle_bin = isabelle_bin_dir.join("isabelle");
+
+            if !isabelle_bin.is_file() {
+                return Err(IsabelleError::NoIsabelle {
+                    path: isabelle_root.to_path_buf(),
+                });
+            }
+
             let mut command = Command::new(isabelle_bin);
             command.arg(args);
 
