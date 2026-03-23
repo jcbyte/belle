@@ -1,8 +1,9 @@
+use hinted::Hint;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum RootParserError {
-    #[error("The {name} could not be parsed from ROOT file.")]
+    #[error("{name} could not be parsed from package ROOT file")]
     CouldNotParse { name: String },
 }
 
@@ -16,14 +17,15 @@ impl<T> RootParserContext<T> for Option<T> {
     }
 }
 
-#[derive(Error, Debug)]
-pub enum MetadataError {
-    #[error("Package {package} depends on {dependency} which does not seem to exist.")]
-    DependencyMissing { package: String, dependency: String },
-
-    #[error("Package {package} does not exist within the metadata")]
+#[derive(Error, Debug, Hint)]
+pub enum AfpMetadataError {
+    #[error("package '{package}' does not exist in afp metadata")]
     NoPackage { package: String },
 
-    #[error("{name} for package {package} does not exist within the metadata.")]
-    MissingData { name: String, package: String },
+    #[error("package '{package}' depends on '{dependency}' which cannot be found")]
+    #[hint("'{dependency}' may be an alias that was not resolved previously")]
+    DependencyMissing { package: String, dependency: String },
+
+    #[error("missing {name} for package '{package}' within the afp metadata")]
+    DataMissing { name: String, package: String },
 }

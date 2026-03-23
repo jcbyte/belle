@@ -1,16 +1,21 @@
+use hinted::Hint;
 use thiserror::Error;
 
+mod archive;
 mod custom;
-mod global;
+mod io;
+mod parser;
 
+pub use archive::*;
 pub use custom::*;
-pub use global::*;
+pub use io::*;
+pub use parser::*;
 
 use crate::{
     cli::error::CliError,
     environment::error::EnvironmentError,
     fetch::{
-        afp_metadata::error::{MetadataError, RootParserError},
+        afp_metadata::error::{AfpMetadataError, RootParserError},
         error::FetchError,
     },
     isabelle::error::IsabelleError,
@@ -24,6 +29,7 @@ pub enum AppError {
     Custom(#[from] CustomError),
 
     #[error(transparent)]
+    #[hint(transparent)]
     Io(#[from] IoError),
 
     #[error(transparent)]
@@ -33,27 +39,33 @@ pub enum AppError {
     Archive(#[from] ArchiveError),
 
     #[error(transparent)]
+    #[hint(transparent)]
     Environment(#[from] EnvironmentError),
 
     #[error(transparent)]
     Resolver(#[from] ResolverError),
 
     #[error(transparent)]
+    #[hint(transparent)]
     Isabelle(#[from] IsabelleError),
 
     #[error(transparent)]
+    #[hint(transparent)]
     Registry(#[from] RegistryError),
 
     #[error(transparent)]
+    #[hint(transparent)]
     Fetch(Box<FetchError>),
 
     #[error(transparent)]
-    Metadata(#[from] MetadataError),
+    #[hint(transparent)]
+    Metadata(#[from] AfpMetadataError),
 
     #[error(transparent)]
     RootParser(#[from] RootParserError),
 
     #[error(transparent)]
+    #[hint(transparent)]
     Cli(#[from] CliError),
 }
 

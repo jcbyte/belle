@@ -12,7 +12,7 @@ async fn main() {
 
     // Ensure configuration/state is initialised
     if let Err(e) = BelleConfig::init() {
-        display_errors(&e, backtrace_errors);
+        display_errors(&e.into(), backtrace_errors);
         return;
     }
 
@@ -23,6 +23,8 @@ async fn main() {
     }
 }
 
-// todo consistent errors + hints
+// todo hints on skipped commands
+// todo group isabelle commands and create a show command
+// todo format in place errors
 // todo unit testing
 // todo manual testing

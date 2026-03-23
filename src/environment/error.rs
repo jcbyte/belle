@@ -1,27 +1,19 @@
 use std::path::PathBuf;
 
+use hinted::Hint;
 use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Hint)]
 pub enum EnvironmentError {
-    #[error("Environment '{name}' already exists.")]
+    #[error("environment '{name}' already exists")]
+    #[hint("use a different name, or remove it with `belle env remove <name>` first")]
     AlreadyExists { name: String },
 
-    #[error("Environment '{name}' does not exist.")]
+    #[error("environment '{name}' does not exist")]
+    #[hint("check the name, or create it with `belle env create <name>`")]
     DoesNotExist { name: String },
 
-    #[error("Environment file at '{path}' does not exist.")]
-    FileDoesNotExist { path: PathBuf },
-
-    #[error("No lockfile at found at '{path}'.")]
+    #[error("no lockfile found at '{path}'")]
+    #[hint("lockfile can be generated with `belle env freeze`")]
     NoLockFile { path: PathBuf },
-
-    #[error("Package {package} already exists in environment.")]
-    PackageAlreadyExists { package: String },
-
-    #[error("Package {package} does not exists in environment.")]
-    PackageDoesNotExist { package: String },
-
-    #[error("The Isabelle version for this environment is not defined.")]
-    NoIsabelleVersion,
 }

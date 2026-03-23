@@ -1,7 +1,9 @@
+use hinted::Hint;
 use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Hint)]
 pub enum CliError {
-    #[error("No environment is selected.")]
+    #[error("no environment is currently active")]
+    #[hint("use `belle switch <name>` to select one, or `belle env create <name>` to create one")]
     NoActiveEnvironment,
 }

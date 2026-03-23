@@ -34,7 +34,7 @@ impl Isabelle {
             if !bash.is_file() {
                 return Err(IsabelleError::NoIsabelle {
                     path: isabelle_root.to_path_buf(),
-                });
+                })?;
             }
 
             // Create a command using defaults from `Cygwin-Terminal.bat`
@@ -63,7 +63,7 @@ impl Isabelle {
             if !isabelle_bin.is_file() {
                 return Err(IsabelleError::NoIsabelle {
                     path: isabelle_root.to_path_buf(),
-                });
+                })?;
             }
 
             let mut command = Command::new(isabelle_bin);

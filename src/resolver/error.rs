@@ -5,24 +5,24 @@ use crate::{error::AppError, registry::PackageIdentifier, resolver::BelleDepende
 
 #[derive(Error, Debug)]
 pub enum ResolverError {
-    #[error("No solution could be generated:\n{report}")]
+    #[error("todo check this and make better No solution could be generated:\n{report}")]
     Conflict { report: String },
 
-    #[error("Failed to retrieve dependencies for {package}")]
+    #[error("failed retrieving dependencies for {package}")]
     DependencyRetrieval {
         package: PackageIdentifier,
         #[source]
         source: Box<AppError>,
     },
 
-    #[error("Failed to choose a version for {package}")]
+    #[error("failed choosing a version for {package}")]
     VersionSelectionFailed {
         package: String,
         #[source]
         source: Box<AppError>,
     },
 
-    #[error("Resolution was cancelled.")]
+    #[error("dependency resolution was cancelled")]
     Cancelled,
 }
 

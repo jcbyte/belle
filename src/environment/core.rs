@@ -110,13 +110,6 @@ impl Environment {
     }
 
     fn load(env_file: &Path) -> Result<Self, AppError> {
-        if !env_file.is_file() {
-            return Err(EnvironmentError::FileDoesNotExist {
-                path: env_file.to_path_buf(),
-            }
-            .into());
-        }
-
         let content = fs::read_to_string(env_file).report_read("environment file", env_file)?;
         let parsed_env = toml::from_str(&content).report_file("environment file", env_file)?;
 
@@ -160,21 +153,11 @@ impl Environment {
     }
 
     pub fn add_package(&mut self, name: String, version: VersionReq) -> Result<(), EnvironmentError> {
-        if self.packages.contains_key(&name) {
-            Err(EnvironmentError::PackageAlreadyExists { package: name.clone() })?;
-        }
-
         self.packages.insert(name, version);
         Ok(())
     }
 
     pub fn remove_package(&mut self, name: &str) -> Result<(), EnvironmentError> {
-        if !self.packages.contains_key(name) {
-            Err(EnvironmentError::PackageDoesNotExist {
-                package: name.to_string(),
-            })?;
-        }
-
         self.packages.remove(name);
         Ok(())
     }

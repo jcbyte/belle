@@ -1,32 +1,34 @@
 use std::path::PathBuf;
 
+use hinted::Hint;
 use pubgrub::SemanticVersion;
 use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Hint)]
 pub enum IsabelleError {
-    #[error("No Isabelle installation found at {path}")]
+    #[error("no Isabelle installation found at '{path}'")]
+    #[hint("check path, or install isabelle from https://isabelle.in.tum.de")]
     NoIsabelle { path: PathBuf },
 
-    #[error("Failed to execute 'isabelle {args}'.")]
+    #[error("failed to execute 'isabelle {args}'")]
+    #[hint("check execute permissions, and ensure that Isabelle is not corrupted")]
     CommandFailed {
         args: String,
         #[source]
         source: std::io::Error,
     },
 
-    #[error("Command 'isabelle {args}' produced invalid UTF-8 output.")]
+    #[error("command 'isabelle {args}' produced invalid output")]
+    #[hint("this may be due to a locale mismatch or a corrupted isabelle")]
     InvalidCommandOutput {
         args: String,
         #[source]
         source: std::string::FromUtf8Error,
     },
 
-    #[error("There already exists a linked Isabelle matching version '{version}'")]
+    #[error("an Isabelle version of {version} is already linked")]
+    #[hint("use `belle isabelle unlink <version>` to unlink it, or `belle isabelle link <path> --force` to overwrite")]
     AlreadyLinked { version: SemanticVersion },
-
-    #[error("Could not find a linked Isabelle matching version '{version}'")]
-    VersionNotLinked { version: SemanticVersion },
 }
 
 pub trait IsabelleCommandFailedContext<T> {

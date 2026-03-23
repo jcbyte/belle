@@ -7,7 +7,7 @@ use zip::ZipArchive;
 
 use crate::config::BelleConfig;
 use crate::error::{AppError, ArchiveErrorContext, IoErrorContext, ParseErrorContext};
-use crate::fetch::afp_metadata::error::MetadataError;
+use crate::fetch::afp_metadata::error::AfpMetadataError;
 use crate::fetch::afp_metadata::{AuthorMetadata, EntryMetadata, RepoMetadata, root_parser};
 use crate::fetch::client::BelleClient;
 use crate::fetch::error::FetchError;
@@ -96,9 +96,12 @@ impl RepoMetadata {
         entry_name: &str,
         client: &BelleClient,
     ) -> Result<(ReturnedPackages, bool), AppError> {
-        let meta = self.entries.get(entry_name).ok_or_else(|| MetadataError::NoPackage {
-            package: entry_name.to_string(),
-        })?;
+        let Some(meta) = self.entries.get(entry_name) else {
+            return Err(AfpMetadataError::NoPackage {
+                package: entry_name.to_string(),
+            }
+            .into());
+        };
         let version = date_to_version(&meta.date);
 
         // Fetch entry ROOT file from the repo
@@ -164,10 +167,13 @@ impl RepoMetadata {
             .collect();
 
         // Get licence from matching its key
-        let licence = self.licences.get(&meta.licence_key).ok_or_else(|| MetadataError::MissingData {
-            name: format!("licence {}", meta.licence_key),
-            package: entry_name.to_string(),
-        })?;
+        let licence = self
+            .licences
+            .get(&meta.licence_key)
+            .ok_or_else(|| AfpMetadataError::DataMissing {
+                name: format!("licence {}", meta.licence_key),
+                package: entry_name.to_string(),
+            })?;
 
         // Get authors and contributors by matching their keys
         let authors = meta
@@ -176,7 +182,7 @@ impl RepoMetadata {
             .map(|author_key| {
                 self.authors
                     .get(author_key)
-                    .ok_or_else(|| MetadataError::MissingData {
+                    .ok_or_else(|| AfpMetadataError::DataMissing {
                         name: format!("author {}", author_key),
                         package: entry_name.to_string(),
                     })
@@ -184,7 +190,7 @@ impl RepoMetadata {
                     .cloned()
                     .map(PackageAuthor::from)
             })
-            .collect::<Result<Vec<_>, MetadataError>>()?;
+            .collect::<Result<Vec<_>, AfpMetadataError>>()?;
 
         let contributors = meta
             .contributor_keys
@@ -192,7 +198,7 @@ impl RepoMetadata {
             .map(|contributor_key| {
                 self.authors
                     .get(contributor_key)
-                    .ok_or_else(|| MetadataError::MissingData {
+                    .ok_or_else(|| AfpMetadataError::DataMissing {
                         name: format!("contributor {}", contributor_key),
                         package: entry_name.to_string(),
                     })
@@ -200,7 +206,7 @@ impl RepoMetadata {
                     .cloned()
                     .map(PackageAuthor::from)
             })
-            .collect::<Result<Vec<_>, MetadataError>>()?;
+            .collect::<Result<Vec<_>, AfpMetadataError>>()?;
 
         // Return created package with all metadata
         Ok((
@@ -247,6 +253,7 @@ impl RepoMetadata {
 
             // If there was no seen alias check the registry for the alias
             // Go though each version in case there are multiple connected to different packages
+            let mut resolved = false;
             if let Some(versions) = get_package_versions(dep_name) {
                 for package in versions {
                     let resolved_package = package
@@ -259,9 +266,18 @@ impl RepoMetadata {
 
                         // Update the seen aliases in case the appears again
                         seen_aliases.insert(dep_name.clone(), resolved_package.name.clone());
+                        resolved = true;
                         break;
                     }
                 }
+            }
+
+            if !resolved {
+                return Err(AfpMetadataError::DependencyMissing {
+                    package: package.name.clone(),
+                    dependency: dep_name.clone(),
+                }
+                .into());
             }
         }
 

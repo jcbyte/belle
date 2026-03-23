@@ -17,7 +17,7 @@ impl BelleClient {
         match url.host_str() {
             Some("github.com") => {}
             Some(host) => return Err(FetchError::RepositoryNotSupported { repo: host.to_string() }.into()),
-            None => return Err(FetchError::NoRepository.into()),
+            None => return Err(FetchError::InvalidRepositoryURL { url: url.clone() }.into()),
         };
 
         let mut segments = url.path_segments().expect("URL has a hostname so must have segments");

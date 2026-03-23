@@ -1,19 +1,23 @@
+use hinted::Hint;
 use thiserror::Error;
 
 use crate::registry::PackageIdentifier;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Hint)]
 pub enum RegistryError {
-    #[error("Package '{package_id}' does not exist")]
+    #[error("package {package_id} does not exist")]
+    #[hint("it may need to be sourced from an afp, or externally")]
     NotExist { package_id: PackageIdentifier },
 
-    #[error("Package '{package}' does not exist.")]
+    #[error("package with name '{package}' cannot be found")]
+    #[hint("it may need to be sourced from an afp, or externally")]
     NameNotExist { package: String },
 
-    #[error("No source defined for package '{package_id}'.")]
+    #[error("no source defined for package {package_id}")]
     NoSource { package_id: PackageIdentifier },
 
-    #[error("No ROOT file found in package '{package}' source.")]
+    #[error("no ROOT file found for package {package}")]
+    #[hint("this may not be an Isabelle session, or has been corrupted")]
     NoRootFile { package: PackageIdentifier },
 }
 

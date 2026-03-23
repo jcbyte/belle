@@ -1,19 +1,21 @@
 use std::path::PathBuf;
 
+use hinted::Hint;
 use thiserror::Error;
 use url::Url;
 
 use crate::fetch::AfpRepo;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Hint)]
 pub enum FetchError {
-    #[error("HTTP client could not be initialised.")]
+    #[error("http client could not be initialised")]
     ClientInit {
         #[source]
         source: reqwest::Error,
     },
 
-    #[error("Failed to send request for {name} at {url}")]
+    #[error("failed to send request for {name} at {url}")]
+    #[hint("check your internet connection or proxy settings")]
     Fetch {
         name: String,
         url: Url,
@@ -21,7 +23,8 @@ pub enum FetchError {
         source: reqwest::Error,
     },
 
-    #[error("Failed to read {name} fetched from {url}")]
+    #[error("failed to read {name} from {url}")]
+    #[hint("the connection may have been closed prematurely")]
     ReadFetched {
         name: String,
         url: Url,
@@ -29,29 +32,31 @@ pub enum FetchError {
         source: reqwest::Error,
     },
 
-    #[error("Repository host cannot be identified.")]
-    NoRepository,
+    #[error("invalid repository url '{url}'")]
+    #[hint("ensure the url is well-formed")]
+    InvalidRepositoryURL { url: Url },
 
-    #[error("Repository at {repo} is not supported.")]
+    #[error("repository at {repo} is not supported")]
+    #[hint("currently only GitHub repositories are supported")]
     RepositoryNotSupported { repo: String },
 
     #[error("{name} not found at {url}")]
+    #[hint("verify the url is correct, and that the resource is public")]
     NotFound { name: String, url: Url },
 
-    #[error("Invalid repository url '{url}'.")]
-    InvalidRepositoryURL { url: Url },
-
-    #[error("Failed to create URL for {name}.")]
+    #[error("failed to construct url for {name}")]
     InvalidUrlCreated {
         name: String,
         #[source]
         source: url::ParseError,
     },
 
-    #[error("{repo} is a legacy AFP repository, the metadata cannot be fetched automatically.")]
+    #[error("{repo} is a legacy afp repository")]
+    #[hint("legacy repositories cannot be sourced automatically")]
     LegacyAfp { repo: AfpRepo },
 
-    #[error("No package manifest found at '{path}'.")]
+    #[error("no package manifest found at '{path}'")]
+    #[hint("ensure a 'belle-pkg.toml' exists within the package directory")]
     NoLocalManifest { path: PathBuf },
 }
 
