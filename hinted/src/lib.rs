@@ -1,5 +1,5 @@
 pub trait Hint {
-    fn get_hint(&self) -> Option<&'static str>;
+    fn get_hint(&self) -> Option<Cow<'static, str>>;
 }
 
 use std::borrow::Cow;
@@ -19,7 +19,7 @@ impl<E: Hint> Hinted<E> {
     /// Retrieve hint for given enum
     pub fn hint(&self) -> Option<Cow<'static, str>> {
         // Priorities custom advice, then use macro set error, then none
-        self.hint.clone().or_else(|| self.source.get_hint().map(Cow::Borrowed))
+        self.hint.clone().or_else(|| self.source.get_hint())
     }
 }
 

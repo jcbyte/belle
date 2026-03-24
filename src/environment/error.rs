@@ -6,7 +6,7 @@ use thiserror::Error;
 #[derive(Error, Debug, Hint)]
 pub enum EnvironmentError {
     #[error("environment '{name}' already exists")]
-    #[hint("use a different name, or remove it with `belle env remove <name>` first")]
+    #[hint("use a different name, or remove it with `belle env remove {name}` first")]
     AlreadyExists { name: String },
 
     #[error("environment '{name}' does not exist")]
