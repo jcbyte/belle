@@ -14,7 +14,11 @@ use crate::{
     },
     error::{AppError, IoErrorContext, IoPathErrorContext, ParseErrorContext},
     isabelle::IsabellePathContext,
-    registry::PackageIdentifier,
+    registry::{
+        PackageIdentifier, RegisteredPackage,
+        error::{RegistryError, RegistryNotExistContext},
+        get_package_versions,
+    },
     resolver::{BelleDependencyProvider, ISABELLE_PACKAGE},
     util::create_parent_dirs,
 };
@@ -152,7 +156,22 @@ impl Environment {
         Ok(())
     }
 
-    pub fn add_package(&mut self, name: String, version: VersionReq) -> Result<(), EnvironmentError> {
+    pub fn add_package(&mut self, name: String, version: VersionReq) -> Result<(), AppError> {
+        // Check that this package exists before adding
+        match &version {
+            VersionReq::Given(v) => {
+                let adding = PackageIdentifier::new(&name, v);
+                if !adding.package_exists() {
+                    return Err(RegistryError::NotExist { package_id: adding }.into());
+                }
+            }
+            VersionReq::Any => {
+                if let None = get_package_versions(&name) {
+                    return Err(RegistryError::NameNotExist { package: name }.into());
+                }
+            }
+        };
+
         self.packages.insert(name, version);
         Ok(())
     }
@@ -214,19 +233,28 @@ impl Environment {
     }
 
     pub fn create_roots_file(&self) -> Result<(), AppError> {
-        let packages_src = self
-            .iter_user_packages()
-            .map(|(name, version)| PackageIdentifier::new(name, *version))
-            .map(|p| p.get_package_location());
-
         let roots_file_path = self.get_roots_file();
         let roots_file = File::create(&roots_file_path).report_save("root file", &roots_file_path)?;
         let mut writer = BufWriter::new(roots_file);
 
-        for package_src in packages_src {
+        for (name, version) in self.iter_user_packages() {
+            let package = PackageIdentifier::new(name, *version);
+
+            // If the package is an alias, then don't add it.
+            // The main package would have been a dependency, and this will also be added
+            if let RegisteredPackage::Alias(_) =
+                package.get_package_manifest()?.report_package_nonexistent(package.clone())?
+            {
+                continue;
+            };
+
+            // Create isabelle recognised path (os specific implementations)
+            let package_src = package.get_package_location();
             let full_package_src =
                 dunce::canonicalize(&package_src).report_read("package source directory", &package_src)?;
             let package_root_str = full_package_src.to_isabelle_path().report_path(&package_src)?;
+
+            // Write this packages source directory to root file
             writeln!(writer, "{}", package_root_str).report_save("root file", &roots_file_path)?;
         }
 

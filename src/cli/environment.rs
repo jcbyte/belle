@@ -1,5 +1,6 @@
 use std::fs;
 
+use clap::error::Result;
 use console::style;
 use hinted::{Hinted, HintedResultExt};
 use indicatif::ProgressBar;
@@ -38,25 +39,28 @@ pub async fn finalise_env(env: &mut Environment, strategy: FinalizeStrategy) -> 
     }
 
     // Fetch all packages we currently do not have
-    let missing_packages: Vec<PackageIdentifier> = env
-        .iter_user_packages()
-        .map(|(name, version)| PackageIdentifier::new(name, *version))
-        // Filter to only retrieve missing packages
-        .filter(|p| !p.exists_locally())
-        .collect();
+    let mut missing_packages = Vec::new();
+    for (name, version) in env.iter_user_packages() {
+        let raw_package = PackageIdentifier::new(name, *version);
+
+        // Resolve aliases to not try to re-download an alias
+        let resolved = raw_package
+            .get_resolved_package_manifest()?
+            .report_package_nonexistent(raw_package)?;
+
+        if !PackageIdentifier::from(&resolved).exists_locally() {
+            missing_packages.push(resolved);
+        }
+    }
 
     if !missing_packages.is_empty() {
         let pb = ProgressBar::new(missing_packages.len() as u64).with_belle_bar_style();
         pb.set_belle_prefix("Fetching");
 
         for package in &missing_packages {
-            pb.set_message(package.styled());
+            pb.set_message(PackageIdentifier::from(package).styled());
 
-            let package_meta = package
-                .get_resolved_package_manifest()?
-                .report_package_nonexistent(package.clone())?;
-
-            package_meta.get_package().await?;
+            package.get_package().await?;
 
             pb.inc(1);
         }
