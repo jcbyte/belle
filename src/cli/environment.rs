@@ -1,6 +1,7 @@
 use std::fs;
 
 use console::style;
+use hinted::{Hinted, HintedResultExt};
 use indicatif::ProgressBar;
 
 use crate::{
@@ -109,12 +110,13 @@ pub fn get_isabelle_version<'a>(env: &'a Environment) -> Option<DisplayVersion<'
     }
 }
 
-pub fn switch_env(name: Option<String>) -> Result<(), AppError> {
+pub fn switch_env(name: Option<String>) -> Result<(), Hinted<AppError>> {
     let name = match name {
         Some(n) => n,
         None => {
             let frozen_env = Environment::frozen()?
-                .report_custom("No name was provided, and no lockfile was found to infer from")?;
+                .report_custom("no environment name was provided, and no lockfile was found to infer from")
+                .hint("specify a name with `belle switch <name>`")?;
             frozen_env.name
         }
     };
@@ -123,7 +125,7 @@ pub fn switch_env(name: Option<String>) -> Result<(), AppError> {
         && active_env.name == name
     {
         CliLine::new()
-            .line(format!("environment {} is already active", name))
+            .line(format!("environment {} is already active", style(name).cyan().bright()))
             .with_skipped()
             .print();
         return Ok(());
@@ -205,7 +207,7 @@ pub fn remove_env(name: &str) -> Result<(), AppError> {
     if !env_dir.is_dir() {
         CliLine::new()
             .line(format!(
-                "environment '{}' is not found; nothing to remove",
+                "environment '{}' does not exist; nothing to remove",
                 style(name).cyan().bright()
             ))
             .with_skipped()
@@ -277,6 +279,7 @@ pub async fn migrate_isabelle(version: VersionReq, unpin_existing: bool) -> Resu
             ))
             .with_skipped()
             .print();
+        return Ok(());
     };
 
     if unpin_existing {

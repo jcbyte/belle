@@ -2,12 +2,13 @@
 
 ## Colours
 
-| Element | Color         | Intent                                           |
-| ------- | ------------- | ------------------------------------------------ |
-| Success | Green         | Success action i.e. "Switched" prefix.           |
-| Warning | Yellow        | Non-fatal errors, potential mistakes.            |
-| Error   | Red           | Fatal errors, unrecoverable/unresolvable.        |
-| Focus   | Cyan (Bright) | Highlight of line i.e. environment/package name. |
+| Element | Color          | Intent                                           |
+| ------- | -------------- | ------------------------------------------------ |
+| Success | Green          | Success action i.e. "Switched" prefix.           |
+| Warning | Yellow         | Non-fatal errors, potential mistakes.            |
+| Error   | Red            | Fatal errors, unrecoverable/unresolvable.        |
+| Focus   | Cyan (Bright)  | Highlight of line i.e. environment/package name. |
+| No-op   | White (Dimmed) | For no operation commands.                       |
 
 ## Prefixing
 
@@ -18,17 +19,17 @@ Each permanent line should use a bold, capitalised and colored verb at the start
 
 The status verb should be right-aligned with a fixed width for a clean vertical line.
 
-### Errors & Warnings
+### Errors, Warnings & No-Ops
 
-Errors and warnings should follow the same suit with prefix listed as always "Error" or "Warning" respectively.
+Errors, warnings and no-ops should follow the same suit with prefix listed as always "Error", "Warning" or "Skipped" respectively.
 
-Traces must follow standard indentation level (for each trace).
+Traces must follow standard incrementing indentation level (for each trace).
 
 ## Grammar
 
-Full stops should never be placed at the end of lines.
+Full stops should never be placed at the end of lines. They may be placed within the same line, for multiple sentences, however a semi-colon is preferred.
 
-They may be placed within the same line, for multiple sentences.
+Capitals should be avoided within text, apart from prefixes.
 
 ## Summary Blocks
 

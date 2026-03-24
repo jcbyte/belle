@@ -1,6 +1,7 @@
 use std::{borrow::Cow, path::Path};
 
 use console::style;
+use hinted::{Hinted, HintedResultExt};
 use indicatif::ProgressBar;
 use url::Url;
 
@@ -49,25 +50,28 @@ pub async fn list_afp_repositories(limit: usize) -> Result<(), AppError> {
 
 /// Fetch metadata for a specific repository (or the latest if not specified)
 /// Register packages which do not yet exist locally
-pub async fn source_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
+pub async fn source_afp_meta(repo_name: Option<&str>) -> Result<(), Hinted<AppError>> {
     // Get the repo structure
-    let client = BelleClient::get()?;
+    let client = BelleClient::get().into_hinted()?;
     let repo = match repo_name {
         Some(name) => {
             // If a name is passed we need to get its id
             client
                 .get_afp_repo(name)
-                .await?
+                .await
+                .into_hinted()?
                 // Warn if the repo does not exist
-                .report_custom(format!("Could not find AFP with name '{}'", name))?
+                .report_custom(format!("could not find afp repository with name '{}'", name))
+                .hint("check name, or use `belle source afp list` to see available afp repository names")?
         }
         None => {
             // Get the most recent repo if none specified
-            let latest_repo_collection = client.get_afp_repos(1).await?;
+            let latest_repo_collection = client.get_afp_repos(1).await.into_hinted()?;
             latest_repo_collection
                 .into_iter()
                 .next()
-                .report_custom("Could not find the latest repo")?
+                .report_custom("could not find the latest afp repository")
+                .into_hinted()?
         }
     };
 
@@ -132,7 +136,7 @@ pub async fn source_afp_meta(repo_name: Option<&str>) -> Result<(), AppError> {
                         // Add the package to be resolved later
                         pb.println(
                             CliLine::new()
-                                .prefix("Differing")
+                                .prefix("Deferring")
                                 .line(style(format!("{} until dependencies are resolved", package)).dim().to_string())
                                 .with_skipped()
                                 .get(),

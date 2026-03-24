@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use console::style;
+use hinted::{Hinted, HintedResultExt};
 use indicatif::ProgressBar;
 use pubgrub::SemanticVersion;
 
@@ -54,7 +55,7 @@ pub fn link(path: &Path, force: bool) -> Result<(), AppError> {
     Ok(())
 }
 
-pub fn unlink(version: SemanticVersion, force: bool) -> Result<(), AppError> {
+pub fn unlink(version: SemanticVersion, force: bool) -> Result<(), Hinted<AppError>> {
     let Some(isabelle) = BelleConfig::read_config(|c| {
         c.isabelles.get(&version).map(|path| Isabelle {
             version,
@@ -69,6 +70,10 @@ pub fn unlink(version: SemanticVersion, force: bool) -> Result<(), AppError> {
             ))
             .with_skipped()
             .print();
+        CliLine::new()
+            .line("use `belle isabelle list` to see linked versions of Isabelle")
+            .with_note()
+            .print();
         return Ok(());
     };
 
@@ -82,7 +87,7 @@ pub fn unlink(version: SemanticVersion, force: bool) -> Result<(), AppError> {
 
     let link_res = isabelle.unlink();
     if !force {
-        link_res?;
+        link_res.hint("use `belle unlink <version> --force` to force removal")?;
     }
 
     BelleConfig::write_config(|c| c.isabelles.remove(&version));

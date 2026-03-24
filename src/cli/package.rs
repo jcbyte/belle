@@ -36,6 +36,7 @@ pub async fn add_package(name: String, version: VersionReq) -> Result<(), AppErr
             ))
             .with_skipped()
             .print();
+        CliLine::new().line("use `belle update` to update packages").with_note().print();
         return Ok(());
     };
 
@@ -72,6 +73,10 @@ pub async fn remove_package(name: &str) -> Result<(), AppError> {
                 style(name).cyan().bright()
             ))
             .with_skipped()
+            .print();
+        CliLine::new()
+            .line("use `belle list` to see packages in active environment")
+            .with_note()
             .print();
         return Ok(());
     };

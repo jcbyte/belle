@@ -23,7 +23,6 @@ async fn main() {
     }
 }
 
-// todo hints on skipped commands
-// todo format in place errors
+// todo format in place errors, and check when manually (".hint(")
 // todo unit testing
 // todo manual testing
