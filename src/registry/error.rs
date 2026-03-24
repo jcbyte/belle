@@ -6,11 +6,11 @@ use crate::registry::PackageIdentifier;
 #[derive(Error, Debug, Hint)]
 pub enum RegistryError {
     #[error("package {package_id} does not exist")]
-    #[hint("it may need to be sourced from an afp, or externally")]
+    #[hint("the package may need to be sourced from an afp with `belle source afp update`, or externally")]
     NotExist { package_id: PackageIdentifier },
 
     #[error("package with name '{package}' cannot be found")]
-    #[hint("it may need to be sourced from an afp, or externally")]
+    #[hint("the package may need to be sourced from an afp with `belle source afp update`, or externally")]
     NameNotExist { package: String },
 
     #[error("no source defined for package {package_id}")]

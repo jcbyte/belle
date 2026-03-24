@@ -10,7 +10,7 @@ pub enum EnvironmentError {
     AlreadyExists { name: String },
 
     #[error("environment '{name}' does not exist")]
-    #[hint("check the name, or create it with `belle env create <name>`")]
+    #[hint("check the name, or create it with `belle env create {name}`")]
     DoesNotExist { name: String },
 
     #[error("no lockfile found at '{path}'")]

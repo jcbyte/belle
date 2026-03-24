@@ -9,30 +9,58 @@ use crate::{
     cli::core::{CliLine, DisplayVersion, ProgressBarTheme},
     config::BelleConfig,
     environment::{self, Environment},
-    error::AppError,
-    isabelle::{Isabelle, error::IsabelleError},
+    error::{AppError, CustomError},
+    isabelle::Isabelle,
     util::get_isabelle_name,
 };
 
-pub fn link(path: &Path, force: bool) -> Result<(), AppError> {
+pub fn link(path: &Path, force: bool) -> Result<(), Hinted<AppError>> {
     // If there is not an active environment then switch to the null environment
     // So that isabelle can register correctly to the env/active symlink
     if !Environment::has_active() {
-        environment::manager::set_env_none()?;
+        environment::manager::set_env_none().into_hinted()?;
     };
 
     let pb = ProgressBar::new_spinner().with_belle_spinner_style();
     pb.set_belle_prefix("Linking");
     pb.set_message(format!("Isabelle at {}", path.display()));
 
-    let isabelle = Isabelle::locate(path)?;
+    let isabelle = Isabelle::locate(path).into_hinted()?;
 
     // If force is set we do not error here, and we will overwrite
-    if BelleConfig::read_config(|c| c.isabelles.contains_key(&isabelle.version)) && !force {
-        return Err(IsabelleError::AlreadyLinked {
-            version: isabelle.version,
+    if let Some(existing_isabelle_path) = BelleConfig::read_config(|c| c.isabelles.get(&isabelle.version).cloned())
+        && !force
+    {
+        if path == existing_isabelle_path {
+            pb.finish_and_clear();
+            CliLine::new()
+                .line(format!(
+                    "Isabelle {} {} is already linked at '{}'",
+                    get_isabelle_name(&isabelle.version),
+                    DisplayVersion::Implicit(&isabelle.version),
+                    existing_isabelle_path.display()
+                ))
+                .with_skipped()
+                .print();
+            CliLine::new()
+                .line(format!(
+                    "use `belle isabelle link {path} --force` to force re-linking",
+                    path = path.display()
+                ))
+                .with_note()
+                .print();
+            return Ok(());
         }
-        .into());
+
+        return Err(CustomError::new(format!(
+            "an Isabelle version of {version} is already linked",
+            version = isabelle.version
+        )))
+        .hint(format!(
+            "use `belle isabelle unlink {version}` to unlink it, or `belle isabelle link {path} --force` to overwrite",
+            version = isabelle.version,
+            path = path.display()
+        ));
     }
 
     isabelle.link()?;
@@ -87,7 +115,10 @@ pub fn unlink(version: SemanticVersion, force: bool) -> Result<(), Hinted<AppErr
 
     let link_res = isabelle.unlink();
     if !force {
-        link_res.hint("use `belle unlink <version> --force` to force removal")?;
+        link_res.hint(format!(
+            "use `belle unlink {version} --force` to force removal",
+            version = version
+        ))?;
     }
 
     BelleConfig::write_config(|c| c.isabelles.remove(&version));

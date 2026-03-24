@@ -13,6 +13,22 @@ pub enum CustomError {
     WithoutSource { msg: String },
 }
 
+impl CustomError {
+    pub fn new(msg: impl Into<String>) -> Self {
+        Self::WithoutSource { msg: msg.into() }
+    }
+
+    pub fn new_source<E>(msg: impl Into<String>, source: E) -> Self
+    where
+        E: std::error::Error + Send + Sync + 'static,
+    {
+        Self::WithSource {
+            msg: msg.into(),
+            source: Box::new(source),
+        }
+    }
+}
+
 pub trait CustomErrorContext<T> {
     fn report_custom(self, msg: impl Into<String>) -> Result<T, CustomError>;
 }

@@ -23,6 +23,5 @@ async fn main() {
     }
 }
 
-// todo format in place errors, and check when manually (".hint(")
 // todo unit testing
 // todo manual testing

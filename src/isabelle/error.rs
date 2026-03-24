@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
 use hinted::Hint;
-use pubgrub::SemanticVersion;
 use thiserror::Error;
 
 #[derive(Error, Debug, Hint)]
@@ -25,10 +24,6 @@ pub enum IsabelleError {
         #[source]
         source: std::string::FromUtf8Error,
     },
-
-    #[error("an Isabelle version of {version} is already linked")]
-    #[hint("use `belle isabelle unlink <version>` to unlink it, or `belle isabelle link <path> --force` to overwrite")]
-    AlreadyLinked { version: SemanticVersion },
 }
 
 pub trait IsabelleCommandFailedContext<T> {
