@@ -103,7 +103,7 @@ impl fmt::Display for PackageIdentifier {
 }
 
 /// A package which is an alias for another package
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AliasPackage {
     pub name: String,
     pub version: SemanticVersion,
@@ -131,5 +131,71 @@ impl From<Package> for RegisteredPackage {
 impl From<AliasPackage> for RegisteredPackage {
     fn from(alias: AliasPackage) -> Self {
         Self::Alias(alias)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pubgrub::SemanticVersion;
+
+    // Function to create a toml date value for tests
+    fn get_mock_date() -> toml::value::Date {
+        #[derive(Deserialize)]
+        struct TempStruct {
+            date: toml::value::Date,
+        }
+
+        let temp_data: TempStruct = toml::from_str("date = 2026-02-17").unwrap();
+        temp_data.date
+    }
+
+    #[test]
+    fn test_package_conversion() {
+        // Create a minimal package for testing
+        let pkg = Package {
+            name: "test-pkg".to_string(),
+            version: SemanticVersion::two(),
+            title: "Title".into(),
+            date: get_mock_date(),
+            r#abstract: "Abstract".into(),
+            licence: "MIT".into(),
+            topics: Vec::new(),
+            note: None,
+            authors: Vec::new(),
+            contributors: Vec::new(),
+            provides: Vec::new(),
+            dependencies: HashMap::new(),
+            isabelles: HashSet::new(),
+            source: PackageSource::Default,
+            extra: toml::Table::new(),
+        };
+
+        // Test package identifier conversion
+        let ident: PackageIdentifier = (&pkg).into();
+        assert_eq!(ident.name, "test-pkg");
+        assert_eq!(ident.version, SemanticVersion::two());
+
+        // Test registered package conversion
+        let reg: RegisteredPackage = pkg.into();
+        assert!(matches!(reg, RegisteredPackage::Package(_)));
+    }
+
+    #[test]
+    fn test_alias_to_identifier_conversion() {
+        let alias = AliasPackage {
+            name: "my-alias".into(),
+            version: SemanticVersion::zero(),
+            alias: PackageIdentifier::new("original", SemanticVersion::one()),
+        };
+
+        // Test package identifier conversion
+        let ident: PackageIdentifier = alias.clone().into();
+        assert_eq!(ident.name, "my-alias");
+        assert_eq!(ident.version, SemanticVersion::zero());
+
+        // Test registered package conversion
+        let reg: RegisteredPackage = alias.into();
+        assert!(matches!(reg, RegisteredPackage::Alias(_)));
     }
 }
