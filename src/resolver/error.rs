@@ -1,21 +1,32 @@
-use pubgrub::{DefaultStringReporter, PubGrubError, Reporter};
+use hinted::Hint;
+use pubgrub::{PubGrubError, Reporter};
 use thiserror::Error;
 
-use crate::{error::AppError, registry::PackageIdentifier, resolver::BelleDependencyProvider};
+use crate::{
+    error::AppError,
+    registry::PackageIdentifier,
+    resolver::{BelleDepsProvider, reporter::BelleReporter},
+};
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Hint)]
 pub enum ResolverError {
-    #[error("todo check this and make better No solution could be generated:\n{report}")]
+    #[error("{report}")]
     Conflict { report: String },
 
-    #[error("failed retrieving dependencies for {package}")]
+    #[error("dependency resolution failed to retrieve dependencies for {package}")]
+    #[hint(
+        "the package may not be known, and may need to be sourced from an afp with `belle source afp update`, or externally"
+    )]
     DependencyRetrieval {
         package: PackageIdentifier,
         #[source]
         source: Box<AppError>,
     },
 
-    #[error("failed choosing a version for {package}")]
+    #[error("dependency resolution failed to choose a version for {package}")]
+    #[hint(
+        "the package may not be known, and may need to be sourced from an afp with `belle source afp update`, or externally"
+    )]
     VersionSelectionFailed {
         package: String,
         #[source]
@@ -30,13 +41,16 @@ pub trait ResolverContext<T> {
     fn report_no_solution(self) -> Result<T, ResolverError>;
 }
 
-impl<T> ResolverContext<T> for Result<T, PubGrubError<BelleDependencyProvider>> {
+impl<T> ResolverContext<T> for Result<T, PubGrubError<BelleDepsProvider>> {
     fn report_no_solution(self) -> Result<T, ResolverError> {
         self.map_err(|e| match e {
-            PubGrubError::NoSolution(derivation_tree) => ResolverError::Conflict {
-                // todo test this, can it be printed nicer
-                report: DefaultStringReporter::report(&derivation_tree),
-            },
+            PubGrubError::NoSolution(mut derivation_tree) => {
+                // Collapse no versions as missing dependency errors are already identified
+                derivation_tree.collapse_no_versions();
+                ResolverError::Conflict {
+                    report: BelleReporter::report(&derivation_tree),
+                }
+            }
             PubGrubError::ErrorRetrievingDependencies {
                 package,
                 version,

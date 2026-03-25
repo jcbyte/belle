@@ -43,6 +43,7 @@ pub enum AppError {
     Environment(#[from] EnvironmentError),
 
     #[error(transparent)]
+    #[hint(transparent)]
     Resolver(#[from] ResolverError),
 
     #[error(transparent)]

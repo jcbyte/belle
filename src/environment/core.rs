@@ -19,7 +19,7 @@ use crate::{
         error::{RegistryError, RegistryNotExistContext},
         get_package_versions,
     },
-    resolver::{BelleDependencyProvider, ISABELLE_PACKAGE},
+    resolver::{BelleDepsProvider, ISABELLE_PACKAGE},
     util::create_parent_dirs,
 };
 
@@ -166,7 +166,7 @@ impl Environment {
                 }
             }
             VersionReq::Any => {
-                if let None = get_package_versions(&name) {
+                if get_package_versions(&name).is_none() {
                     return Err(RegistryError::NameNotExist { package: name }.into());
                 }
             }
@@ -182,7 +182,7 @@ impl Environment {
     }
 
     pub fn resolve_lock(&mut self) -> Result<(), AppError> {
-        let resolved_packages = BelleDependencyProvider::resolve(self.isabelle.clone(), self.packages.clone())?;
+        let resolved_packages = BelleDepsProvider::resolve(self.isabelle.clone(), self.packages.clone())?;
         self.lock = resolved_packages;
 
         Ok(())

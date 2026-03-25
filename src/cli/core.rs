@@ -3,7 +3,7 @@ use console::{StyledObject, style};
 use hinted::Hinted;
 use indicatif::{ProgressBar, ProgressStyle};
 use pubgrub::SemanticVersion;
-use std::fmt;
+use std::fmt::{self, Write};
 use std::{borrow::Cow, error::Error, fmt::Display, time::Duration};
 
 const GUTTER_WIDTH: usize = 12;
@@ -120,32 +120,6 @@ impl CliLine {
         }
     }
 
-    pub fn get(&self) -> String {
-        let prefix_value = if !self.custom_prefix {
-            // Replace prefix with hardcoded values for certain intents
-            match self.intent {
-                CliLineIntent::Error => "Error",
-                CliLineIntent::Warning => "Warning",
-                CliLineIntent::Skipped => "Skipped",
-                CliLineIntent::Note => "",
-                _ => &self.prefix,
-            }
-        } else {
-            // Do not replaced custom prefixes
-            &self.prefix
-        };
-
-        // Ensure gutter space
-        let padded_prefix = format!("{:>width$}", prefix_value, width = GUTTER_WIDTH);
-
-        // Format the prefix and line according to intent
-        format!(
-            "{} {}",
-            Self::style_prefix(padded_prefix, self.intent),
-            Self::style_line(&self.line, self.intent)
-        )
-    }
-
     pub fn style_prefix<P>(prefix: P, intent: CliLineIntent) -> StyledObject<P>
     where
         P: Display,
@@ -175,8 +149,41 @@ impl CliLine {
         }
     }
 
+    pub fn get(&self) -> String {
+        let prefix_value = if !self.custom_prefix {
+            // Replace prefix with hardcoded values for certain intents
+            match self.intent {
+                CliLineIntent::Error => "Error",
+                CliLineIntent::Warning => "Warning",
+                CliLineIntent::Skipped => "Skipped",
+                CliLineIntent::Note => "",
+                _ => &self.prefix,
+            }
+        } else {
+            // Do not replaced custom prefixes
+            &self.prefix
+        };
+
+        // Ensure gutter space on styled prefix
+        let padded_prefix = format!("{:>width$}", prefix_value, width = GUTTER_WIDTH);
+        let mut result = format!("{} ", Self::style_prefix(padded_prefix, self.intent),);
+
+        // Style line, add it line-by-line including padding if it is multi-line
+        let styled_line = Self::style_line(&self.line, self.intent);
+        for (i, l) in styled_line.lines().enumerate() {
+            if i == 0 {
+                // Do not add padding to the first line as this follows directly from the prefix
+                writeln!(result, "{}", l).expect("Writing to a String failed");
+            } else {
+                writeln!(result, "{:width$} {}", "", l, width = GUTTER_WIDTH).expect("Writing to a String failed");
+            }
+        }
+
+        result
+    }
+
     pub fn print(&self) {
-        println!("{}", self.get());
+        print!("{}", self.get());
     }
 
     pub fn prefix(mut self, prefix: impl Into<Cow<'static, str>>) -> Self {
