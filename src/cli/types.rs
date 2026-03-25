@@ -66,3 +66,58 @@ impl From<PackageVersion> for SemanticVersion {
         v.0
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_isabelle_version_parsing() {
+        // Test as isabelle version prefix
+        let v_isabelle = "2025-1".parse::<IsabelleVersion>();
+        assert!(v_isabelle.is_ok());
+        assert_eq!(v_isabelle.unwrap().to_string(), "2025.1.0");
+
+        // Test regular version
+        let v_regular = "2.0.0".parse::<IsabelleVersion>();
+        assert!(v_regular.is_ok());
+        assert_eq!(v_regular.unwrap().to_string(), "2.0.0");
+
+        // Test invalid
+        let invalid = "not-a-version".parse::<IsabelleVersion>();
+        // An invalid version will parse to 0.0.0
+        assert!(invalid.is_ok());
+        assert_eq!(invalid.unwrap().to_string(), "0.0.0");
+    }
+
+    #[test]
+    fn test_isabelle_version_deref() {
+        let iv = IsabelleVersion(SemanticVersion::new(1, 0, 0));
+        let v_ref = &iv;
+        assert_eq!(v_ref.to_string(), "1.0.0");
+    }
+
+    #[test]
+    fn test_package_version_parsing() {
+        // Test with 'v' prefix
+        let v_prefixed = "v1.2.3".parse::<PackageVersion>();
+        assert!(v_prefixed.is_ok());
+        assert_eq!(v_prefixed.unwrap().to_string(), "1.2.3");
+
+        // Test without prefix
+        let no_prefix = "2.0.0".parse::<PackageVersion>();
+        assert!(no_prefix.is_ok());
+        assert_eq!(no_prefix.unwrap().to_string(), "2.0.0");
+
+        // Test invalid semver
+        let invalid = "not-a-version".parse::<PackageVersion>();
+        assert!(invalid.is_err());
+    }
+
+    #[test]
+    fn test_package_version_deref() {
+        let pv = PackageVersion(SemanticVersion::new(1, 0, 0));
+        let v_ref = &pv;
+        assert_eq!(v_ref.to_string(), "1.0.0");
+    }
+}

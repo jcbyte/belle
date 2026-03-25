@@ -19,6 +19,7 @@ impl Default for ConfigData {
         Self {
             afp_group: "isa-afp".to_string(),
             isabelles: HashMap::new(),
+            // This default list has been created from analysing AFP entries, it may be incomplete
             isabelle_packages: vec![
                 "Pure".to_string(),
                 "HOL".to_string(),
@@ -52,7 +53,6 @@ impl Default for ConfigData {
                 "HOL-IMP".to_string(),
                 "HOL-Hoare".to_string(),
                 "HOL-Hoare_Parallel".to_string(),
-                "HOL-Algebra".to_string(),
                 "HOL-Data_Structures".to_string(),
                 "HOL-Decision_Procs".to_string(),
                 "HOL-Lattice".to_string(),

@@ -340,3 +340,23 @@ pub fn purge_packages() -> Result<(), AppError> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_highlight_match_case_insensitive() {
+        let result = highlight_match("RustLang", "rust");
+        assert!(result == "\x1b[36mRust\x1b[0mLang"); // ANSI Cyan code
+
+        let result = highlight_match("RustLang", "ustla");
+        assert!(result == "R\x1b[36mustLa\x1b[0mng"); // ANSI Cyan code
+    }
+
+    #[test]
+    fn test_highlight_match_no_match() {
+        let result = highlight_match("Apple", "Banana");
+        assert_eq!(result, "Apple");
+    }
+}

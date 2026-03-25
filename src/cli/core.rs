@@ -10,7 +10,7 @@ const GUTTER_WIDTH: usize = 12;
 
 pub fn display_errors(e: &Hinted<AppError>, backtrace: bool) {
     let err = e.source();
-    CliLine::new().line(err.to_string()).with_error().print();
+    CliLine::new().line(err.to_string()).with_error().eprint();
 
     if backtrace {
         let mut current_source = err.source();
@@ -35,8 +35,8 @@ pub fn display_errors(e: &Hinted<AppError>, backtrace: bool) {
     }
 
     // Display hint underneath error and trace
-    if let Some(hint) = e.hint() {
-        CliLine::new().line(hint).with_note().print();
+    if let Some(hint) = e.get_hint() {
+        CliLine::new().line(hint).with_note().eprint();
     }
 
     // If a backtrace is available but not used notify
@@ -48,7 +48,7 @@ pub fn display_errors(e: &Hinted<AppError>, backtrace: bool) {
                 style(":").dim(),
                 style("use '--backtrace' to see error source chain").dim().italic()
             ))
-            .print();
+            .eprint();
     }
 }
 
@@ -186,6 +186,10 @@ impl CliLine {
         print!("{}", self.get());
     }
 
+    pub fn eprint(&self) {
+        eprint!("{}", self.get());
+    }
+
     pub fn prefix(mut self, prefix: impl Into<Cow<'static, str>>) -> Self {
         self.prefix = prefix.into();
         self.custom_prefix = true;
@@ -279,4 +283,52 @@ impl PackageIdentifier {
 
 pub fn pluralise<'a>(count: usize, singular: &'a str, plural: &'a str) -> &'a str {
     if count == 1 { singular } else { plural }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_pluralise() {
+        assert_eq!(pluralise(1, "apple", "apples"), "apple");
+        assert_eq!(pluralise(2, "apple", "apples"), "apples");
+        assert_eq!(pluralise(0, "apple", "apples"), "apples");
+    }
+
+    #[test]
+    fn test_cli_line_multi_line() {
+        let line = CliLine::new().prefix("Test").line("Line 1\nLine 2").get();
+
+        let lines: Vec<&str> = line.lines().collect();
+        // Check if second line is indented by GUTTER_WIDTH (12)
+        assert!(lines[1].starts_with("            "));
+    }
+
+    #[test]
+    fn test_cli_line_intent() {
+        let err_line = CliLine::new().with_error().get();
+        assert!(err_line.contains("Error"));
+
+        let warning_line = CliLine::new().with_warning().get();
+        assert!(warning_line.contains("Warning"));
+
+        let skipped_line = CliLine::new().with_skipped().get();
+        assert!(skipped_line.contains("Skipped"));
+
+        let note_line = CliLine::new().with_note().get();
+        assert!(note_line.contains("note"));
+    }
+
+    #[test]
+    fn test_cli_line_custom_intent() {
+        let err_line = CliLine::new().prefix("Test").with_error().get();
+        assert!(!err_line.contains("Error"));
+
+        let warning_line = CliLine::new().prefix("Test").with_warning().get();
+        assert!(!warning_line.contains("Warning"));
+
+        let skipped_line = CliLine::new().prefix("Test").with_skipped().get();
+        assert!(!skipped_line.contains("Skipped"));
+    }
 }
