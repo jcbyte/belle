@@ -37,11 +37,11 @@ pub enum Commands {
     /// Update packages
     Update(UpdateArgs),
 
-    /// Restore all missing packages for the current environment
-    Restore,
-
     /// List all packages in the current environment
     List(ListArgs),
+
+    /// Restore all missing packages for the current environment
+    Restore,
 
     /// Manage isolated environments
     #[command(subcommand)]
@@ -70,125 +70,43 @@ pub enum Commands {
     Cache(CacheAction),
 }
 
-#[derive(Subcommand)]
-pub enum IsabelleAction {
-    /// Link belle to an Isabelle installation
-    Link(LinkArgs),
-
-    /// Unlink belle from an Isabelle installation
-    Unlink(UnlinkArgs),
-
-    /// List linked Isabelle versions
-    List,
-}
-
 #[derive(Args)]
-pub struct LinkArgs {
-    /// Path to the Isabelle installation
-    pub path: PathBuf,
-
-    /// Overwrite an existing isabelle version
-    #[arg(long)]
-    pub force: bool,
-}
-
-#[derive(Args)]
-pub struct UnlinkArgs {
-    /// Version of Isabelle to unlink
-    pub version: IsabelleVersion,
-
-    /// Force removal, even if Isabelle cannot be reached
-    #[arg(long)]
-    pub force: bool,
-}
-
-#[derive(Subcommand)]
-pub enum SourceAction {
-    /// Add packages from the AFP
-    #[command(subcommand)]
-    Afp(SourceAfpAction),
-
-    /// Add packages from a remote source
-    Remote(SourceRemoteAction),
-
-    /// Add packages from a local source
-    Local(SourceLocalAction),
-}
-
-#[derive(Subcommand)]
-pub enum SourceAfpAction {
-    /// Synchronize metadata from a repository to the local system
-    #[command(visible_alias = "fetch")]
-    Update(RepoUpdateArgs),
-
-    /// List known AFP repositories
-    List(MetaListArgs),
-}
-
-#[derive(Args)]
-pub struct RepoUpdateArgs {
-    /// Optional name of AFP repo (defaults to latest)
-    #[arg(value_name = "REPO")]
-    pub name: Option<String>,
-}
-
-#[derive(Args)]
-pub struct SourceRemoteAction {
-    /// GitHub repository containing the package
-    pub url: Url,
-
-    /// Branch containing the package
-    #[arg(short, long, default_value = "main")]
-    pub branch: String,
-}
-
-#[derive(Args)]
-pub struct SourceLocalAction {
-    /// Directory containing the package
-    pub directory: PathBuf,
-}
-
-#[derive(Args)]
-pub struct MetaListArgs {
-    /// Optional maximum number of AFP repos to show
-    #[arg(short, long, value_name = "LIMIT", default_value_t = 20)]
-    pub limit: usize,
-}
-
-#[derive(Subcommand)]
-pub enum CacheAction {
-    /// Remove downloaded packages which are not used within any environments
-    Purge,
-
-    /// Remove downloaded files to free up disk space (warning: all environments must be restored, prefer `purge`)
-    Clean(CacheCleanArgs),
-}
-
-#[derive(Args)]
-pub struct CacheCleanArgs {
-    /// Also remove package metadata (warning: all sourced packages must be re-sourced)
-    #[arg(long)]
-    pub meta: bool,
-}
-
-#[derive(Args)]
-pub struct InspectArgs {
-    /// The name of the package to inspect
+pub struct AddArgs {
+    /// The name of package to add
     pub name: String,
 
-    /// Inspect a specific version (defaults to latest)
-    #[arg(conflicts_with = "versions")]
+    /// Specific version to add (defaults to latest)
     pub version: Option<PackageVersion>,
-
-    /// List all available versions for this package instead
-    #[arg(short, long)]
-    pub versions: bool,
 }
 
 #[derive(Args)]
-pub struct SearchArgs {
-    /// The search query for package name
-    pub query: String,
+pub struct RemoveArgs {
+    /// The name of package to remove
+    pub name: String,
+}
+
+#[derive(Args)]
+pub struct MigrateArgs {
+    /// Isabelle version to migrate to (defaults to unpinned, picking latest)
+    pub version: Option<IsabelleVersion>,
+
+    /// Unpin existing dependencies
+    #[arg(short, long)]
+    pub unpin: bool,
+}
+
+#[derive(Args)]
+pub struct UpdateArgs {
+    /// Unpin existing dependencies
+    #[arg(short, long)]
+    pub unpin: bool,
+}
+
+#[derive(Args)]
+pub struct ListArgs {
+    /// List all packages for environment (includes transitive dependencies)
+    #[arg(short, long)]
+    pub all: bool,
 }
 
 #[derive(Subcommand)]
@@ -234,41 +152,123 @@ pub struct SwitchArgs {
     pub name: Option<String>,
 }
 
+#[derive(Subcommand)]
+pub enum SourceAction {
+    /// Add packages from the AFP
+    #[command(subcommand)]
+    Afp(SourceAfpAction),
+
+    /// Add packages from a remote source
+    Remote(SourceRemoteAction),
+
+    /// Add packages from a local source
+    Local(SourceLocalAction),
+}
+
+#[derive(Subcommand)]
+pub enum SourceAfpAction {
+    /// List known AFP repositories
+    List(MetaListArgs),
+
+    /// Synchronize metadata from a repository to the local system
+    #[command(visible_alias = "fetch")]
+    Update(RepoUpdateArgs),
+}
+
 #[derive(Args)]
-pub struct AddArgs {
-    /// The name of package to add
+pub struct MetaListArgs {
+    /// Optional maximum number of AFP repos to show
+    #[arg(short, long, value_name = "LIMIT", default_value_t = 20)]
+    pub limit: usize,
+}
+
+#[derive(Args)]
+pub struct RepoUpdateArgs {
+    /// Optional name of AFP repo (defaults to latest)
+    #[arg(value_name = "REPO")]
+    pub name: Option<String>,
+}
+
+#[derive(Args)]
+pub struct SourceRemoteAction {
+    /// GitHub repository containing the package
+    pub url: Url,
+
+    /// Branch containing the package
+    #[arg(short, long, default_value = "main")]
+    pub branch: String,
+}
+
+#[derive(Args)]
+pub struct SourceLocalAction {
+    /// Directory containing the package
+    pub directory: PathBuf,
+}
+
+#[derive(Args)]
+pub struct SearchArgs {
+    /// The search query for package name
+    pub query: String,
+}
+
+#[derive(Args)]
+pub struct InspectArgs {
+    /// The name of the package to inspect
     pub name: String,
 
-    /// Specific version to add (defaults to latest)
+    /// Inspect a specific version (defaults to latest)
+    #[arg(conflicts_with = "versions")]
     pub version: Option<PackageVersion>,
-}
 
-#[derive(Args)]
-pub struct RemoveArgs {
-    /// The name of package to remove
-    pub name: String,
-}
-
-#[derive(Args)]
-pub struct MigrateArgs {
-    /// Isabelle version to migrate to (defaults to unpinned, picking latest)
-    pub version: Option<IsabelleVersion>,
-
-    /// Unpin existing dependencies
+    /// List all available versions for this package instead
     #[arg(short, long)]
-    pub unpin: bool,
+    pub versions: bool,
+}
+
+#[derive(Subcommand)]
+pub enum IsabelleAction {
+    /// Link belle to an Isabelle installation
+    Link(LinkArgs),
+
+    /// Unlink belle from an Isabelle installation
+    Unlink(UnlinkArgs),
+
+    /// List linked Isabelle versions
+    List,
 }
 
 #[derive(Args)]
-pub struct UpdateArgs {
-    /// Unpin existing dependencies
-    #[arg(short, long)]
-    pub unpin: bool,
+pub struct LinkArgs {
+    /// Path to the Isabelle installation
+    pub path: PathBuf,
+
+    /// Overwrite an existing isabelle version
+    #[arg(long)]
+    pub force: bool,
 }
 
 #[derive(Args)]
-pub struct ListArgs {
-    /// List all packages for environment (includes transitive dependencies)
-    #[arg(short, long)]
-    pub all: bool,
+pub struct UnlinkArgs {
+    /// Version of Isabelle to unlink
+    pub version: IsabelleVersion,
+
+    /// Force removal, even if Isabelle cannot be reached
+    #[arg(long)]
+    pub force: bool,
+}
+
+#[derive(Subcommand)]
+pub enum CacheAction {
+    /// Remove downloaded packages which are not used within any environments
+    Purge,
+
+    /// Remove downloaded files to free up disk space (warning: all environments must be restored, prefer `purge`)
+    Clean(CacheCleanArgs),
+}
+
+#[derive(Args)]
+pub struct CacheCleanArgs {
+    /// Also remove package metadata (warning: all sourced packages must be re-sourced)
+    #[arg(long)]
+    pub meta: bool,
 }
