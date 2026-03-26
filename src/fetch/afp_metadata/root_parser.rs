@@ -113,9 +113,10 @@ pub fn parse_root(root: &str) -> Result<Vec<RootFileSession>, RootParserError> {
 
         // Remove the description part of the session in case it contains "sessions"
         let session_body_rest = if let Some((before_desc, after_desc)) = rest.split_once("description") {
-            let (_description, _desc) = parse_identifier(after_desc).report_failed_parsing("session description")?;
+            let (_description, after_desc_stripped) =
+                parse_identifier(after_desc).report_failed_parsing("session description")?;
             // Rebuild the rest of ROOT file excluding the description block
-            Cow::Owned(format!("{}{}", before_desc, after_desc))
+            Cow::Owned(format!("{}{}", before_desc, after_desc_stripped))
         } else {
             // Use Cow to remove need to clone, when rebuilding in one branch
             Cow::Borrowed(rest)
@@ -331,6 +332,49 @@ session Auto2_Imperative_HOL = Auto2_HOL +
         assert_eq!(session.name, "Auto2_Imperative_HOL");
         assert_eq!(session.parent, "Auto2_HOL");
         assert_eq!(session.sessions, vec!["HOL-Library", "HOL-Imperative_HOL"]);
+    }
+
+    #[test]
+    fn parsing_root_no_sessions() {
+        // This also includes "sessions" within the description
+        let root = "
+chapter AFP
+
+session \"Transitive_Models\" =  \"Delta_System_Lemma\" +
+  description \"
+    Transitive Models of Fragments of ZFC
+
+    We extend the ZF-Constructibility library by relativizing theories
+    of the Isabelle/ZF and Delta System Lemma sessions to a transitive
+    class. We also relativize Paulson's work on Aleph and our former
+    treatment of the Axiom of Dependent Choices. This work is a
+    prerrequisite to our formalization of the independence of the
+    Continuum Hypothesis.
+  \"
+  options [timeout = 300]
+  theories
+    \"Renaming_Auto\"
+    \"Delta_System_Relative\"
+    \"Pointed_DC_Relative\"
+    \"Partial_Functions_Relative\"
+  document_files
+    \"root.tex\"
+    \"root.bib\"
+    \"root.bst\"
+
+";
+        // https://www.isa-afp.org/entries/Transitive_Models.html - Emmanuel Gunther, Miguel Pagano, Pedro Sánchez Terraf and Matías Steinberg
+
+        let parsed = parse_root(root);
+        assert!(parsed.is_ok());
+        let parsed = parsed.unwrap();
+
+        assert_eq!(parsed.len(), 1);
+        let session = &parsed[0];
+
+        assert_eq!(session.name, "Transitive_Models");
+        assert_eq!(session.parent, "Delta_System_Lemma");
+        assert!(session.sessions.is_empty());
     }
 
     #[test]
