@@ -1,6 +1,6 @@
 [package]
 name = "belle"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2024"
 authors = ["Joel Cutler <joelcutler108@gmail.com>"]
 description = "Package Manager for Isabelle/HOL"
