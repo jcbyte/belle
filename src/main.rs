@@ -21,4 +21,8 @@ async fn main() {
         display_errors(&e, backtrace_errors);
         return;
     }
+
+    // return 0;
 }
+
+// todo fail on error, hash error code?

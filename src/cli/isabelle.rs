@@ -6,7 +6,7 @@ use indicatif::ProgressBar;
 use pubgrub::SemanticVersion;
 
 use crate::{
-    cli::core::{CliLine, DisplayVersion, ProgressBarTheme},
+    cli::core::{CliLine, DisplayVersion, ProgressBarTheme, pluralise},
     config::BelleConfig,
     environment::{self, Environment},
     error::{AppError, CustomError},
@@ -157,7 +157,11 @@ pub fn list() -> Result<(), AppError> {
 
         CliLine::new()
             .prefix("Listed")
-            .line(format!("{} linked Isabelle versions", style(c.isabelles.len()).bold()))
+            .line(format!(
+                "{} linked Isabelle {}",
+                style(c.isabelles.len()).bold(),
+                pluralise(c.isabelles.len(), "version", "versions")
+            ))
             .with_success()
             .print();
     });

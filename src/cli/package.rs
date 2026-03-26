@@ -129,11 +129,14 @@ pub fn list_packages(all: bool) -> Result<(), AppError> {
     }
 
     // Calculate the largest dependency name for version column padding
-    largest_dependency_name = if all {
-        max(largest_dependency_name, largest_dependency_name_all)
-    } else {
-        largest_dependency_name
-    };
+    largest_dependency_name = max(
+        if all {
+            max(largest_dependency_name, largest_dependency_name_all)
+        } else {
+            largest_dependency_name
+        },
+        "Isabelle".len(),
+    );
 
     let formatted_isabelle_str = match get_isabelle_version(&active_env) {
         Some(v) => format!(

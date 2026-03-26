@@ -341,8 +341,9 @@ pub async fn update(unpin_existing: bool) -> Result<(), AppError> {
     let total_changed = updated + added + removed;
 
     let mut line = format!(
-        "{} packages changed, {} up to date",
+        "{} {} changed, {} up to date",
         style(total_changed).bold(),
+        pluralise(total_changed, "package", "packages"),
         style(up_to_date).bold()
     );
 
@@ -370,7 +371,11 @@ pub async fn restore() -> Result<(), AppError> {
     // Don't resolve as we want to keep environment identical
     finalise_env(&mut active_env, FinalizeStrategy::ApplyOnly).await?;
 
-    CliLine::new().prefix("Restored").line("all packages").with_success().print();
+    CliLine::new()
+        .prefix("Restored")
+        .line("all packages within environment")
+        .with_success()
+        .print();
 
     // Warn if this environment doesn't have a linked isabelle version
     warn_no_isabelle()?;

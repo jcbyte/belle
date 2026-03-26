@@ -54,10 +54,13 @@ pub fn clean_metadata() -> Result<(), AppError> {
         .count();
     fs::remove_dir_all(&manifest_dir).report_delete("packages manifests", &manifest_dir)?;
 
-    // Pluralise does not make sense for this line
     CliLine::new()
         .prefix("Cleaned")
-        .line(format!("{} packages metadata", style(count).bold()))
+        .line(format!(
+            "metadata for {} {}",
+            style(count).bold(),
+            pluralise(count, "package", "packages")
+        ))
         .with_success()
         .print();
 
@@ -84,7 +87,7 @@ pub fn list_versions(name: &str) -> Result<(), AppError> {
     CliLine::new()
         .prefix("Listed")
         .line(format!(
-            "{} {} for {} ({} installed).",
+            "{} {} for {} ({} installed)",
             style(versions.len()).bold(),
             pluralise(versions.len(), "version", "versions"),
             style(name).cyan().bright(),
