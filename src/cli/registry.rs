@@ -279,7 +279,7 @@ fn highlight_match(text: &str, query: &str) -> String {
         let suffix = &text[end..];
 
         // Wrap the matched part in a different color/style
-        format!("{}{}{}", prefix, style(matched).cyan(), suffix)
+        format!("{}{}{}", prefix, style(matched).cyan().bright(), suffix)
     } else {
         text.to_string()
     }
@@ -348,10 +348,11 @@ mod tests {
     #[test]
     fn test_highlight_match_case_insensitive() {
         let result = highlight_match("RustLang", "rust");
-        assert!(result == "\x1b[36mRust\x1b[0mLang"); // ANSI Cyan code
+        println!("{:#?}", result);
+        assert!(result == format!("{}Lang", style("Rust").cyan().bright()));
 
         let result = highlight_match("RustLang", "ustla");
-        assert!(result == "R\x1b[36mustLa\x1b[0mng"); // ANSI Cyan code
+        assert!(result == format!("R{}ng", style("ustLa").cyan().bright()));
     }
 
     #[test]

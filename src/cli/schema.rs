@@ -25,24 +25,23 @@ pub struct GlobalArgs {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Manage isabelle installations
-    #[command(subcommand)]
-    Isabelle(IsabelleAction),
+    /// Add package into current environment
+    Add(AddArgs),
 
-    /// Add packages source (from AFP or externally)
-    #[command(subcommand)]
-    Source(SourceAction),
+    /// Remove package from current environment
+    Remove(RemoveArgs),
 
-    /// Manage locally cached packages and metadata
-    #[command(subcommand)]
-    Cache(CacheAction),
+    /// Migrate to a different isabelle version
+    Migrate(MigrateArgs),
 
-    /// Display detailed information for a specific package
-    #[command(visible_alias = "show")]
-    Inspect(InspectArgs),
+    /// Update packages
+    Update(UpdateArgs),
 
-    /// Search for packages
-    Search(SearchArgs),
+    /// Restore all missing packages for the current environment
+    Restore,
+
+    /// List all packages in the current environment
+    List(ListArgs),
 
     /// Manage isolated environments
     #[command(subcommand)]
@@ -51,23 +50,24 @@ pub enum Commands {
     /// Change the active environment
     Switch(SwitchArgs),
 
-    /// Add package into current environment
-    Add(AddArgs),
+    /// Add packages source (from AFP or externally)
+    #[command(subcommand)]
+    Source(SourceAction),
 
-    /// Remove package from current environment
-    Remove(RemoveArgs),
+    /// Search for packages
+    Search(SearchArgs),
 
-    /// Restore all missing packages for the current environment
-    Restore,
+    /// Display detailed information for a specific package
+    #[command(visible_alias = "show")]
+    Inspect(InspectArgs),
 
-    /// Migrate to a different isabelle version
-    Migrate(MigrateArgs),
+    /// Manage isabelle installations
+    #[command(subcommand)]
+    Isabelle(IsabelleAction),
 
-    /// Update packages
-    Update(UpdateArgs),
-
-    /// List all packages in the current environment
-    List(ListArgs),
+    /// Manage locally cached packages and metadata
+    #[command(subcommand)]
+    Cache(CacheAction),
 }
 
 #[derive(Subcommand)]
@@ -117,12 +117,12 @@ pub enum SourceAction {
 
 #[derive(Subcommand)]
 pub enum SourceAfpAction {
-    /// List known AFP repositories
-    List(MetaListArgs),
-
     /// Synchronize metadata from a repository to the local system
     #[command(visible_alias = "fetch")]
     Update(RepoUpdateArgs),
+
+    /// List known AFP repositories
+    List(MetaListArgs),
 }
 
 #[derive(Args)]
@@ -160,13 +160,13 @@ pub enum CacheAction {
     /// Remove downloaded packages which are not used within any environments
     Purge,
 
-    /// Remove downloaded files to free up disk space
+    /// Remove downloaded files to free up disk space (warning: all environments must be restored, prefer `purge`)
     Clean(CacheCleanArgs),
 }
 
 #[derive(Args)]
 pub struct CacheCleanArgs {
-    /// Also remove package metadata (all sourced packages must be re-sourced)
+    /// Also remove package metadata (warning: all sourced packages must be re-sourced)
     #[arg(long)]
     pub meta: bool,
 }
@@ -196,11 +196,11 @@ pub enum EnvAction {
     /// Create a new environment
     Create(EnvCreateArgs),
 
-    /// List all environments
-    List,
-
     /// Remove an environment
     Remove(EnvRemoveArgs),
+
+    /// List all environments
+    List,
 
     /// Switch to environment
     Switch(SwitchArgs),
