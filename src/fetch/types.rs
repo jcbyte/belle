@@ -40,3 +40,25 @@ pub struct ReturnedPackages {
     pub package: Package,
     pub aliases: Vec<AliasPackage>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_version_and_caching() {
+        let repo = AfpRepo {
+            id: 1,
+            name: "afp-2024-1".to_string(),
+            version_cache: OnceLock::new(),
+        };
+
+        // First call initializes
+        let v1 = repo.get_version();
+        assert_eq!(*v1, SemanticVersion::new(2024, 1, 0));
+
+        // This should receive the cached version
+        let v2 = repo.get_version();
+        assert_eq!(v1, v2);
+    }
+}
