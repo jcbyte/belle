@@ -74,12 +74,12 @@ mod tests {
         };
         assert_eq!(date_to_version(&date), SemanticVersion::new(2025, 3, 6));
 
-        let date2 = Date {
+        let date = Date {
             year: 0,
             month: 1,
             day: 0,
         };
-        assert_eq!(date_to_version(&date2), SemanticVersion::new(0, 1, 0));
+        assert_eq!(date_to_version(&date), SemanticVersion::new(0, 1, 0));
     }
 
     #[test]
@@ -122,5 +122,13 @@ mod tests {
             let round = get_isabelle_name(&ver);
             assert_eq!(round, expected, "round-trip for {}", name);
         }
+    }
+
+    #[test]
+    fn test_strip_isabelle_name() {
+        assert_eq!(strip_isabelle_name("2025-2-1"), "2025-2-1");
+        assert_eq!(strip_isabelle_name("afp-2022-5"), "2022-5"); // Strip non-numeric parts
+        assert_eq!(strip_isabelle_name("2021-0-0"), "2021"); // Strip trailing zeroes
+        assert_eq!(strip_isabelle_name("just-text"), "0"); // Unknown is converted to 0
     }
 }

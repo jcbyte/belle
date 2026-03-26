@@ -22,6 +22,3 @@ async fn main() {
         return;
     }
 }
-
-// todo unit testing
-// todo manual testing
