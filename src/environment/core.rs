@@ -263,3 +263,126 @@ impl Environment {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::environment::types::VersionReq;
+    use pubgrub::SemanticVersion;
+
+    #[test]
+    fn test_getting_isabelle_version() {
+        let no_isabelle_env = Environment {
+            name: "test".to_string(),
+            isabelle: VersionReq::Any,
+            packages: HashMap::new(),
+            lock: HashMap::new(),
+        };
+
+        assert!(no_isabelle_env.get_isabelle_version().is_any());
+
+        let explicit_isabelle_env = Environment {
+            name: "test".to_string(),
+            isabelle: VersionReq::Given(SemanticVersion::one()),
+            packages: HashMap::new(),
+            lock: HashMap::new(),
+        };
+
+        assert_eq!(
+            explicit_isabelle_env.get_isabelle_version(),
+            VersionReq::Given(SemanticVersion::one())
+        );
+
+        let resolved_isabelle_env = Environment {
+            name: "test".to_string(),
+            isabelle: VersionReq::Any,
+            packages: HashMap::new(),
+            lock: HashMap::from([(ISABELLE_PACKAGE.to_string(), SemanticVersion::two())]),
+        };
+
+        assert_eq!(
+            resolved_isabelle_env.get_isabelle_version(),
+            VersionReq::Given(SemanticVersion::two())
+        );
+
+        // Prioritise locked isabelle version
+        let differing_isabelle_env = Environment {
+            name: "test".to_string(),
+            isabelle: VersionReq::Given(SemanticVersion::new(3, 1, 0)),
+            packages: HashMap::new(),
+            lock: HashMap::from([(ISABELLE_PACKAGE.to_string(), SemanticVersion::new(3, 0, 0))]),
+        };
+
+        assert_eq!(
+            differing_isabelle_env.get_isabelle_version(),
+            VersionReq::Given(SemanticVersion::new(3, 0, 0))
+        );
+    }
+
+    #[test]
+    fn test_unpin_package_versions() {
+        let mut env = Environment {
+            name: "test".to_string(),
+            isabelle: VersionReq::Any,
+            packages: HashMap::from([
+                ("pkg1".to_string(), VersionReq::Given(SemanticVersion::one())),
+                ("pkg2".to_string(), VersionReq::Given(SemanticVersion::two())),
+                ("pkg3".to_string(), VersionReq::Any),
+            ]),
+            lock: HashMap::new(),
+        };
+
+        env.unpin_package_versions();
+
+        let pkg1_v = env.packages.get("pkg1");
+        assert!(pkg1_v.is_some());
+        assert!(pkg1_v.unwrap().is_any());
+        let pkg2_v = env.packages.get("pkg2");
+        assert!(pkg2_v.is_some());
+        assert!(pkg2_v.unwrap().is_any());
+        let pkg3_v = env.packages.get("pkg3");
+        assert!(pkg3_v.is_some());
+        assert!(pkg3_v.unwrap().is_any());
+    }
+
+    #[test]
+    fn test_get_package_listing() {
+        let mut env = Environment {
+            name: "test".to_string(),
+            isabelle: VersionReq::Any,
+            packages: HashMap::new(),
+            lock: HashMap::new(),
+        };
+
+        // Test Transitive
+        env.lock.insert("pkg".to_string(), SemanticVersion::one());
+
+        let listing = env.get_package_listing("pkg");
+        assert!(listing.is_some());
+        let listing = listing.unwrap();
+        assert_eq!(listing.name, "pkg");
+        assert_eq!(listing.version, SemanticVersion::one());
+        assert_eq!(listing.kind, PackageType::Transitive);
+
+        // Test Direct (implicit)
+        env.packages.insert("pkg".to_string(), VersionReq::Any);
+
+        let listing = env.get_package_listing("pkg");
+        assert!(listing.is_some());
+        let listing = listing.unwrap();
+        assert_eq!(listing.name, "pkg");
+        assert_eq!(listing.version, SemanticVersion::one());
+        assert_eq!(listing.kind, PackageType::ImplicitDirect);
+
+        // Test Direct (explicit)
+        env.packages
+            .insert("pkg".to_string(), VersionReq::Given(SemanticVersion::one()));
+
+        let listing = env.get_package_listing("pkg");
+        assert!(listing.is_some());
+        let listing = listing.unwrap();
+        assert_eq!(listing.name, "pkg");
+        assert_eq!(listing.version, SemanticVersion::one());
+        assert_eq!(listing.kind, PackageType::ExplicitDirect);
+    }
+}
