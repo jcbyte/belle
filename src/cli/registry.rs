@@ -183,7 +183,10 @@ fn print_meta(meta: &Package, alias: Option<&AliasPackage>) {
     println!();
 
     print_heading("Isabelle Versions");
-    for isabelle_version in &meta.isabelles {
+    let mut sorted_isabelles: Vec<_> = meta.isabelles.iter().collect();
+    sorted_isabelles.sort_unstable(); // There will be no equal elements (HashSet)
+    sorted_isabelles.reverse(); // Sort in descending order
+    for isabelle_version in sorted_isabelles {
         println!(
             " {} {:<6} {}",
             style("•").dim(),

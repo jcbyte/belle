@@ -145,7 +145,11 @@ pub fn list() -> Result<(), AppError> {
     let active_env: Option<SemanticVersion> = Environment::active()?.and_then(|env| env.get_isabelle_version().into());
 
     BelleConfig::read_config(|c| {
-        for (version, path) in &c.isabelles {
+        let mut sorted_isabelles: Vec<_> = c.isabelles.iter().collect();
+        sorted_isabelles.sort_unstable_by_key(|&(v, _)| v); // There will be no equal elements (HashMap)
+        sorted_isabelles.reverse(); // Sort in descending order
+
+        for (version, path) in sorted_isabelles {
             let line = format!(
                 "Isabelle {:<8} {:<12} {}",
                 get_isabelle_name(version),
