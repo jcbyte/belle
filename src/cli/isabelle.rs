@@ -9,7 +9,7 @@ use crate::{
     cli::core::{CliLine, DisplayVersion, ProgressBarTheme, pluralise},
     config::BelleConfig,
     environment::{self, Environment},
-    error::{AppError, CustomError},
+    error::{AppError, CustomError, IoErrorContext},
     isabelle::Isabelle,
     util::get_isabelle_name,
 };
@@ -21,11 +21,15 @@ pub fn link(path: &Path, force: bool) -> Result<(), Hinted<AppError>> {
         environment::manager::set_env_none().into_hinted()?;
     };
 
+    let path = dunce::canonicalize(path)
+        .report_read("isabelle source directory", &path)
+        .into_hinted()?;
+
     let pb = ProgressBar::new_spinner().with_belle_spinner_style();
     pb.set_belle_prefix("Linking");
     pb.set_message(format!("Isabelle at {}", path.display()));
 
-    let isabelle = Isabelle::locate(path).into_hinted()?;
+    let isabelle = Isabelle::locate(&path).into_hinted()?;
 
     // If force is set we do not error here, and we will overwrite
     if let Some(existing_isabelle_path) = BelleConfig::read_config(|c| c.isabelles.get(&isabelle.version).cloned())
