@@ -300,6 +300,9 @@ pub fn search_registry(search: String) {
         }
     }
 
+    // Sort results aphabetically
+    results.sort();
+
     // Print list of results
     for package in &results {
         CliLine::new().line(highlight_match(package, &search)).print();
