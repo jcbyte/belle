@@ -22,7 +22,7 @@ pub fn link(path: &Path, force: bool) -> Result<(), Hinted<AppError>> {
     };
 
     let path = dunce::canonicalize(path)
-        .report_read("isabelle source directory", &path)
+        .report_read("isabelle source directory", path)
         .into_hinted()?;
 
     let pb = ProgressBar::new_spinner().with_belle_spinner_style();
