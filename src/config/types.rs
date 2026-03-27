@@ -53,6 +53,7 @@ impl Default for ConfigData {
                 "HOL-IMP".to_string(),
                 "HOL-Hoare".to_string(),
                 "HOL-Hoare_Parallel".to_string(),
+                "HOL-Algebra".to_string(),
                 "HOL-Data_Structures".to_string(),
                 "HOL-Decision_Procs".to_string(),
                 "HOL-Lattice".to_string(),
