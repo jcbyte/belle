@@ -1,22 +1,26 @@
-name = "an-example-package"
-version = "2026.0.0"
+name = "belle-example-pkg"
+version = "1.0.0"
 
-title = "An Incredible Isabelle Theory"
-date = 2026-02-17
+title = "An incredible package for Isabelle"
+date = 2026-03-27
 abstract = """
-This is a multi-line string representing the abstract.
-It can span multiple lines using triple quotes.
+This is an example of a `belle-pkg.toml` file for defining a package specification.
+<br>
+This may actually be sourced into belle though <em>`belle source remote https://github.com/jcbyte/belle`</em>.
+<br>
+However this contains no Isabelle sessions, not even a <strong>ROOT</strong> file!
+Meaning it will never be allowed to be added into an environment.
 """
-licence = "BSD"
-topics = ["Mathematics/Analysis", "Logic/Set theory"]
-note = "Optional note field"
+licence = "AL2"
+topics = ["Topic/Example", "Package Manger"]
+note = "This is an optional note field"
 
 # Other packages that this Isabelle component provides
 # For when the ROOT file defines multiple sessions
-provides = ["another-package", "another-package-2"]
+provides = ["belle-example-pkg_Prereq"]
 
 # List compatible isabelle versions as SemVer listings
-isabelles = ["2025.1.0", "2025.0.0"]
+isabelles = ["2025.0.0", "2025.1.0", "2025.2.0"]
 
 
 # Array of Tables for authors, containing given optional fields
@@ -34,13 +38,15 @@ homepages = ["https://example.com/"]
 [[contributors]]
 name = "The White Rabbit"
 
-# Dependencies required and their version
+# Dependencies required for the package and their versions
 [dependencies]
-"core-logic" = "2026.1.0"
-"standard-lib" = "2025.2.0"
+"Z_Toolkit" = "2025.10.16"
 
-# The 'extra' field allows for arbitrary nested data. dois and pubs will be placed here
+# The 'extra' field allows for arbitrary nested data.
 [extra]
+# dois and pubs for AFP entries will be placed here
 dois = ["00.00/00"]
 pubs = ["https://example.com/"]
-priority = 10                   # This doesn't mean anything its just an example of arbitrary data
+# Fields placed here are just example of arbitrary data
+joel = 7
+lang = "rust"
