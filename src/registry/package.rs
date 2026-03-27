@@ -117,12 +117,16 @@ impl Package {
             }
             // Create a symlink from packages directory to given directory
             PackageSource::Local { path } => {
+                create_parent_dirs(&package_location).report_save(
+                    format!("{} package source directories", PackageIdentifier::from(self)),
+                    &package_location,
+                )?;
+
                 // Create a temporary symlink and overwrite to avoid `AlreadyExists` errors
                 let temp_link = package_location.with_added_extension("tmp");
 
-                symlink(path, &temp_link).report_save("active environment symlink", &temp_link)?;
-                fs::rename(&temp_link, &package_location)
-                    .report_save("active environment symlink", &package_location)?;
+                symlink(path, &temp_link).report_save("package source symlink", &temp_link)?;
+                fs::rename(&temp_link, &package_location).report_save("package source symlink", &package_location)?;
             }
             PackageSource::Default => Err(RegistryError::NoSource {
                 package_id: self.into(),

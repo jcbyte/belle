@@ -149,7 +149,8 @@ impl Environment {
             path: Self::get_lockfile(),
         })?;
 
-        // Set the active packages to the ones from freeze file and save it back
+        // Sync versions, including lock from the frozen environment
+        self.isabelle = frozen_env.isabelle;
         self.packages = frozen_env.packages;
         self.lock = frozen_env.lock;
 

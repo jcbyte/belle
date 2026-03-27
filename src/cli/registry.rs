@@ -300,7 +300,7 @@ pub fn search_registry(search: String) {
         }
     }
 
-    // Sort results aphabetically
+    // Sort results alphabetically
     results.sort();
 
     // Print list of results
