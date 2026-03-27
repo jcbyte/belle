@@ -95,7 +95,7 @@ impl RepoMetadata {
         &self,
         entry_name: &str,
         client: &BelleClient,
-    ) -> Result<(ReturnedPackages, bool), AppError> {
+    ) -> Result<(ReturnedPackages, Vec<String>), AppError> {
         let Some(meta) = self.entries.get(entry_name) else {
             return Err(AfpMetadataError::NoPackage {
                 package: entry_name.to_string(),
@@ -143,7 +143,7 @@ impl RepoMetadata {
             seen_aliases.insert(alias.name.clone(), entry_name.to_string());
         }
 
-        let mut fully_resolved = true;
+        let mut missing_dependencies: Vec<String> = Vec::new();
         let dependencies: HashMap<String, SemanticVersion> = entry_deps
             .into_iter()
             .map(|dependency| {
@@ -157,7 +157,7 @@ impl RepoMetadata {
                     Some(meta) => date_to_version(&meta.date),
                     // If not then mark this version as zero, meaning it needs to be further resolved (it may be an unknown alias)
                     None => {
-                        fully_resolved = false;
+                        missing_dependencies.push(dependency.clone());
                         SemanticVersion::zero()
                     }
                 };
@@ -230,7 +230,7 @@ impl RepoMetadata {
                 },
                 aliases: alias_packages,
             },
-            fully_resolved,
+            missing_dependencies,
         ))
     }
 

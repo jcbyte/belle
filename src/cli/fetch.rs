@@ -9,7 +9,7 @@ use crate::{
     cli::core::{CliLine, DisplayVersion, ProgressBarTheme, pluralise},
     error::{AppError, CustomErrorContext},
     fetch::{AfpRepo, BelleClient, RepoMetadata, ReturnedPackages, get_local_package_meta},
-    registry::{Package, PackageIdentifier, RegistrablePackage},
+    registry::{AliasPackage, Package, PackageIdentifier, RegistrablePackage},
 };
 
 /// List AFP repositories and print them in a simple table
@@ -103,7 +103,7 @@ pub async fn source_afp_meta(repo_name: Option<&str>) -> Result<(), Hinted<AppEr
     let pb = ProgressBar::new(repo_packages.len() as u64).with_belle_bar_style();
     pb.set_belle_prefix("Syncing");
 
-    let mut unresolved_packages: Vec<Package> = Vec::new();
+    let mut unresolved_packages: Vec<(Package, Vec<AliasPackage>)> = Vec::new();
 
     let mut failed = 0;
     for package in repo_metadata.all_packages() {
@@ -128,27 +128,37 @@ pub async fn source_afp_meta(repo_name: Option<&str>) -> Result<(), Hinted<AppEr
                         package: package_meta,
                         aliases,
                     },
-                    fully_resolved,
+                    missing_dependencies,
                 )) => {
-                    if fully_resolved {
+                    if missing_dependencies.is_empty() {
                         package_meta.register()?;
+
+                        for alias in aliases {
+                            alias.register()?;
+                        }
                     } else {
                         // Add the package to be resolved later
+                        // And make note of aliases to register, as these should only be registered once the root package has been
                         pb.println(
                             CliLine::new()
                                 .prefix("Deferring")
-                                .line(style(format!("{} until dependencies are resolved", package)).dim().to_string())
+                                .line(
+                                    style(format!(
+                                        "{} until dependencies ({}) are resolved",
+                                        package,
+                                        missing_dependencies.join(", ")
+                                    ))
+                                    .dim()
+                                    .to_string(),
+                                )
+                                // A custom prefix has been applied, so this just affects aesthetics
                                 .with_skipped()
                                 .get(),
                         );
 
                         // Increase the progress bar count, as these must be handled afterwards
                         pb.inc_length(1);
-                        unresolved_packages.push(package_meta);
-                    }
-
-                    for alias in aliases {
-                        alias.register()?;
+                        unresolved_packages.push((package_meta, aliases));
                     }
                 }
                 // If this produces an error then don't crash the entire fetch process
@@ -164,12 +174,17 @@ pub async fn source_afp_meta(repo_name: Option<&str>) -> Result<(), Hinted<AppEr
 
     pb.set_belle_prefix("Resolving");
 
-    for mut unresolved_package in unresolved_packages {
+    for (mut unresolved_package, package_aliases) in unresolved_packages {
         pb.set_message(PackageIdentifier::from(&unresolved_package).styled());
 
         match repo_metadata.resolve_package_meta(&mut unresolved_package) {
             Ok(_) => {
                 unresolved_package.register()?;
+
+                // Register the aliases now once thr ROOT has been registered
+                for alias in package_aliases {
+                    alias.register()?;
+                }
             }
             Err(e) => {
                 pb.println(CliLine::new().line(e.to_string()).with_error().get());
