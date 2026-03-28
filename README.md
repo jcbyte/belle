@@ -78,6 +78,18 @@ belle add another-package 2026.1.0
 
 Use `--help` with any command to see the full list of options.
 
+## Belle Data Directory
+
+By default, all belle data and configuration files are stored in your user's data directory.
+
+| OS      | Default Path                                       |
+| ------- | -------------------------------------------------- |
+| Linux   | $HOME/.local/share/belle (or $XDG_DATA_HOME/belle) |
+| MacOS   | $HOME/Library/Application Support/belle            |
+| Windows | %APPDATA%\belle                                    |
+
+If you prefer to store your data elsewhere, the default path can be overridden by setting the `BELLE_HOME` environment variable.
+
 ## Package Format
 
 Belle packages (`belle-pkg.toml`) are defined by a TOML manifest.
