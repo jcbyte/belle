@@ -373,7 +373,10 @@ pub async fn restore() -> Result<(), AppError> {
 
     CliLine::new()
         .prefix("Restored")
-        .line("all packages within environment")
+        .line(format!(
+            "packages within environment, {}",
+            style(active_env.name).cyan().bright()
+        ))
         .with_success()
         .print();
 

@@ -1,6 +1,7 @@
 use std::{borrow::Cow, collections::HashSet, fmt::Display, fs};
 
 use console::style;
+use pubgrub::SemanticVersion;
 
 use crate::{
     cli::core::{CliLine, DisplayVersion, pluralise},
@@ -9,23 +10,60 @@ use crate::{
     error::{AppError, IoErrorContext},
     registry::{
         self, AliasPackage, Package, PackageIdentifier, PackageSource, RegisteredPackage,
-        error::RegistryNotExistContext, iter_installed_packages, iter_packages,
+        error::{RegistryError, RegistryNotExistContext},
+        iter_installed_packages, iter_packages,
     },
     util::{get_isabelle_name, strip_isabelle_name},
 };
 
-/// Remove all packages from disk
-pub fn clean_packages() -> Result<(), AppError> {
-    let package_dir = BelleConfig::get_package_dir();
-    if !package_dir.is_dir() {
-        CliLine::new().line("package cache is already empty").with_skipped().print();
-        return Ok(());
-    }
+/// Remove packages source from disk
+pub fn clean_package(removal: &Option<(String, Option<SemanticVersion>)>) -> Result<(), AppError> {
+    let count = match removal {
+        Some((pkg_name, Some(pkg_version))) => {
+            // If a name and version is given, only remove that single version
+            let pkg_id = PackageIdentifier::new(pkg_name, pkg_version);
+            let package_source_dir = pkg_id.get_package_location();
+            if !package_source_dir.is_dir() {
+                return Err(RegistryError::NotExist { package_id: pkg_id }.into());
+            }
 
-    let count = std::fs::read_dir(&package_dir)
-        .report_read("packages source", &package_dir)?
-        .count();
-    fs::remove_dir_all(&package_dir).report_delete("packages source", &package_dir)?;
+            fs::remove_dir_all(&package_source_dir).report_delete("package source", &package_source_dir)?;
+
+            1
+        }
+        Some((pkg_name, None)) => {
+            // If a name but no version is given then remove all versions of a package
+            let package_dir = BelleConfig::get_package_dir().join(pkg_name);
+            if !package_dir.is_dir() {
+                return Err(RegistryError::NameNotExist {
+                    package: pkg_name.clone(),
+                }
+                .into());
+            }
+
+            let count = std::fs::read_dir(&package_dir)
+                .report_read("packages source", &package_dir)?
+                .count();
+            fs::remove_dir_all(&package_dir).report_delete("packages source", &package_dir)?;
+
+            count
+        }
+        None => {
+            // If no package is given remove all
+            let package_dir = BelleConfig::get_package_dir();
+            if !package_dir.is_dir() {
+                CliLine::new().line("package cache is already empty").with_skipped().print();
+                return Ok(());
+            }
+
+            let count = std::fs::read_dir(&package_dir)
+                .report_read("packages source", &package_dir)?
+                .count();
+            fs::remove_dir_all(&package_dir).report_delete("packages source", &package_dir)?;
+
+            count
+        }
+    };
 
     CliLine::new()
         .prefix("Cleaned")
@@ -40,19 +78,55 @@ pub fn clean_packages() -> Result<(), AppError> {
     Ok(())
 }
 
-/// Remove all metadata from disk
-pub fn clean_metadata() -> Result<(), AppError> {
-    let manifest_dir = BelleConfig::get_manifest_dir();
+/// Remove packages metadata from disk
+pub fn clean_metadata(removal: &Option<(String, Option<SemanticVersion>)>) -> Result<(), AppError> {
+    let count = match removal {
+        Some((pkg_name, Some(pkg_version))) => {
+            // If a name and version is given, only remove that single version
+            let pkg_id = PackageIdentifier::new(pkg_name, pkg_version);
+            let meta_file = pkg_id.get_manifest_path();
+            if !meta_file.is_file() {
+                return Err(RegistryError::NotExist { package_id: pkg_id }.into());
+            }
 
-    if !manifest_dir.is_dir() {
-        CliLine::new().line("metadata is already empty").with_skipped().print();
-        return Ok(());
-    }
+            fs::remove_file(&meta_file).report_delete("package metadata", &meta_file)?;
 
-    let count = std::fs::read_dir(&manifest_dir)
-        .report_read("packages manifests", &manifest_dir)?
-        .count();
-    fs::remove_dir_all(&manifest_dir).report_delete("packages manifests", &manifest_dir)?;
+            1
+        }
+        Some((pkg_name, None)) => {
+            // If a name but no version is given then remove all versions of a package
+            let meta_dir = BelleConfig::get_manifest_dir().join(pkg_name);
+            if !meta_dir.is_dir() {
+                return Err(RegistryError::NameNotExist {
+                    package: pkg_name.clone(),
+                }
+                .into());
+            };
+
+            let count = std::fs::read_dir(&meta_dir)
+                .report_read("packages manifests", &meta_dir)?
+                .count();
+            fs::remove_dir_all(&meta_dir).report_delete("packages manifests", &meta_dir)?;
+
+            count
+        }
+        None => {
+            // If no package is given remove all
+            let meta_dir = BelleConfig::get_manifest_dir();
+
+            if !meta_dir.is_dir() {
+                CliLine::new().line("metadata is already empty").with_skipped().print();
+                return Ok(());
+            }
+
+            let count = std::fs::read_dir(&meta_dir)
+                .report_read("packages manifests", &meta_dir)?
+                .count();
+            fs::remove_dir_all(&meta_dir).report_delete("packages manifests", &meta_dir)?;
+
+            count
+        }
+    };
 
     CliLine::new()
         .prefix("Cleaned")

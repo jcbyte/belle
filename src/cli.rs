@@ -41,9 +41,19 @@ pub async fn run(args: Cli) -> Result<(), Hinted<AppError>> {
         },
         Commands::Cache(action) => match action {
             CacheAction::Clean(args) => {
-                cli::registry::clean_packages()?;
+                let pkg_removal = if args.all {
+                    None
+                } else {
+                    Some((args.name.unwrap(), args.version.map(SemanticVersion::from)))
+                };
+
+                // Allow meta to try and be cleaned, even if package cleaning failed
+                // E.g. due to unknown package, which may exist in metadata
+                let pkg_err = cli::registry::clean_package(&pkg_removal);
                 if args.meta {
-                    cli::registry::clean_metadata()?;
+                    cli::registry::clean_metadata(&pkg_removal)?;
+                } else {
+                    pkg_err?;
                 }
             }
             CacheAction::Purge => registry::purge_packages()?,

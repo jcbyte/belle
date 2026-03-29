@@ -139,7 +139,7 @@ impl Package {
 
 impl PackageIdentifier {
     /// Get manifest path for the given package
-    fn get_manifest_path(&self) -> PathBuf {
+    pub fn get_manifest_path(&self) -> PathBuf {
         // Manifest file is located within `$manifest_dir/{name}/{version}.toml`
         let manifest_dir = BelleConfig::get_manifest_dir();
 

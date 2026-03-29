@@ -268,7 +268,19 @@ pub enum CacheAction {
 
 #[derive(Args)]
 pub struct CacheCleanArgs {
-    /// Also remove package metadata (warning: all sourced packages must be re-sourced)
+    /// Name of the package cache to remove
+    #[arg(required_unless_present = "all")]
+    pub name: Option<String>,
+
+    /// Specific version to remove
+    #[arg(requires = "name")]
+    pub version: Option<PackageVersion>,
+
+    /// Clean all package caches
+    #[arg(long, conflicts_with = "name")]
+    pub all: bool,
+
+    /// Also remove package metadata (warning: packages must be re-sourced)
     #[arg(long)]
     pub meta: bool,
 }
