@@ -19,13 +19,13 @@ impl Isabelle {
     pub fn locate(path: impl Into<PathBuf>) -> Result<Self, IsabelleError> {
         let path = path.into();
 
-        let version_res = Self::exec_with_isabelle_from_path(&path, "version")?;
+        let version_res = Self::exec_with_isabelle_from_path(&path, vec!["version"])?;
         let version = get_isabelle_version(&version_res);
 
         Ok(Self { version, path })
     }
 
-    fn exec_with_isabelle_from_path(isabelle_root: &Path, args: &str) -> Result<String, IsabelleError> {
+    fn exec_with_isabelle_from_path(isabelle_root: &Path, args: Vec<&str>) -> Result<String, IsabelleError> {
         let isabelle_bin_dir = isabelle_root.join("bin");
 
         let mut command = if cfg!(windows) {
@@ -52,8 +52,12 @@ impl Isabelle {
                 .env("LANG", "en_US.UTF-8")
                 .env("CHERE_INVOKING", "true")
                 .arg("--login")
-                .arg("-c")
-                .arg(format!("isabelle {}", args));
+                .arg("-c");
+
+            command.arg("isabelle");
+            for &arg in &args {
+                command.arg(arg);
+            }
 
             command
         } else {
@@ -67,19 +71,21 @@ impl Isabelle {
             }
 
             let mut command = Command::new(isabelle_bin);
-            command.arg(args);
+            for &arg in &args {
+                command.arg(arg);
+            }
 
             command
         };
 
-        let res = command.output().report_failed_isabelle_command(args)?;
-        let res_str = String::from_utf8(res.stdout).report_invalid_isabelle_command_output(args)?;
+        let res = command.output().report_failed_isabelle_command(args.iter().copied())?;
+        let res_str = String::from_utf8(res.stdout).report_invalid_isabelle_command_output(args.iter().copied())?;
 
         Ok(res_str)
     }
 
-    fn exec_with_isabelle(&self, cmd: &str) -> Result<String, IsabelleError> {
-        Self::exec_with_isabelle_from_path(&self.path, cmd)
+    fn exec_with_isabelle(&self, args: Vec<&str>) -> Result<String, IsabelleError> {
+        Self::exec_with_isabelle_from_path(&self.path, args)
     }
 
     fn manage_component(&self, add: bool) -> Result<(), AppError> {
@@ -88,7 +94,7 @@ impl Isabelle {
 
         // Add or remove the active environment directory as a component to isabelle
         let flag = if add { "-u" } else { "-x" };
-        self.exec_with_isabelle(&format!("components {} \"{}\"", flag, formatted_active_env_dir))?;
+        self.exec_with_isabelle(vec!["components", flag, &formatted_active_env_dir])?;
 
         Ok(())
     }
