@@ -84,11 +84,11 @@ impl Isabelle {
 
     fn manage_component(&self, add: bool) -> Result<(), AppError> {
         let active_env_dir = BelleConfig::get_active_env_link();
-        let isabelle_path = active_env_dir.to_isabelle_path().report_path(&active_env_dir)?;
+        let formatted_active_env_dir = active_env_dir.to_isabelle_path().report_path(&active_env_dir)?;
 
         // Add or remove the active environment directory as a component to isabelle
         let flag = if add { "-u" } else { "-x" };
-        self.exec_with_isabelle(&format!("components {} {}", flag, isabelle_path))?;
+        self.exec_with_isabelle(&format!("components {} \"{}\"", flag, formatted_active_env_dir))?;
 
         Ok(())
     }
