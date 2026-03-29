@@ -53,7 +53,7 @@ A standardised style and colour theme should be used for progress bars and spinn
 
 ## No-Ops
 
-When nothing needs to be changed (i.e. switching into the current environment) a dimmed message should be presented to indicate no action was taken.
+When nothing needs to be changed (i.e. switching into the current environment) a message should be presented to indicate no action was taken.
 
 ## Lists
 

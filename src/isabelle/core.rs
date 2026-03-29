@@ -28,7 +28,7 @@ impl Isabelle {
     fn exec_with_isabelle_from_path(isabelle_root: &Path, args: Vec<&str>) -> Result<String, IsabelleError> {
         let isabelle_bin_dir = isabelle_root.join("bin");
 
-        let mut command = if cfg!(windows) {
+        let mut isabelle_cmd = if cfg!(windows) {
             let bash = isabelle_root.join("contrib").join("cygwin").join("bin").join("bash.exe");
 
             if !bash.is_file() {
@@ -52,12 +52,9 @@ impl Isabelle {
                 .env("LANG", "en_US.UTF-8")
                 .env("CHERE_INVOKING", "true")
                 .arg("--login")
-                .arg("-c");
-
-            command.arg("isabelle");
-            for &arg in &args {
-                command.arg(arg);
-            }
+                .arg("-c")
+                // Use the isabelle command, with args given
+                .arg("isabelle");
 
             command
         } else {
@@ -70,15 +67,13 @@ impl Isabelle {
                 })?;
             }
 
-            let mut command = Command::new(isabelle_bin);
-            for &arg in &args {
-                command.arg(arg);
-            }
-
-            command
+            Command::new(isabelle_bin)
         };
 
-        let res = command.output().report_failed_isabelle_command(args.iter().copied())?;
+        // Add the args to the command
+        isabelle_cmd.args(&args);
+
+        let res = isabelle_cmd.output().report_failed_isabelle_command(args.iter().copied())?;
         let res_str = String::from_utf8(res.stdout).report_invalid_isabelle_command_output(args.iter().copied())?;
 
         Ok(res_str)
