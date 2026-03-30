@@ -1,0 +1,130 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"title": "belle-pkg Schema",
+	"description": "Package manifest for belle packages.",
+	"type": "object",
+	"properties": {
+		"name": {
+			"type": "string",
+			"description": "Name of package"
+		},
+		"version": {
+			"$ref": "#/$defs/semver",
+			"description": "Version of package"
+		},
+		"title": {
+			"type": "string",
+			"description": "Title of the package"
+		},
+		"date": {
+			"type": "string",
+			"format": "date",
+			"description": "Release date of this package"
+		},
+		"abstract": {
+			"type": "string",
+			"description": "Longer description of the package"
+		},
+		"licence": {
+			"type": "string",
+			"description": "Package licence"
+		},
+		"topics": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			},
+			"description": "Related topics for the package"
+		},
+		"note": {
+			"type": "string",
+			"description": "Optional note for instructions"
+		},
+		"provides": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			},
+			"description": "Other packages that this Isabelle component provides. For when the ROOT file defines multiple sessions"
+		},
+		"isabelles": {
+			"type": "array",
+			"items": {
+				"$ref": "#/$defs/semver"
+			},
+			"description": "List of compatible isabelle versions"
+		},
+		"authors": {
+			"type": "array",
+			"items": {
+				"$ref": "#/$defs/author"
+			},
+			"description": "List of authors to the package"
+		},
+		"contributors": {
+			"type": "array",
+			"items": {
+				"$ref": "#/$defs/author"
+			},
+			"description": "List of contributors for the package"
+		},
+		"dependencies": {
+			"type": "object",
+			"additionalProperties": {
+				"$ref": "#/$defs/semver"
+			},
+			"description": "Dependencies required for the package and their versions"
+		},
+		"extra": {
+			"type": "object",
+			"additionalProperties": true,
+			"description": "Any extra arbitrary nested data"
+		}
+	},
+	"required": [
+		"name",
+		"version",
+		"title",
+		"date",
+		"abstract",
+		"licence",
+		"topics",
+		"authors",
+		"contributors",
+		"dependencies",
+		"isabelles",
+		"extra"
+	],
+
+	"$defs": {
+		"semver": {
+			"type": "string",
+			"title": "Semantic Version",
+			"pattern": "(\\d+\\.\\d+\\.\\d+)"
+		},
+		"author": {
+			"type": "object",
+			"properties": {
+				"email": {
+					"type": "string",
+					"format": "email"
+				},
+				"homepages": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"format": "uri"
+					}
+				},
+				"name": {
+					"type": "string"
+				},
+				"orcid": {
+					"type": "string"
+				}
+			},
+			"required": ["name"],
+			"title": "Person"
+		}
+	}
+}

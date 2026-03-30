@@ -19,7 +19,7 @@ note = "This is an optional note field"
 # For when the ROOT file defines multiple sessions
 provides = ["belle-example-pkg_Prereq"]
 
-# List compatible isabelle versions as SemVer listings
+# List of compatible isabelle versions as SemVer listings
 isabelles = ["2025.0.0", "2025.1.0", "2025.2.0"]
 
 
