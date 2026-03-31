@@ -52,9 +52,13 @@ impl Isabelle {
                 .env("LANG", "en_US.UTF-8")
                 .env("CHERE_INVOKING", "true")
                 .arg("--login")
-                .arg("-c")
-                // Use the isabelle command, with args given
-                .arg("isabelle");
+                .arg("-c");
+
+            // As this is running from a `-c` the entire command needs to be placed in one argument
+            // To avoid issues with spaces, wrap every argument in quotes
+            let formatted_args = args.iter().map(|a| format!("\"{a}\"")).collect::<Vec<_>>().join(" ");
+            // Use the isabelle command, with args given
+            command.arg(format!("isabelle {formatted_args}"));
 
             command
         } else {
@@ -67,13 +71,21 @@ impl Isabelle {
                 })?;
             }
 
-            Command::new(isabelle_bin)
+            let mut command = Command::new(isabelle_bin);
+
+            // Add the args to the command
+            command.args(&args);
+
+            command
         };
 
-        // Add the args to the command
-        isabelle_cmd.args(&args);
-
         let res = isabelle_cmd.output().report_failed_isabelle_command(args.iter().copied())?;
+        if !res.status.success() {
+            return Err(IsabelleError::CommandNotSuccess {
+                args: args.iter().map(|a| a.to_string()).collect(),
+                output: res,
+            });
+        }
         let res_str = String::from_utf8(res.stdout).report_invalid_isabelle_command_output(args.iter().copied())?;
 
         Ok(res_str)

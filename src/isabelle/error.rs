@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, process::Output};
 
 use hinted::Hint;
 use thiserror::Error;
@@ -16,6 +16,9 @@ pub enum IsabelleError {
         #[source]
         source: std::io::Error,
     },
+
+    #[error("'isabelle {}' retuned a non-success error status{}", args.join(" "), output.status.code().map(|c| format!(": {c}")).unwrap_or_default())]
+    CommandNotSuccess { args: Vec<String>, output: Output },
 
     #[error("command 'isabelle {}' produced invalid output", args.join(" "))]
     #[hint("this may be due to a locale mismatch or a corrupted isabelle")]
