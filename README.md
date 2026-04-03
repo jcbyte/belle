@@ -92,8 +92,46 @@ If you prefer to store your data elsewhere, the default path can be overridden b
 
 ## Package Format
 
-Belle packages (`belle-pkg.toml`) are defined by a TOML manifest.
-See the example structure at [belle-pkg.toml](belle-pkg.toml).
+Belle packages are defined by a TOML manifest, `belle-pkg.toml`.
+
+```mermaid
+classDiagram
+    direction LR
+
+    class BellePkgManifest {
+        string name
+        SemVer version
+        string title
+        date date
+        string abstract
+        string licence
+        string[] topics
+        string note
+        string[] provides
+        SemVer[] isabelles
+        Person[] authors
+        Person[] contributors
+        Map<string, SemVer> dependencies
+        Object extra
+    }
+
+    class Person {
+        string name
+        string email
+        string[] homepages
+        string orcid
+    }
+
+    class SemVer {
+        <<DataType>>
+    }
+    note for SemVer "Format: MAJOR.MINOR.PATCH"
+
+    BellePkgManifest *-- Person : authors
+    BellePkgManifest *-- Person : contributors
+    BellePkgManifest ..> SemVer : validates_as
+```
+See the example structure at [belle-pkg.toml](belle-pkg.toml) or JSON Schema at [belle-pkg.schema.json](belle-pkg.schema.json) for further details.
 
 ## Licence
 
