@@ -1,4 +1,4 @@
-use std::sync::OnceLock;
+use std::{sync::OnceLock, time::Duration};
 
 use crate::fetch::error::{FetchError, FetchErrorContext};
 
@@ -14,6 +14,8 @@ impl BelleClient {
         let client = reqwest::Client::builder()
             // Include a custom user agent for politeness
             .user_agent("belle-client")
+            .connect_timeout(Duration::from_secs(10))
+            .timeout(Duration::from_secs(30))
             .build()
             .report_failed_init()?;
 
