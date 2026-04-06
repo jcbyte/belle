@@ -66,7 +66,7 @@ pub async fn run(args: Cli) -> Result<(), Hinted<AppError>> {
             }
         }
         Commands::Search(args) => registry::search_registry(args.query),
-        Commands::Switch(args) | Commands::Env(EnvAction::Switch(args)) => environment::switch_env(args.name)?,
+        Commands::Switch(args) => environment::switch_env(args.name)?,
         Commands::Env(action) => match action {
             EnvAction::Create(args) => {
                 environment::create_env(args.name, args.isabelle.map(SemanticVersion::from).into())?
@@ -75,7 +75,6 @@ pub async fn run(args: Cli) -> Result<(), Hinted<AppError>> {
             EnvAction::Remove(args) => environment::remove_env(&args.name)?,
             EnvAction::Freeze => environment::freeze_env()?,
             EnvAction::Sync => environment::sync_env().await?,
-            EnvAction::Switch(_args) => unreachable!(),
         },
         Commands::Migrate(args) => {
             environment::migrate_isabelle(args.version.map(SemanticVersion::from).into(), args.unpin).await?

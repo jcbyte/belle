@@ -26,21 +26,26 @@ pub struct GlobalArgs {
 #[derive(Subcommand)]
 pub enum Commands {
     /// Add package into current environment
+    #[command(visible_alias = "install", alias = "in")]
     Add(AddArgs),
 
     /// Remove package from current environment
+    #[command(alias = "rm", visible_alias = "uninstall")]
     Remove(RemoveArgs),
 
     /// Migrate to a different isabelle version
     Migrate(MigrateArgs),
 
     /// Update packages
+    #[command(alias = "up")]
     Update(UpdateArgs),
 
     /// List all packages in the current environment
+    #[command(alias = "ls")]
     List(ListArgs),
 
     /// Restore all missing packages for the current environment
+    #[command(visible_alias = "fix")]
     Restore,
 
     /// Manage isolated environments
@@ -48,6 +53,7 @@ pub enum Commands {
     Env(EnvAction),
 
     /// Change the active environment
+    #[command(visible_alias = "use")]
     Switch(SwitchArgs),
 
     /// Add packages source (from AFP or externally)
@@ -55,14 +61,15 @@ pub enum Commands {
     Source(SourceAction),
 
     /// Search for packages
+    #[command(alias = "se", visible_alias = "find")]
     Search(SearchArgs),
 
     /// Display detailed information for a specific package
-    #[command(visible_alias = "show")]
+    #[command(visible_alias = "info", visible_alias = "show")]
     Inspect(InspectArgs),
 
     /// Manage isabelle installations
-    #[command(subcommand)]
+    #[command(subcommand, alias = "isa")]
     Isabelle(IsabelleAction),
 
     /// Manage locally cached packages and metadata
@@ -112,21 +119,23 @@ pub struct ListArgs {
 #[derive(Subcommand)]
 pub enum EnvAction {
     /// Create a new environment
+    #[command(visible_alias = "new", visible_alias = "add")]
     Create(EnvCreateArgs),
 
     /// Remove an environment
+    #[command(alias = "rm", visible_alias = "delete", alias = "del")]
     Remove(EnvRemoveArgs),
 
     /// List all environments
+    #[command(alias = "ls")]
     List,
 
-    /// Switch to environment
-    Switch(SwitchArgs),
-
     /// Export current environment to a requirements file
+    #[command(visible_alias = "export")]
     Freeze,
 
     /// Install packages from a requirements file to match state
+    #[command(visible_alias = "import")]
     Sync,
 }
 
@@ -171,21 +180,20 @@ pub enum SourceAfpAction {
     List(MetaListArgs),
 
     /// Synchronize metadata from a repository to the local system
-    #[command(visible_alias = "fetch")]
+    #[command(visible_alias = "fetch", visible_alias = "sync")]
     Update(RepoUpdateArgs),
 }
 
 #[derive(Args)]
 pub struct MetaListArgs {
     /// Optional maximum number of AFP repos to show
-    #[arg(short, long, value_name = "LIMIT", default_value_t = 20)]
+    #[arg(short, long, default_value_t = 20)]
     pub limit: usize,
 }
 
 #[derive(Args)]
 pub struct RepoUpdateArgs {
     /// Optional name of AFP repo (defaults to latest)
-    #[arg(value_name = "REPO")]
     pub name: Option<String>,
 }
 
@@ -228,12 +236,15 @@ pub struct InspectArgs {
 #[derive(Subcommand)]
 pub enum IsabelleAction {
     /// Link belle to an Isabelle installation
+    #[command(visible_alias = "register")]
     Link(LinkArgs),
 
     /// Unlink belle from an Isabelle installation
+    #[command(visible_alias = "detach")]
     Unlink(UnlinkArgs),
 
     /// List linked Isabelle versions
+    #[command(alias = "ls")]
     List,
 }
 
