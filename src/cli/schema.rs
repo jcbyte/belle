@@ -271,6 +271,7 @@ pub struct UnlinkArgs {
 #[derive(Subcommand)]
 pub enum CacheAction {
     /// Remove downloaded packages which are not used within any environments
+    #[command(visible_alias = "prune")]
     Purge,
 
     /// Remove downloaded files to free up disk space (warning: all environments must be restored, prefer `purge`)
