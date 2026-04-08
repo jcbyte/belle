@@ -73,7 +73,7 @@ mod tests {
 
     #[test]
     fn test_isabelle_version_parsing() {
-        // Test as isabelle version prefix
+        // Test as Isabelle version prefix
         let v_isabelle = "2025-1".parse::<IsabelleVersion>();
         assert!(v_isabelle.is_ok());
         assert_eq!(v_isabelle.unwrap().to_string(), "2025.1.0");

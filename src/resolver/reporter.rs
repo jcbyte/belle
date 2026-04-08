@@ -84,9 +84,8 @@ impl BelleReporter {
                 let pkg_type = Self::package_type(pkg);
                 let dep_type = Self::package_type(dep);
 
-                // If the first half is an isabelle package, ignore it as
-                // Isabelle packages only depend on isabelle packages
-                // meaning Isabelle depends on Isabelle which is trivial,
+                // If the first half is an Isabelle package, ignore it as Isabelle packages only
+                // depend on Isabelle packages meaning Isabelle depends on Isabelle which is trivial
                 if matches!(pkg_type, PackageType::Isabelle) {
                     return None;
                 }

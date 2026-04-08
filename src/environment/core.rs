@@ -215,13 +215,13 @@ impl Environment {
         })
     }
 
-    /// Get packages installed by the user, filtering isabelle's built in ones.
+    /// Get packages installed by the user, filtering Isabelle's built in ones.
     pub fn iter_user_packages(&self) -> impl Iterator<Item = (&String, &SemanticVersion)> {
         let isabelle_packages = BelleConfig::read_config(|c| c.isabelle_packages.clone());
 
         self.lock
             .iter()
-            // Remove isabelle packages
+            // Remove Isabelle packages
             .filter(move |&(name, _version)| name != ISABELLE_PACKAGE && !isabelle_packages.contains(name))
     }
 
@@ -249,7 +249,7 @@ impl Environment {
                 continue;
             };
 
-            // Create isabelle recognised path (os specific implementations)
+            // Create Isabelle recognised path (os specific implementations)
             let package_src = package.get_package_location();
             let full_package_src =
                 dunce::canonicalize(&package_src).report_read("package source directory", &package_src)?;
@@ -306,7 +306,7 @@ mod tests {
             VersionReq::Given(SemanticVersion::two())
         );
 
-        // Prioritise locked isabelle version
+        // Prioritise locked Isabelle version
         let differing_isabelle_env = Environment {
             name: "test".to_string(),
             isabelle: VersionReq::Given(SemanticVersion::new(3, 1, 0)),

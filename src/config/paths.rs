@@ -18,7 +18,7 @@ pub fn get_home_dir() -> &'static Path {
             return dunce::canonicalize(&home_path).expect("Debug `belle_home` cannot be canonicalised");
         }
 
-        // Use a belle home location at environment variable or default to directory under the user's application data
+        // Use environment variable or default to directory under the user's application data
         env::var("BELLE_HOME")
             .map(PathBuf::from)
             .unwrap_or_else(|_| dirs::data_dir().expect("Could not get users data folder").join("belle"))

@@ -80,7 +80,7 @@ Use `--help` with any command to see the full list of options.
 
 ## Belle Data Directory
 
-By default, all belle data and configuration files are stored in your user's data directory.
+By default, all Belle data and configuration files are stored in your user's data directory.
 
 | OS      | Default Path                                       |
 | ------- | -------------------------------------------------- |
@@ -131,6 +131,7 @@ classDiagram
     BellePkgManifest *-- Person : contributors
     BellePkgManifest ..> SemVer : validates_as
 ```
+
 See the example structure at [belle-pkg.toml](belle-pkg.toml) or JSON Schema at [belle-pkg.schema.json](belle-pkg.schema.json) for further details.
 
 ## Licence

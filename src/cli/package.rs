@@ -114,7 +114,7 @@ pub fn list_packages(all: bool) -> Result<(), AppError> {
                 largest_dependency_name = max(largest_dependency_name, dependency.name.len());
                 dependencies.push(dependency)
             }
-            // Ignore the main isabelle package, as we get this separately
+            // Ignore the main Isabelle package, as we get this separately
             PackageType::Transitive if dependency.name != ISABELLE_PACKAGE => {
                 largest_dependency_name_all = max(largest_dependency_name_all, dependency.name.len());
 

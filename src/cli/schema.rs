@@ -33,7 +33,7 @@ pub enum Commands {
     #[command(alias = "rm", visible_alias = "uninstall")]
     Remove(RemoveArgs),
 
-    /// Migrate to a different isabelle version
+    /// Migrate to a different Isabelle version
     Migrate(MigrateArgs),
 
     /// Update packages
@@ -68,7 +68,7 @@ pub enum Commands {
     #[command(visible_alias = "info", visible_alias = "show")]
     Inspect(InspectArgs),
 
-    /// Manage isabelle installations
+    /// Manage Isabelle installations
     #[command(subcommand, alias = "isa")]
     Isabelle(IsabelleAction),
 
@@ -157,7 +157,7 @@ pub struct EnvRemoveArgs {
 
 #[derive(Args)]
 pub struct SwitchArgs {
-    /// The name of environment to switch to (defaults to name inside belle file)
+    /// The name of environment to switch to (defaults to name inside local belle.toml)
     pub name: Option<String>,
 }
 
@@ -235,11 +235,11 @@ pub struct InspectArgs {
 
 #[derive(Subcommand)]
 pub enum IsabelleAction {
-    /// Link belle to an Isabelle installation
+    /// Link Belle to an Isabelle installation
     #[command(visible_alias = "register")]
     Link(LinkArgs),
 
-    /// Unlink belle from an Isabelle installation
+    /// Unlink Belle from an Isabelle installation
     #[command(visible_alias = "detach")]
     Unlink(UnlinkArgs),
 

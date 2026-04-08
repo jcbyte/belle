@@ -6,7 +6,7 @@ date = 2026-03-27
 abstract = """
 This is an example of a `belle-pkg.toml` file for defining a package specification.
 <br>
-This may actually be sourced into belle though <em>`belle source remote https://github.com/jcbyte/belle`</em>.
+This may actually be sourced into Belle though <em>`belle source remote https://github.com/jcbyte/belle`</em>.
 <br>
 However this contains no Isabelle sessions, not even a <strong>ROOT</strong> file!
 Meaning it will never be allowed to be added into an environment.

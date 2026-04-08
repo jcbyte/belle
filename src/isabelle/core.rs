@@ -57,12 +57,12 @@ impl Isabelle {
             // As this is running from a `-c` the entire command needs to be placed in one argument
             // To avoid issues with spaces, wrap every argument in quotes
             let formatted_args = args.iter().map(|a| format!("\"{a}\"")).collect::<Vec<_>>().join(" ");
-            // Use the isabelle command, with args given
+            // Use the Isabelle command, with args given
             command.arg(format!("isabelle {formatted_args}"));
 
             command
         } else {
-            // Execute the isabelle binary directly
+            // Execute the Isabelle binary directly
             let isabelle_bin = isabelle_bin_dir.join("isabelle");
 
             if !isabelle_bin.is_file() {
@@ -99,7 +99,7 @@ impl Isabelle {
         let active_env_dir = BelleConfig::get_active_env_link();
         let formatted_active_env_dir = active_env_dir.to_isabelle_path().report_path(&active_env_dir)?;
 
-        // Add or remove the active environment directory as a component to isabelle
+        // Add or remove the active environment directory as a component to Isabelle
         let flag = if add { "-u" } else { "-x" };
         self.exec_with_isabelle(vec!["components", flag, &formatted_active_env_dir])?;
 

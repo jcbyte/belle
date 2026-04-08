@@ -6,7 +6,7 @@ use thiserror::Error;
 #[derive(Error, Debug, Hint)]
 pub enum IsabelleError {
     #[error("no Isabelle installation found at '{path}'")]
-    #[hint("check path, or install isabelle from https://isabelle.in.tum.de")]
+    #[hint("check path, or install Isabelle from https://isabelle.in.tum.de")]
     NoIsabelle { path: PathBuf },
 
     #[error("failed to execute 'isabelle {}'", args.join(" "))]
@@ -21,7 +21,7 @@ pub enum IsabelleError {
     CommandNotSuccess { args: Vec<String>, output: Output },
 
     #[error("command 'isabelle {}' produced invalid output", args.join(" "))]
-    #[hint("this may be due to a locale mismatch or a corrupted isabelle")]
+    #[hint("this may be due to a locale mismatch or a corrupted Isabelle")]
     InvalidCommandOutput {
         args: Vec<String>,
         #[source]

@@ -22,7 +22,7 @@ static CONFIG_INSTANCE: OnceLock<RwLock<BelleConfig>> = OnceLock::new();
 impl BelleConfig {
     /// Load config from disk, or use default
     fn load() -> Result<Self, AppError> {
-        // Config file is in root of belle home directory
+        // Config file is in root of Belle home directory
         let config_path = get_home_dir().join("config.toml");
 
         let parsed_config = if config_path.is_file() {

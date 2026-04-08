@@ -16,13 +16,13 @@ use crate::{
 
 pub fn link(path: &Path, force: bool) -> Result<(), Hinted<AppError>> {
     // If there is not an active environment then switch to the null environment
-    // So that isabelle can register correctly to the env/active symlink
+    // So that Isabelle can register correctly to the env/active symlink
     if !Environment::has_active() {
         environment::manager::set_env_none().into_hinted()?;
     };
 
     let path = dunce::canonicalize(path)
-        .report_read("isabelle source directory", path)
+        .report_read("Isabelle source directory", path)
         .into_hinted()?;
 
     let pb = ProgressBar::new_spinner().with_belle_spinner_style();

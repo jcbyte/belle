@@ -20,7 +20,7 @@ impl IsabellePathContext for Path {
             return Some(format!("/cygdrive/{}/{}", drive.to_ascii_lowercase(), path));
         }
 
-        // On linux, this is expected by isabelle
+        // On linux, this is expected by Isabelle
         Some(path_str.to_string())
     }
 }

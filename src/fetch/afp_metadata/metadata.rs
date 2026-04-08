@@ -148,7 +148,7 @@ impl RepoMetadata {
             .into_iter()
             .map(|dependency| {
                 if BelleConfig::read_config(|c| c.isabelle_packages.contains(dependency)) {
-                    // Isabelle packages will depend on the isabelle version so this version does not matter
+                    // Isabelle packages will depend on the Isabelle version so this version does not matter
                     return (dependency.to_string(), SemanticVersion::one());
                 }
 
