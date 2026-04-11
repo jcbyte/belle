@@ -1,8 +1,8 @@
 # Belle
 
-**The environment manager for Isabelle/HOL.**
+**The package and environment manager for Isabelle.**
 
-Belle is a package manager for Isabelle/HOL built in Rust. It provides isolated environment-based package management similar to Conda, allowing management of formal verification sessions, theories and AFP dependencies.
+Belle is a package manager for Isabelle built in Rust. It provides isolated environment-based package management similar to Conda, allowing management of formal verification sessions, theories and AFP dependencies.
 
 ## Features
 
