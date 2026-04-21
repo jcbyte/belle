@@ -79,7 +79,7 @@ pub async fn source_afp_meta(repo_name: Option<&str>) -> Result<(), Hinted<AppEr
     pb.set_belle_prefix("Fetching");
     pb.set_message(format!(
         "package manifests from {} {}",
-        style(format!("AFP {}", &repo.get_formatted_name())).cyan().bright(),
+        style(format!("AFP {}", &repo.get_formatted_name())).cyan(),
         DisplayVersion::Implicit(repo.get_version())
     ));
 
@@ -94,7 +94,7 @@ pub async fn source_afp_meta(repo_name: Option<&str>) -> Result<(), Hinted<AppEr
             "{} {} from {} {}",
             style(repo_packages.len()).bold(),
             pluralise(repo_packages.len(), "package", "packages"),
-            style(format!("AFP {}", &repo.get_formatted_name())).cyan().bright(),
+            style(format!("AFP {}", &repo.get_formatted_name())).cyan(),
             DisplayVersion::Implicit(repo.get_version())
         ))
         .with_success()
@@ -202,7 +202,7 @@ pub async fn source_afp_meta(repo_name: Option<&str>) -> Result<(), Hinted<AppEr
             "{} {} from {} {} {}",
             style(repo_packages.len() - failed).bold(),
             pluralise(repo_packages.len() - failed, "package", "packages"),
-            style(format!("AFP {}", &repo.get_formatted_name())).cyan().bright(),
+            style(format!("AFP {}", &repo.get_formatted_name())).cyan(),
             DisplayVersion::Implicit(repo.get_version()),
             if failed > 0 {
                 Cow::Owned(format!(", {} failed", style(failed).bold()))

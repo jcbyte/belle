@@ -30,7 +30,7 @@ pub async fn add_package(name: String, version: VersionReq) -> Result<(), AppErr
             .line(format!(
                 "package {} already exists in environment",
                 match version {
-                    VersionReq::Any => style(name).cyan().bright().to_string(),
+                    VersionReq::Any => style(name).cyan().to_string(),
                     VersionReq::Given(v) => PackageIdentifier::new(name, v).styled(),
                 }
             ))
@@ -54,7 +54,7 @@ pub async fn add_package(name: String, version: VersionReq) -> Result<(), AppErr
 
     CliLine::new()
         .prefix("Added")
-        .line(format!("package {} {}", style(name).cyan().bright(), package_version))
+        .line(format!("package {} {}", style(name).cyan(), package_version))
         .with_success()
         .print();
 
@@ -70,7 +70,7 @@ pub async fn remove_package(name: &str) -> Result<(), AppError> {
         CliLine::new()
             .line(format!(
                 "package '{}' is not in this environment; nothing to remove",
-                style(name).cyan().bright()
+                style(name).cyan()
             ))
             .with_skipped()
             .print();
@@ -86,7 +86,7 @@ pub async fn remove_package(name: &str) -> Result<(), AppError> {
 
     CliLine::new()
         .prefix("Removed")
-        .line(format!("package {}", style(name).cyan().bright()))
+        .line(format!("package {}", style(name).cyan()))
         .with_success()
         .print();
 
@@ -141,7 +141,7 @@ pub fn list_packages(all: bool) -> Result<(), AppError> {
     let formatted_isabelle_str = match get_isabelle_version(&active_env) {
         Some(v) => format!(
             "{:padding$} {}",
-            style(get_isabelle_name(v.get_version())).cyan().bright(),
+            style(get_isabelle_name(v.get_version())).cyan(),
             v,
             padding = largest_dependency_name
         ),
@@ -198,7 +198,7 @@ pub fn list_packages(all: bool) -> Result<(), AppError> {
             "{} {} in {}",
             style(dependencies.len()).bold(),
             pluralise(dependencies.len(), "package", "packages"),
-            style(active_env.name).cyan().bright()
+            style(active_env.name).cyan()
         )
     } else {
         let total_packages = dependencies.len() + transitive_dependencies.len() + isabelle_dependencies.len();
@@ -209,7 +209,7 @@ pub fn list_packages(all: bool) -> Result<(), AppError> {
             style(dependencies.len()).bold(),
             style(transitive_dependencies.len()).bold(),
             style(isabelle_dependencies.len()).bold(),
-            style(active_env.name).cyan().bright()
+            style(active_env.name).cyan()
         )
     };
     CliLine::new().prefix("Listed").line(line).with_success().print();

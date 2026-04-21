@@ -164,7 +164,7 @@ pub fn list_versions(name: &str) -> Result<(), AppError> {
             "{} {} for {} ({} installed)",
             style(versions.len()).bold(),
             pluralise(versions.len(), "version", "versions"),
-            style(name).cyan().bright(),
+            style(name).cyan(),
             style(installed_count).bold(),
         ))
         .with_success()
@@ -359,7 +359,7 @@ fn highlight_match(text: &str, query: &str) -> String {
         let suffix = &text[end..];
 
         // Wrap the matched part in a different color/style
-        format!("{}{}{}", prefix, style(matched).cyan().bright(), suffix)
+        format!("{}{}{}", prefix, style(matched).cyan(), suffix)
     } else {
         text.to_string()
     }
@@ -387,7 +387,7 @@ pub fn search_registry(search: String) {
             "{} {} for '{}'",
             style(results.len()).bold(),
             pluralise(results.len(), "result", "results"),
-            style(search).cyan().bright()
+            style(search).cyan()
         ))
         .with_success()
         .print();
@@ -432,10 +432,10 @@ mod tests {
     fn test_highlight_match_case_insensitive() {
         let result = highlight_match("RustLang", "rust");
         println!("{:#?}", result);
-        assert!(result == format!("{}Lang", style("Rust").cyan().bright()));
+        assert!(result == format!("{}Lang", style("Rust").cyan()));
 
         let result = highlight_match("RustLang", "ustla");
-        assert!(result == format!("R{}ng", style("ustLa").cyan().bright()));
+        assert!(result == format!("R{}ng", style("ustLa").cyan()));
     }
 
     #[test]

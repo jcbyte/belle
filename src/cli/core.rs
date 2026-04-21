@@ -142,9 +142,9 @@ impl CliLine {
             CliLineIntent::Success => Cow::Borrowed(line),
             CliLineIntent::Focus => Cow::Borrowed(line),
             CliLineIntent::Warning => Cow::Owned(style(console::strip_ansi_codes(line)).yellow().to_string()),
-            CliLineIntent::Error => Cow::Owned(style(console::strip_ansi_codes(line)).red().bright().to_string()),
+            CliLineIntent::Error => Cow::Owned(style(console::strip_ansi_codes(line)).bright().red().to_string()),
             CliLineIntent::Skipped => Cow::Borrowed(line),
-            CliLineIntent::Note => Cow::Owned(format!("{}: {}", style("note").bold().bright(), line)),
+            CliLineIntent::Note => Cow::Owned(format!("{}: {}", style("note").bold(), line)),
             CliLineIntent::Default => Cow::Borrowed(line),
         }
     }
@@ -275,7 +275,7 @@ impl PackageIdentifier {
     pub fn styled(&self) -> String {
         format!(
             "{} {}",
-            style(&self.name).cyan().bright(),
+            style(&self.name).cyan(),
             DisplayVersion::Implicit(&self.version)
         )
     }

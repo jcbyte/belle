@@ -7,7 +7,7 @@
 | Success | Green          | Success action i.e. "Switched" prefix.           |
 | Warning | Yellow         | Non-fatal errors, potential mistakes.            |
 | Error   | Red            | Fatal errors, unrecoverable/unresolvable.        |
-| Focus   | Cyan (Bright)  | Highlight of line i.e. environment/package name. |
+| Focus   | Cyan           | Highlight of line i.e. environment/package name. |
 | No-op   | White (Dimmed) | For no operation commands.                       |
 
 ## Prefixing

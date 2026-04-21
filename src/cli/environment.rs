@@ -129,7 +129,7 @@ pub fn switch_env(name: Option<String>) -> Result<(), Hinted<AppError>> {
         && active_env.name == name
     {
         CliLine::new()
-            .line(format!("environment {} is already active", style(name).cyan().bright()))
+            .line(format!("environment {} is already active", style(name).cyan()))
             .with_skipped()
             .print();
         return Ok(());
@@ -160,7 +160,7 @@ pub fn create_env(name: String, isabelle: VersionReq) -> Result<(), AppError> {
 
     CliLine::new()
         .prefix("Created")
-        .line(format!("environment {}", style(&name).cyan().bright()))
+        .line(format!("environment {}", style(&name).cyan()))
         .with_success()
         .print();
 
@@ -169,7 +169,7 @@ pub fn create_env(name: String, isabelle: VersionReq) -> Result<(), AppError> {
 
     CliLine::new()
         .prefix("Switched")
-        .line(format!("to environment {}", style(&name).cyan().bright()))
+        .line(format!("to environment {}", style(&name).cyan()))
         .with_success()
         .print();
 
@@ -212,7 +212,7 @@ pub fn remove_env(name: &str) -> Result<(), AppError> {
         CliLine::new()
             .line(format!(
                 "environment '{}' does not exist; nothing to remove",
-                style(name).cyan().bright()
+                style(name).cyan()
             ))
             .with_skipped()
             .print();
@@ -228,7 +228,7 @@ pub fn remove_env(name: &str) -> Result<(), AppError> {
 
     CliLine::new()
         .prefix("Removed")
-        .line(format!("environment {}", style(&name).cyan().bright()))
+        .line(format!("environment {}", style(&name).cyan()))
         .with_success()
         .print();
 
@@ -241,7 +241,7 @@ pub fn freeze_env() -> Result<(), AppError> {
 
     CliLine::new()
         .prefix("Frozen")
-        .line(format!("to {}", style(LOCKFILE_NAME).cyan().bright()))
+        .line(format!("to {}", style(LOCKFILE_NAME).cyan()))
         .with_success()
         .print();
 
@@ -257,7 +257,7 @@ pub async fn sync_env() -> Result<(), AppError> {
 
     CliLine::new()
         .prefix("Synced")
-        .line(format!("from {}", style(LOCKFILE_NAME).cyan().bright()))
+        .line(format!("from {}", style(LOCKFILE_NAME).cyan()))
         .with_success()
         .print();
 
@@ -375,7 +375,7 @@ pub async fn restore() -> Result<(), AppError> {
         .prefix("Restored")
         .line(format!(
             "packages within environment, {}",
-            style(active_env.name).cyan().bright()
+            style(active_env.name).cyan()
         ))
         .with_success()
         .print();
