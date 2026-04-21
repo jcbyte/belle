@@ -9,13 +9,12 @@ description = "Package Manager for Isabelle/HOL"
 members = ["hinted", "hinted/hinted-derive"]
 
 [dependencies]
-pubgrub = { version = "0.3.0", features = ["serde"] }
-rustc-hash = "2.1.1"
+pubgrub = { version = "0.4.0", features = ["serde"] }
 reqwest = { version = "0.13.2", features = ["json"] }
 serde = { version = "1.0", features = ["derive"] }
 regex = "1.10"
 tokio = { version = "1.50.0", features = ["full"] }
-toml = "0.9.8"
+toml = "1.1.2"
 bytes = "1.11.1"
 zip = "8.1.0"
 clap = { version = "4.6.0", features = ["derive"] }
@@ -27,5 +26,5 @@ junction = "1.4.2"
 url = { version = "2.5.8", features = ["serde"] }
 dunce = "1.0.5"
 thiserror = "2.0.18"
-html2text = "0.16.7"
+html2text = "0.17.1"
 hinted = { path = "./hinted" }

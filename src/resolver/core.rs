@@ -1,5 +1,7 @@
-use pubgrub::{Dependencies, DependencyProvider, PackageResolutionStatistics, Ranges, SemanticVersion, resolve};
-use rustc_hash::{FxBuildHasher, FxHashMap};
+use pubgrub::{
+    Dependencies, DependencyConstraints, DependencyProvider, PackageResolutionStatistics, Ranges, SelectedDependencies,
+    SemanticVersion, resolve,
+};
 use std::{
     cell::RefCell,
     cmp::Reverse,
@@ -122,7 +124,7 @@ impl DependencyProvider for BelleDepsProvider {
     ) -> Result<Dependencies<String, SemVS, Self::M>, AppError> {
         // If the package name is "." this is our root package so its dependencies are as given
         if package == "." {
-            let deps: HashMap<String, Ranges<SemanticVersion>, rustc_hash::FxBuildHasher> = self
+            let deps: DependencyConstraints<String, SemVS> = self
                 .root_packages
                 .iter()
                 .map(|(name, version)| {
@@ -144,24 +146,25 @@ impl DependencyProvider for BelleDepsProvider {
 
         // The main Isabelle package has no further dependencies
         if package == ISABELLE_PACKAGE {
-            return Ok(Dependencies::Available(HashMap::default()));
+            return Ok(Dependencies::Available(Default::default()));
         }
 
         // Isabelle packages have Isabelle as a dependency with the same version as themselves
         if BelleConfig::read_config(|c| c.isabelle_packages.contains(package)) {
-            let isabelle_dep = FxHashMap::from_iter([(ISABELLE_PACKAGE.to_string(), SemVS::singleton(version))]);
+            let isabelle_dep =
+                DependencyConstraints::from_iter([(ISABELLE_PACKAGE.to_string(), SemVS::singleton(version))]);
             return Ok(Dependencies::Available(isabelle_dep));
         }
 
         let package = PackageIdentifier::new(package, version);
         let manifest = package.get_package_manifest()?.report_package_nonexistent(package)?;
 
-        let mut deps: HashMap<String, SemVS, rustc_hash::FxBuildHasher> = HashMap::with_hasher(FxBuildHasher);
+        let mut deps_builder: HashMap<String, SemVS> = HashMap::new();
 
         match manifest {
             RegisteredPackage::Alias(alias) => {
                 // If this package is an alias then just add its aliases package as a version
-                deps.insert(alias.alias.name, SemVS::singleton(alias.alias.version));
+                deps_builder.insert(alias.alias.name, SemVS::singleton(alias.alias.version));
             }
             RegisteredPackage::Package(meta) => {
                 // Get list of Isabelle versions allowed for this package
@@ -173,18 +176,18 @@ impl DependencyProvider for BelleDepsProvider {
                 for (name, version) in meta.dependencies {
                     // If the dependency is an Isabelle package then, we can accept any versions of Isabelle which this package accepts
                     if BelleConfig::read_config(|c| c.isabelle_packages.contains(&name)) {
-                        deps.insert(name, isabelle_versions_range.clone());
+                        deps_builder.insert(name, isabelle_versions_range.clone());
                         continue;
                     }
 
                     // For regular dependencies
                     // Currently use a singleton so ony the exact package will match
                     // This is to ensure 1:1 reproducibility between environments
-                    deps.insert(name, SemVS::singleton(version));
+                    deps_builder.insert(name, SemVS::singleton(version));
                 }
 
                 // Add Isabelle itself as a dependency
-                deps.insert(ISABELLE_PACKAGE.to_string(), isabelle_versions_range);
+                deps_builder.insert(ISABELLE_PACKAGE.to_string(), isabelle_versions_range);
 
                 // If we must collect all possible Isabelle versions, then add this packages possible versions here
                 if self.update_isabelle_versions {
@@ -194,6 +197,7 @@ impl DependencyProvider for BelleDepsProvider {
             }
         }
 
+        let deps = deps_builder.into_iter().collect::<DependencyConstraints<_, _>>();
         Ok(Dependencies::Available(deps))
     }
 
@@ -208,13 +212,17 @@ impl BelleDepsProvider {
     pub fn resolve(
         isabelle: VersionReq,
         packages: HashMap<String, VersionReq>,
-    ) -> Result<HashMap<String, SemanticVersion>, AppError> {
+    ) -> Result<SelectedDependencies<String, SemanticVersion>, AppError> {
         let resolver = BelleDepsProvider::new(isabelle, packages)?;
 
-        let mut resolved_dependencies =
-            resolve(&resolver, ".".to_string(), SemanticVersion::zero()).report_no_solution()?;
-        resolved_dependencies.remove(".");
+        let resolved_dependencies: SelectedDependencies<_, _> =
+            resolve(&resolver, ".".to_string(), SemanticVersion::zero())
+                .report_no_solution()?
+                .into_iter()
+                // Filter out the root package
+                .filter(|(package, _)| package != ".")
+                .collect();
 
-        Ok(resolved_dependencies.into_iter().collect())
+        Ok(resolved_dependencies)
     }
 }

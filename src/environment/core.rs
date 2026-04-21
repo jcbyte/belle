@@ -183,7 +183,10 @@ impl Environment {
     }
 
     pub fn resolve_lock(&mut self) -> Result<(), AppError> {
-        let resolved_packages = BelleDepsProvider::resolve(self.isabelle.clone(), self.packages.clone())?;
+        let resolved_packages: HashMap<String, SemanticVersion> =
+            BelleDepsProvider::resolve(self.isabelle.clone(), self.packages.clone())?
+                .into_iter()
+                .collect();
         self.lock = resolved_packages;
 
         Ok(())
